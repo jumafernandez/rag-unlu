@@ -2,7 +2,7 @@ import os
 from selenium.webdriver.chrome.options import Options   #libreria que permite configurar el comportamiento del buscador
 from fake_useragent import UserAgent
 import conf
-
+import pandas as pd
 
 os.environ['no_proxy'] = 'localhost,127.0.0.1'
 
@@ -45,3 +45,14 @@ def options(seccion):
     opciones.add_experimental_option("useAutomationExtension", False)
     
     return opciones
+
+########################################################################################################################
+
+def pandasDataframe(ARCHIVO_METADOS):    
+    
+    if os.path.exists(ARCHIVO_METADOS):
+        return pd.read_csv(ARCHIVO_METADOS)
+    else:   #crea el dataframe
+        dataframe = pd.DataFrame(columns=["Tipo de documento", "Numero", "Estado", "Fecha", "Titulo"])
+        dataframe.to_csv(ARCHIVO_METADOS, index=False)
+        return dataframe

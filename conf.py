@@ -7,6 +7,9 @@ DIRECTORIO_BASE = os.path.dirname(_RUTA_DEL_SCRIPT)
 #Carpeta donde se guardan los PDF
 DIRECTORIO_DESCARGAS = os.path.join(DIRECTORIO_BASE, "Descargas")
 
+#Rutas completas a los archivos de datos
+RUTA_METADATOS = os.path.join(DIRECTORIO_BASE, "metadatos.csv")
+
 SECCIONES = [
     "DEPARTAMENTO DE CIENCIAS BÁSICAS",
     "RESOLUCIONES ASAMBLEA UNIVERSITARIA",

@@ -4,7 +4,8 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from random import randint
-
+import opciones as op
+import conf
 
 def encontrar_Carpeta(opciones, url, seccion):
     
@@ -46,8 +47,7 @@ def descargar_Documento(driver, seccion):
     lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
     #accedemos a cada uno
     for elemento in lista:
-        #recopilamos metadatos en un pandas
-        recopilar_metadatos(elemento, seccion)
+        time.sleep(randint(1,3))
         #descargamos pdf
         try:
             #accedemos donde se encuentra el documento
@@ -56,16 +56,32 @@ def descargar_Documento(driver, seccion):
             click_PDF.click()
         except Exception:
             print("No se pudo iniciar la descarga del PDF...\n")
-        
+
         #le cambiamos el nombre
+        
+        #recopilamos metadatos en un pandas
+        recopilar_metadatos(elemento, seccion)
         
 def recopilar_metadatos(elemento, seccion):
     metadatos = elemento.find_elements(By.TAG_NAME, "td")
     
+    tipo_documento = metadatos[0].text
     num_disposicion = metadatos[1].text
     estado = metadatos[2].text
     fecha = metadatos[3].text
     titulo = metadatos[5].text
     
-    print(f"numero: {num_disposicion} / estado: {estado} / fecha {fecha} / titulo {titulo}")
+    print(f"tipo de documento: {tipo_documento} / numero: {num_disposicion} / estado: {estado} / fecha: {fecha} / titulo: {titulo}")
+    
+    fila_completa = {
+        "Tipo de documento": tipo_documento, 
+        "Numero": num_disposicion,
+        "Estado" : estado,
+        "Fecha" : fecha,
+        "Titulo" : titulo
+        }
+    
+    dataframe = op.pandasDataframe(conf.RUTA_METADATOS)
+    dataframe.loc[len(dataframe)] = fila_completa
+    dataframe.to_csv(conf.RUTA_METADATOS, index=False, encoding="utf-8-sig")    #guarda las modificaciones 
     
