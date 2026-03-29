@@ -30,7 +30,7 @@ def encontrar_Carpeta(opciones, url, seccion):
         if seccion in elemento.text:
             try:
                 elemento.click()    #accedemos a la carpeta de documentos buscada
-                time.sleep(1,5)
+                #time.sleep(1,5)
                 descargar_Documento(driver, seccion)    #iniciamos la descarga de documentos
                 break
             except Exception:
@@ -40,12 +40,23 @@ def encontrar_Carpeta(opciones, url, seccion):
     
     
 def descargar_Documento(driver, seccion):
-    print("Iniciando la descarga de los documentos de {seccion}\n")
+    print(f"Iniciando la descarga de los documentos de {seccion}\n")
     
     #recopilar elementos
+    lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
     
     #accedemos a cada uno
+    for elemento in lista:
         #recopilamos metadatos en un pandas
+        
         #descargamos pdf
+        try:
+            #accedemos donde se encuentra el documento
+            click_PDF = elemento.find_element(By.CSS_SELECTOR, "i.fas.fa-arrow-circle-down.icon-button")
+            #iniciamos la descarga
+            click_PDF.click()
+        except Exception:
+            print("No se pudo iniciar la descarga del PDF...\n")
+        
         #le cambiamos el nombre
         
