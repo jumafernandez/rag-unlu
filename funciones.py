@@ -44,11 +44,10 @@ def descargar_Documento(driver, seccion):
     
     #recopilar elementos
     lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
-    
     #accedemos a cada uno
     for elemento in lista:
         #recopilamos metadatos en un pandas
-        
+        recopilar_metadatos(elemento, seccion)
         #descargamos pdf
         try:
             #accedemos donde se encuentra el documento
@@ -60,3 +59,13 @@ def descargar_Documento(driver, seccion):
         
         #le cambiamos el nombre
         
+def recopilar_metadatos(elemento, seccion):
+    metadatos = elemento.find_elements(By.TAG_NAME, "td")
+    
+    num_disposicion = metadatos[1].text
+    estado = metadatos[2].text
+    fecha = metadatos[3].text
+    titulo = metadatos[5].text
+    
+    print(f"numero: {num_disposicion} / estado: {estado} / fecha {fecha} / titulo {titulo}")
+    
