@@ -6,7 +6,7 @@ from selenium.common.exceptions import NoSuchElementException
 from random import randint
 
 
-def descargar_Documento(opciones, url):
+def descargar_Documento(opciones, url, seccion):
     
     driver = webdriver.Chrome(options=opciones)
     driver.implicitly_wait(4)
@@ -24,6 +24,15 @@ def descargar_Documento(opciones, url):
                 print("No se pudo acceder al boton para acceder a todas las secciones...\n")
 
     
-    lista = driver.find_elements(By.CSS_SELECTOR, "carpeta ng-isolate-scope _md")
-    #for seccion in lista:
+    lista = driver.find_elements(By.CSS_SELECTOR, ".pointer.ng-scope.ng-isolate-scope") #busca todas las carpetas de documentos
+    #por cada carpeta, buscamos cual coincide con la seccion que queres acceder
+    for elemento in lista:
+        if seccion in elemento.text:
+            try:
+                elemento.click()
+                break
+            except Exception:
+                print("No se pudo encontrar la seccion...\n")
+                
+    time.sleep(4)
     
