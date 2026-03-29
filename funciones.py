@@ -6,10 +6,10 @@ from selenium.common.exceptions import NoSuchElementException
 from random import randint
 
 
-def descargar_Documento(opciones, url, seccion):
+def encontrar_Carpeta(opciones, url, seccion):
     
     driver = webdriver.Chrome(options=opciones)
-    driver.implicitly_wait(4)
+    driver.implicitly_wait(8)
     driver.get(url)
     time.sleep(randint(1,3))
     
@@ -29,10 +29,23 @@ def descargar_Documento(opciones, url, seccion):
     for elemento in lista:
         if seccion in elemento.text:
             try:
-                elemento.click()
+                elemento.click()    #accedemos a la carpeta de documentos buscada
+                time.sleep(1,5)
+                descargar_Documento(driver, seccion)    #iniciamos la descarga de documentos
                 break
             except Exception:
                 print("No se pudo encontrar la seccion...\n")
-                
-    time.sleep(4)
     
+                
+    
+    
+def descargar_Documento(driver, seccion):
+    print("Iniciando la descarga de los documentos de {seccion}\n")
+    
+    #recopilar elementos
+    
+    #accedemos a cada uno
+        #recopilamos metadatos en un pandas
+        #descargamos pdf
+        #le cambiamos el nombre
+        
