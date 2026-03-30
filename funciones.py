@@ -32,7 +32,7 @@ def encontrar_Carpeta(opciones, url, seccion):
         if seccion in elemento.text:
             try:
                 elemento.click()    #accedemos a la carpeta de documentos buscada
-                #time.sleep(1,5)
+                time.sleep(randint(1,5))
                 descargar_Documento(driver, seccion)    #iniciamos la descarga de documentos
                 break
             except Exception:
@@ -44,31 +44,49 @@ def encontrar_Carpeta(opciones, url, seccion):
 def descargar_Documento(driver, seccion):
     print(f"Iniciando la descarga de los documentos de {seccion}\n")
     
-    #recopilar elementos
-    lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
-    #accedemos a cada uno
-    for elemento in lista:
+    while(True):
+        #recopilar elementos
+        lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
+        #accedemos a cada uno
+        for elemento in lista:
         
-        id_pdf = str(uuid.uuid4())[:8]  #genera un id en hexa de 8 caracteres para que no se repitan los nombres de los pdf
-        time.sleep(randint(1,3))
-        #descargamos pdf
-        try:
-            #accedemos donde se encuentra el documento
-            click_PDF = elemento.find_element(By.CSS_SELECTOR, "i.fas.fa-arrow-circle-down.icon-button")
-            #iniciamos la descarga
-            click_PDF.click()
-        except NoSuchElementException:
-            print("No se pudo iniciar la descarga del PDF...\n")
-            id_pdf = "No se encontro archivo"
+            id_pdf = str(uuid.uuid4())[:8]  #genera un id en hexa de 8 caracteres para que no se repitan los nombres de los pdf
+            time.sleep(randint(1,5))
+            #descargamos pdf
+            try:
+                #accedemos donde se encuentra el documento
+                click_PDF = elemento.find_element(By.CSS_SELECTOR, "i.fas.fa-arrow-circle-down.icon-button")
+                #iniciamos la descarga
+                click_PDF.click()
+            except NoSuchElementException:
+                print("No se pudo iniciar la descarga del PDF...\n")
+                id_pdf = "No se encontro archivo"
 
-        #le cambiamos el nombre al archivo descargado
+            #le cambiamos el nombre al archivo descargado
         
-        ruta_descarga = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
-        op.renombrarArchivo(ruta_descarga, id_pdf)
+            ruta_descarga = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
+            op.renombrarArchivo(ruta_descarga, id_pdf)
         
-        #recopilamos metadatos en un pandas
+            #recopilamos metadatos en un pandas
         
-        recopilar_metadatos(elemento, id_pdf)
+            recopilar_metadatos(elemento, id_pdf)
+        
+        #avanzamos de pagina
+        try:
+            click_avanzar = driver.find_element(By.CSS_SELECTOR, "button[aria-label='Next']")
+    
+            if click_avanzar.get_attribute("disabled"): #no hay mas paginas disponibles para recorrer
+                print(f"No hay mas paginas disponibles para recorrer dentro de la seccion {seccion}...\n")
+                break 
+        
+            click_avanzar.click()
+            print("Siguiente pagina...\n")
+            time.sleep(5)
+
+        except NoSuchElementException:  #no encontro el boton para seguir
+            print(f"No hay mas paginas en la seccion {seccion}...\n")
+            break
+        
         
 def recopilar_metadatos(elemento, id_pdf):
     
