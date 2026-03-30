@@ -144,40 +144,45 @@ def ultima_pagina_recorrida(seccion, driver):
     
     try:
         #abrir todas las opciones de paginas
-        
         paginas = driver.find_element(By.CSS_SELECTOR, ".page-select.ng-scope")
         paginas.click()
         time.sleep(1)
         
+        #selecciona el menu de opciones de paginas para poder scrollear sobre el
         menu_paginas = WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".md-select-menu-container.md-active md-content[role='listbox']"))
         )
         time.sleep(0.5)
         
+        #scrollea hacia abajo en el menu de las paginas para revelar todas las paginas disponibles
         for i in range(50):
             driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight;", menu_paginas)
             time.sleep(0.2)
         
+        #obtenemos todos las opciones de paginas
         lista = driver.find_elements(By.CSS_SELECTOR, "md-option[ng-repeat='page in $pageSelect.pages']")
+        #accedemos a la ultima pagina disponible
         ultima_pagina = lista[-1].get_attribute('value')    
         
+        #si el valor almacenado en el indice es mayor a la ultima, significa que ya recorrio todos los elementos
         if valor > int(ultima_pagina):
             print(f"El ultimo indice guardado para la seccion {seccion} es {valor} y supera al ultimo de la pagina que es {ultima_pagina}\n")
             ActionChains(driver).send_keys(Keys.ESCAPE).perform()
             return False
-        #return false o algo para cortar la ejecucion
+        #return false para cortar la ejecucion
         
         encontrado = False
         #recopilar la lista de paginas
         for opcion in lista:
+            #verifica que encontremos el ultimo numero de pagina que recorrio
             if valor_string == opcion.get_attribute("value"):
-                
                 
                 driver.execute_script("arguments[0].scrollIntoView(true);", opcion)
                 time.sleep(0.5)
-                
+                #clickea la pagina que le indico el indice
                 opcion.click()
                 encontrado = True
+                
                 time.sleep(2)
                 return True
                 
