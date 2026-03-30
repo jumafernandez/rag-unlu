@@ -44,6 +44,9 @@ def encontrar_Carpeta(opciones, url, seccion):
 def descargar_Documento(driver, seccion):
     print(f"Iniciando la descarga de los documentos de {seccion}\n")
     
+    #calcular pagina
+    ultima_pagina_recorrida(seccion, driver)
+    
     while(True):
         #recopilar elementos
         lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
@@ -78,9 +81,12 @@ def descargar_Documento(driver, seccion):
             if click_avanzar.get_attribute("disabled"): #no hay mas paginas disponibles para recorrer
                 print(f"No hay mas paginas disponibles para recorrer dentro de la seccion {seccion}...\n")
                 break 
-        
+    
             click_avanzar.click()
             print("Siguiente pagina...\n")
+            
+            #actualizar archivo de pagina
+            
             time.sleep(5)
 
         except NoSuchElementException:  #no encontro el boton para seguir
@@ -116,3 +122,33 @@ def recopilar_metadatos(elemento, id_pdf):
     dataframe.loc[len(dataframe)] = fila_completa
     dataframe.to_csv(conf.RUTA_METADATOS, index=False, encoding="utf-8-sig")    #guarda las modificaciones 
     
+def ultima_pagina_recorrida(seccion, driver):
+
+    #####################################
+    
+    #recuperar la ultima pagina que recorrio (archivo)
+    
+    #abrir todas las opciones de paginas
+    
+    #escrolear hacia abajo
+    
+    #obtener los elementos con la clase md-option[ng-repeat='page in $pageSelect.pages']
+    
+    #if valor > lista[len(lista)].value
+        #break
+        #print
+    
+    #recopilar la lista de paginas
+    
+        #if valor != 0
+        
+            
+            #comparar con el numero de pagina que recuperamos
+            
+                #if valor == elemento.value
+
+                    #click
+                    #break
+            
+            #si llega aca es porq no lo encontro, tira error
+        
