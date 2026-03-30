@@ -3,6 +3,9 @@ from selenium.webdriver.chrome.options import Options   #libreria que permite co
 from fake_useragent import UserAgent
 import conf
 import pandas as pd
+import time
+import glob
+
 
 os.environ['no_proxy'] = 'localhost,127.0.0.1'
 
@@ -53,6 +56,20 @@ def pandasDataframe(ARCHIVO_METADOS):
     if os.path.exists(ARCHIVO_METADOS):
         return pd.read_csv(ARCHIVO_METADOS)
     else:   #crea el dataframe
-        dataframe = pd.DataFrame(columns=["Tipo de documento", "Numero", "Estado", "Fecha", "Titulo"])
+        dataframe = pd.DataFrame(columns=["Tipo de documento", "Numero", "Estado", "Fecha", "Titulo", "ID PDF"])
         dataframe.to_csv(ARCHIVO_METADOS, index=False)
         return dataframe
+    
+def renombrarArchivo(ruta, id_pdf):
+    time.sleep(2) 
+    patron = os.path.join(ruta, "*.pdf")
+    archivos = glob.glob(patron)
+    if not archivos:
+        return #si no lo encuentra, corta
+    
+    archivo_reciente = max(archivos, key=os.path.getctime)  #busca el archivo mas reciente de la ruta
+    ruta_final = os.path.join(ruta, f"{id_pdf}.pdf")
+    try:
+        os.rename(archivo_reciente, ruta_final)
+    except Exception as e:
+        print(f"Error al renombrar: {e}")

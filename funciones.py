@@ -6,6 +6,7 @@ from selenium.common.exceptions import NoSuchElementException
 from random import randint
 import opciones as op
 import conf
+import uuid
 
 def encontrar_Carpeta(opciones, url, seccion):
     
@@ -47,6 +48,8 @@ def descargar_Documento(driver, seccion):
     lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
     #accedemos a cada uno
     for elemento in lista:
+        
+        id_pdf = str(uuid.uuid4())[:8]  #genera un id en hexa de 8 caracteres para que no se repitan los nombres de los pdf
         time.sleep(randint(1,3))
         #descargamos pdf
         try:
@@ -54,15 +57,23 @@ def descargar_Documento(driver, seccion):
             click_PDF = elemento.find_element(By.CSS_SELECTOR, "i.fas.fa-arrow-circle-down.icon-button")
             #iniciamos la descarga
             click_PDF.click()
-        except Exception:
+        except NoSuchElementException:
             print("No se pudo iniciar la descarga del PDF...\n")
+            id_pdf = "No se encontro archivo"
 
-        #le cambiamos el nombre
+        #le cambiamos el nombre al archivo descargado
+        
+        ruta_descarga = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
+        op.renombrarArchivo(ruta_descarga, id_pdf)
         
         #recopilamos metadatos en un pandas
-        recopilar_metadatos(elemento, seccion)
         
-def recopilar_metadatos(elemento, seccion):
+        recopilar_metadatos(elemento, id_pdf)
+        
+def recopilar_metadatos(elemento, id_pdf):
+    
+    
+    #recopilamos todos los td para poder extraer el texto por partes
     metadatos = elemento.find_elements(By.TAG_NAME, "td")
     
     tipo_documento = metadatos[0].text
@@ -71,16 +82,18 @@ def recopilar_metadatos(elemento, seccion):
     fecha = metadatos[3].text
     titulo = metadatos[5].text
     
-    print(f"tipo de documento: {tipo_documento} / numero: {num_disposicion} / estado: {estado} / fecha: {fecha} / titulo: {titulo}")
+    print(f"tipo de documento: {tipo_documento} / numero: {num_disposicion} / estado: {estado} / fecha: {fecha} / titulo: {titulo} / ID PDF : {id_pdf}\n")
     
     fila_completa = {
         "Tipo de documento": tipo_documento, 
         "Numero": num_disposicion,
         "Estado" : estado,
         "Fecha" : fecha,
-        "Titulo" : titulo
+        "Titulo" : titulo,
+        "ID PDF" : id_pdf
         }
     
+    #agregamos una nueva fila en nuestro .csv
     dataframe = op.pandasDataframe(conf.RUTA_METADATOS)
     dataframe.loc[len(dataframe)] = fila_completa
     dataframe.to_csv(conf.RUTA_METADATOS, index=False, encoding="utf-8-sig")    #guarda las modificaciones 
