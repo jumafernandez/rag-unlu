@@ -5,9 +5,9 @@ import conf
 import pandas as pd
 import time
 import glob
+import json
 
-
-os.environ['no_proxy'] = 'localhost,127.0.0.1'
+#os.environ['no_proxy'] = 'localhost,127.0.0.1'
 
 def nuevaCarpeta(seccion):
     ruta_final = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
@@ -73,3 +73,30 @@ def renombrarArchivo(ruta, id_pdf):
         os.rename(archivo_reciente, ruta_final)
     except Exception as e:
         print(f"Error al renombrar: {e}")
+
+
+
+########################################################################################################################
+
+def cargarindice(seccion):  
+    if os.path.exists(conf.RUTA_PROGRESO):
+        try:
+            with open(conf.RUTA_PROGRESO, 'r') as f:
+                datos = json.load(f)
+                return datos.get(seccion, 0)    #lee el json y retorna el indice de la seccion especifica. si no se encontro la seccion, devuelve "0"
+        except:
+            return 0
+    return 0
+
+def guardarindice(seccion, nuevo_indice):
+    datos = {}
+    if os.path.exists(conf.RUTA_PROGRESO):
+        try:
+            with open(conf.RUTA_PROGRESO, 'r') as f:  #lee los datos 
+                datos = json.load(f)
+        except:
+            datos = {}
+    
+    datos[seccion] = nuevo_indice   #en la seccion especifica, actualiza el progreso
+    with open(conf.RUTA_PROGRESO, 'w') as f:
+        json.dump(datos, f)

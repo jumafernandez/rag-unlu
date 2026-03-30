@@ -9,6 +9,7 @@ DIRECTORIO_DESCARGAS = os.path.join(DIRECTORIO_BASE, "Descargas")
 
 #Rutas completas a los archivos de datos
 RUTA_METADATOS = os.path.join(DIRECTORIO_BASE, "metadatos.csv")
+RUTA_PROGRESO = os.path.join(DIRECTORIO_BASE, "Indice.json")
 
 SECCIONES = [
     "DEPARTAMENTO DE CIENCIAS BÁSICAS",

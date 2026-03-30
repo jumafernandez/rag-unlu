@@ -7,6 +7,10 @@ from random import randint
 import opciones as op
 import conf
 import uuid
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 def encontrar_Carpeta(opciones, url, seccion):
     
@@ -45,54 +49,57 @@ def descargar_Documento(driver, seccion):
     print(f"Iniciando la descarga de los documentos de {seccion}\n")
     
     #calcular pagina
-    ultima_pagina_recorrida(seccion, driver)
+    if ultima_pagina_recorrida(seccion, driver):
     
-    while(True):
-        #recopilar elementos
-        lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
-        #accedemos a cada uno
-        for elemento in lista:
-        
-            id_pdf = str(uuid.uuid4())[:8]  #genera un id en hexa de 8 caracteres para que no se repitan los nombres de los pdf
-            time.sleep(randint(1,5))
-            #descargamos pdf
+        while(True):
+            #recopilar elementos
+            lista = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
+            #accedemos a cada uno
+            for elemento in lista:
+            
+                id_pdf = str(uuid.uuid4())[:8]  #genera un id en hexa de 8 caracteres para que no se repitan los nombres de los pdf
+                time.sleep(randint(1,5))
+                #descargamos pdf
+                try:
+                    #accedemos donde se encuentra el documento
+                    click_PDF = elemento.find_element(By.CSS_SELECTOR, "i.fas.fa-arrow-circle-down.icon-button")
+                    #iniciamos la descarga
+                    click_PDF.click()
+                except NoSuchElementException:
+                    print("No se pudo iniciar la descarga del PDF...\n")
+                    id_pdf = "No se encontro archivo"
+
+                #le cambiamos el nombre al archivo descargado
+            
+                ruta_descarga = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
+                op.renombrarArchivo(ruta_descarga, id_pdf)
+            
+                #recopilamos metadatos en un pandas
+            
+                recopilar_metadatos(elemento, id_pdf)
+            
+            #avanzamos de pagina
             try:
-                #accedemos donde se encuentra el documento
-                click_PDF = elemento.find_element(By.CSS_SELECTOR, "i.fas.fa-arrow-circle-down.icon-button")
-                #iniciamos la descarga
-                click_PDF.click()
-            except NoSuchElementException:
-                print("No se pudo iniciar la descarga del PDF...\n")
-                id_pdf = "No se encontro archivo"
+                click_avanzar = driver.find_element(By.CSS_SELECTOR, "button[aria-label='Next']")
+        
+                if click_avanzar.get_attribute("disabled"): #no hay mas paginas disponibles para recorrer
+                    op.guardarindice(seccion, nuevo_indice=(op.cargarindice(seccion) + 1))
+                    print(f"No hay mas paginas disponibles para recorrer dentro de la seccion {seccion}...\n")
+                    break 
+        
+                click_avanzar.click()
+                print("Siguiente pagina...\n")
+                
+                #actualizar archivo de pagina
+                op.guardarindice(seccion, nuevo_indice=(op.cargarindice(seccion) + 1))
+                time.sleep(5)
 
-            #le cambiamos el nombre al archivo descargado
-        
-            ruta_descarga = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
-            op.renombrarArchivo(ruta_descarga, id_pdf)
-        
-            #recopilamos metadatos en un pandas
-        
-            recopilar_metadatos(elemento, id_pdf)
-        
-        #avanzamos de pagina
-        try:
-            click_avanzar = driver.find_element(By.CSS_SELECTOR, "button[aria-label='Next']")
+            except NoSuchElementException:  #no encontro el boton para seguir
+                print(f"No hay mas paginas en la seccion {seccion}...\n")
+                break
     
-            if click_avanzar.get_attribute("disabled"): #no hay mas paginas disponibles para recorrer
-                print(f"No hay mas paginas disponibles para recorrer dentro de la seccion {seccion}...\n")
-                break 
-    
-            click_avanzar.click()
-            print("Siguiente pagina...\n")
-            
-            #actualizar archivo de pagina
-            
-            time.sleep(5)
-
-        except NoSuchElementException:  #no encontro el boton para seguir
-            print(f"No hay mas paginas en la seccion {seccion}...\n")
-            break
-        
+    else:
+        print(f"No hay paginas nuevas para recorrer en la seccion {seccion}...\n")        
         
 def recopilar_metadatos(elemento, id_pdf):
     
@@ -123,32 +130,59 @@ def recopilar_metadatos(elemento, id_pdf):
     dataframe.to_csv(conf.RUTA_METADATOS, index=False, encoding="utf-8-sig")    #guarda las modificaciones 
     
 def ultima_pagina_recorrida(seccion, driver):
-
-    #####################################
     
     #recuperar la ultima pagina que recorrio (archivo)
     
-    #abrir todas las opciones de paginas
+    valor = op.cargarindice(seccion)
     
-    #escrolear hacia abajo
+    if valor == 0:  #no existen paginas recorridas de esta seccion
+        op.guardarindice(seccion,1) #actualizamos el indice a 1
+        print("Iniciando el scraping desde primer pagina\n")
+        return True
     
-    #obtener los elementos con la clase md-option[ng-repeat='page in $pageSelect.pages']
+    valor_string = str(valor)
     
-    #if valor > lista[len(lista)].value
-        #break
-        #print
-    
-    #recopilar la lista de paginas
-    
-        #if valor != 0
+    try:
+        #abrir todas las opciones de paginas
         
-            
-            #comparar con el numero de pagina que recuperamos
-            
-                #if valor == elemento.value
-
-                    #click
-                    #break
-            
-            #si llega aca es porq no lo encontro, tira error
+        paginas = driver.find_element(By.CSS_SELECTOR, ".page-select.ng-scope")
+        paginas.click()
+        time.sleep(1)
         
+        menu_paginas = WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".md-select-menu-container.md-active md-content[role='listbox']"))
+        )
+        time.sleep(0.5)
+        
+        for i in range(50):
+            driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight;", menu_paginas)
+            time.sleep(0.2)
+        
+        lista = driver.find_elements(By.CSS_SELECTOR, "md-option[ng-repeat='page in $pageSelect.pages']")
+        ultima_pagina = lista[-1].get_attribute('value')    
+        
+        if valor > int(ultima_pagina):
+            print(f"El ultimo indice guardado para la seccion {seccion} es {valor} y supera al ultimo de la pagina que es {ultima_pagina}\n")
+            ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+            return False
+        #return false o algo para cortar la ejecucion
+        
+        encontrado = False
+        #recopilar la lista de paginas
+        for opcion in lista:
+            if valor_string == opcion.get_attribute("value"):
+                
+                
+                driver.execute_script("arguments[0].scrollIntoView(true);", opcion)
+                time.sleep(0.5)
+                
+                opcion.click()
+                encontrado = True
+                time.sleep(2)
+                return True
+                
+        if not encontrado:
+            print(f"No se pudo encontrar la pagina {valor} en el menu...\n")
+            ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+    except:
+        print(f"Error al intentar cargar la pagina {valor}")
