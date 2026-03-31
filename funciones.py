@@ -22,27 +22,56 @@ def encontrar_Carpeta(opciones, url, seccion):
     botones = driver.find_elements(By.CSS_SELECTOR, ".md-button.ng-scope.md-ink-ripple")    #buscamos todos los botones
     #por cada boton, buscamos el que sirve para ver todas las secciones
     for boton in botones:
-        if "VER TODOS" in boton.text :
+        if "VER TODOS" in boton.text.upper():
             try:
                 boton.click()
+                time.sleep(3)
                 break
             except Exception:
                 print("No se pudo acceder al boton para acceder a todas las secciones...\n")
 
     
-    lista = driver.find_elements(By.CSS_SELECTOR, ".pointer.ng-scope.ng-isolate-scope") #busca todas las carpetas de documentos
-    #por cada carpeta, buscamos cual coincide con la seccion que queres acceder
-    for elemento in lista:
-        if seccion in elemento.text:
-            try:
-                elemento.click()    #accedemos a la carpeta de documentos buscada
-                time.sleep(randint(1,5))
-                descargar_Documento(driver, seccion)    #iniciamos la descarga de documentos
-                break
-            except Exception:
-                print("No se pudo encontrar la seccion...\n")
     
-                
+    try:
+        seccion_por_recorrer = f"//*[contains(@class, 'pointer') and contains(., '{seccion}')]"
+        
+        carpeta_buscada = driver.find_element(By.XPATH, seccion_por_recorrer)
+        carpeta_buscada.click()
+        time.sleep(randint(1,5))
+        
+        #iniciamos la descarga de documentos
+        descargar_Documento(driver, seccion)
+        
+    except NoSuchElementException:
+        print(f"Error: no se pudo encontrar ninguna carpeta que coincida con: '{seccion}'...\n")
+    
+    except Exception:
+        print(f"OcurriO un error inesperado al intentar acceder a la carpeta: '{seccion}'...\n")
+        
+        
+    """
+     lista = driver.find_elements(By.CSS_SELECTOR, ".pointer.ng-scope.ng-isolate-scope") #busca todas las carpetas de documentos
+
+    #por cada carpeta, buscamos cual coincide con la seccion que queres acceder
+
+    for elemento in lista:
+
+        if seccion in elemento.text:
+
+            try:
+
+                elemento.click()    #accedemos a la carpeta de documentos buscada
+
+                time.sleep(randint(1,5))
+
+                descargar_Documento(driver, seccion)    #iniciamos la descarga de documentos
+
+                break
+
+            except Exception:
+
+                print("No se pudo encontrar la seccion...\n")
+    """            
     
     
 def descargar_Documento(driver, seccion):
