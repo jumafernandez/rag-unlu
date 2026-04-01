@@ -15,9 +15,9 @@ from selenium.webdriver.support import expected_conditions as EC
 def encontrar_Carpeta(opciones, url, seccion):
     
     driver = webdriver.Chrome(options=opciones)
-    driver.implicitly_wait(8)
+    driver.implicitly_wait(12)
     driver.get(url)
-    time.sleep(randint(1,3))
+    time.sleep(randint(1,5))
     
     botones = driver.find_elements(By.CSS_SELECTOR, ".md-button.ng-scope.md-ink-ripple")    #buscamos todos los botones
     #por cada boton, buscamos el que sirve para ver todas las secciones
@@ -25,7 +25,7 @@ def encontrar_Carpeta(opciones, url, seccion):
         if "VER TODOS" in boton.text.upper():
             try:
                 boton.click()
-                time.sleep(3)
+                time.sleep(5)
                 break
             except Exception:
                 print("No se pudo acceder al boton para acceder a todas las secciones...\n")
@@ -76,7 +76,7 @@ def encontrar_Carpeta(opciones, url, seccion):
     
 def descargar_Documento(driver, seccion):
     print(f"Iniciando la descarga de los documentos de {seccion}\n")
-    
+    time.sleep(5)
     #calcular pagina
     if ultima_pagina_recorrida(seccion, driver):
     
@@ -87,7 +87,7 @@ def descargar_Documento(driver, seccion):
             for elemento in lista:
             
                 id_pdf = str(uuid.uuid4())[:8]  #genera un id en hexa de 8 caracteres para que no se repitan los nombres de los pdf
-                time.sleep(randint(1,5))
+                time.sleep(randint(2,5))
                 #descargamos pdf
                 try:
                     #accedemos donde se encuentra el documento
