@@ -161,6 +161,23 @@ def agregar_metadatos_pandas(metadatos):
     dataframe.loc[len(dataframe)] = metadatos
     dataframe.to_csv(conf.RUTA_METADATOS, index=False, encoding="utf-8-sig")    #guarda las modificaciones 
 
+
+def comparar_si_metadatos_existen(metadatos):
+    dataframe = op.pandasDataframe(conf.RUTA_METADATOS)
+    
+    condicion = (
+        (dataframe['Titulo'] == metadatos['Titulo']) &
+        (dataframe['Numero'] == metadatos['Numero']) &
+        (dataframe['Fecha'] == metadatos['Fecha'])
+    )
+    
+    #agarra el diccionario y comparara, titulo, numero, fecha
+    if dataframe[condicion].empty:
+        print(f"El documento {metadatos['Numero']} no se va a descargar porque ya fue descargado previamente\n")
+    
+    #retorna true si estan todos los datos dentro del archivo
+    
+    #en caso contrario false 
     
 def ultima_pagina_recorrida(seccion, driver):
     
