@@ -25,12 +25,11 @@ def encontrar_Carpeta(opciones, url, seccion):
         if "VER TODOS" in boton.text.upper():
             try:
                 boton.click()
-                time.sleep(5)
                 break
             except Exception:
                 print("No se pudo acceder al boton para acceder a todas las secciones...\n")
 
-    
+    time.sleep(randint(1,5)) 
     
     try:
         seccion_por_recorrer = f"//*[contains(@class, 'pointer') and contains(., '{seccion}')]"
@@ -40,13 +39,13 @@ def encontrar_Carpeta(opciones, url, seccion):
         time.sleep(randint(1,5))
         
         #iniciamos la descarga de documentos
-        descargar_Documento(driver, seccion)
+        recorrer_pagina(driver, seccion)
         
     except NoSuchElementException:
         print(f"Error: no se pudo encontrar ninguna carpeta que coincida con: '{seccion}'...\n")
     
-    except Exception:
-        print(f"OcurriO un error inesperado al intentar acceder a la carpeta: '{seccion}'...\n")
+    except Exception as e:
+        print(f"Ocurrio un error inesperado al descargar los documentos de la carpeta: '{seccion}'...\n Error {e}")
         
         
     """
@@ -74,7 +73,74 @@ def encontrar_Carpeta(opciones, url, seccion):
     """            
     
     
-def descargar_Documento(driver, seccion):
+def recorrer_pagina(driver, seccion):
+    print(f"Iniciando la descarga de los documentos de {seccion}\n")
+    time.sleep(randint(1,3))
+    primera_vuelta = True
+    #calcular pagina
+    if ultima_pagina_recorrida(seccion, driver):
+    
+        while(True):
+            #recopilar elementos
+            lista_filas = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
+            cantidad_filas = len(lista_filas)
+            #accedemos a cada uno
+            for i in range(cantidad_filas):
+                try:
+                    lista_filas = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
+                    elemento = lista_filas[i]
+                    
+                    id_pdf = str(uuid.uuid4())[:8]  #genera un id en hexa de 8 caracteres para que no se repitan los nombres de los pdf
+                    metadatos = recopilar_metadatos(elemento, id_pdf)
+                    descargar = False
+                    
+                    if primera_vuelta:
+                        if not comparar_si_metadatos_existen(metadatos):
+                            descargar = True        
+                    else:
+                        descargar = True
+                    
+                    if descargar:
+                        if descargar_Documento(elemento, driver):
+                            
+                            #agregamos los metadatos al pandas
+                            agregar_metadatos_pandas(metadatos)
+                                    
+                            #le cambiamos el nombre al archivo descargado
+                            ruta_descarga = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
+                            op.renombrarArchivo(ruta_descarga, id_pdf)
+                            
+                except Exception as e:
+                    print(f"Error procesando la fila {i+1}: {e}\n")    
+                       
+            
+            primera_vuelta = False        
+                
+            #avanzamos de pagina
+            try:
+                click_avanzar = driver.find_element(By.CSS_SELECTOR, "button[aria-label='Next']")
+        
+                if click_avanzar.get_attribute("disabled"): #no hay mas paginas disponibles para recorrer
+                    op.guardarindice(seccion, nuevo_indice=(op.cargarindice(seccion) + 1))
+                    print(f"No hay mas paginas disponibles para recorrer dentro de la seccion {seccion}...\n")
+                    break 
+        
+                click_avanzar.click()
+                print("Siguiente pagina...\n")
+                
+                #actualizar archivo de pagina
+                op.guardarindice(seccion, nuevo_indice=(op.cargarindice(seccion) + 1))
+                time.sleep(5)
+
+            except NoSuchElementException:  #no encontro el boton para seguir
+                print(f"No hay mas paginas en la seccion {seccion}...\n")
+                break
+    
+    else:
+        print(f"No hay paginas nuevas para recorrer en la seccion {seccion}...\n")    
+    
+    
+    """
     print(f"Iniciando la descarga de los documentos de {seccion}\n")
     time.sleep(5)
     #calcular pagina
@@ -129,7 +195,29 @@ def descargar_Documento(driver, seccion):
     
     else:
         print(f"No hay paginas nuevas para recorrer en la seccion {seccion}...\n")        
-        
+    
+    """
+
+def descargar_Documento(elemento, driver): #True si pudo descargar el documeto
+    
+    time.sleep(randint(2,5))    
+    #descargamos pdf  
+    try:
+        #accedemos donde se encuentra el documento
+        click_PDF = elemento.find_element(By.CSS_SELECTOR, "i.fas.fa-arrow-circle-down.icon-button")
+        #iniciamos la descarga
+        driver.execute_script("arguments[0].click();", click_PDF)
+        return True
+    
+    except NoSuchElementException:
+        print("No se encontro un PDF para descargar...\n")
+        return False
+    
+    except Exception as e:
+        print(f"Error real al intentar clickear el PDF: {e}\n")
+        return False
+
+
 def recopilar_metadatos(elemento, id_pdf):
     
     
@@ -162,22 +250,21 @@ def agregar_metadatos_pandas(metadatos):
     dataframe.to_csv(conf.RUTA_METADATOS, index=False, encoding="utf-8-sig")    #guarda las modificaciones 
 
 
-def comparar_si_metadatos_existen(metadatos):
+def comparar_si_metadatos_existen(metadatos):   #True: si los datos existen el archivo
     dataframe = op.pandasDataframe(conf.RUTA_METADATOS)
     
+    #agarra el diccionario y comparara, titulo, numero, fecha
     condicion = (
         (dataframe['Titulo'] == metadatos['Titulo']) &
         (dataframe['Numero'] == metadatos['Numero']) &
         (dataframe['Fecha'] == metadatos['Fecha'])
     )
-    
-    #agarra el diccionario y comparara, titulo, numero, fecha
-    if dataframe[condicion].empty:
-        print(f"El documento {metadatos['Numero']} no se va a descargar porque ya fue descargado previamente\n")
-    
     #retorna true si estan todos los datos dentro del archivo
-    
-    #en caso contrario false 
+    if not dataframe[condicion].empty:
+        print(f"El documento {metadatos['Numero']} no se va a descargar porque ya fue descargado previamente\n")
+        return True
+    #en caso contrario false
+    return False    
     
 def ultima_pagina_recorrida(seccion, driver):
     
@@ -232,12 +319,13 @@ def ultima_pagina_recorrida(seccion, driver):
                 #clickea la pagina que le indico el indice
                 opcion.click()
                 encontrado = True
+                print(f"Iniciando descarga desde la pagina {valor_string}")
                 
-                time.sleep(2)
+                time.sleep(4)
                 return True
                 
         if not encontrado:
             print(f"No se pudo encontrar la pagina {valor} en el menu...\n")
             ActionChains(driver).send_keys(Keys.ESCAPE).perform()
-    except:
-        print(f"Error al intentar cargar la pagina {valor}")
+    except Exception as e:
+        print(f"Error al intentar cargar la pagina {valor}\n Error {e}")
