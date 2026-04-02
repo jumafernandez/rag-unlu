@@ -153,10 +153,14 @@ def recopilar_metadatos(elemento, id_pdf):
         "ID PDF" : id_pdf
         }
     
+    return fila_completa
+
+def agregar_metadatos_pandas(metadatos):
     #agregamos una nueva fila en nuestro .csv
     dataframe = op.pandasDataframe(conf.RUTA_METADATOS)
-    dataframe.loc[len(dataframe)] = fila_completa
+    dataframe.loc[len(dataframe)] = metadatos
     dataframe.to_csv(conf.RUTA_METADATOS, index=False, encoding="utf-8-sig")    #guarda las modificaciones 
+
     
 def ultima_pagina_recorrida(seccion, driver):
     
