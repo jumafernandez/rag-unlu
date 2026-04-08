@@ -6,7 +6,6 @@ from selenium.common.exceptions import NoSuchElementException
 from random import randint
 import opciones as op
 import conf
-import uuid
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
@@ -53,6 +52,9 @@ def recorrer_pagina(driver, seccion):
     print(f"Iniciando la descarga de los documentos de {seccion}\n")
     time.sleep(randint(1,3))
     primera_vuelta = True
+    parar = 0
+    #calcular id_pdf
+    id_pdf = op.calcular_ID(seccion)
     #calcular pagina
     if ultima_pagina_recorrida(seccion, driver):
     
@@ -66,7 +68,6 @@ def recorrer_pagina(driver, seccion):
                     lista_filas = driver.find_elements(By.CSS_SELECTOR, "tr.md-row.ng-scope")
                     elemento = lista_filas[i]
                     
-                    id_pdf = str(uuid.uuid4())[:8]  #genera un id en hexa de 8 caracteres para que no se repitan los nombres de los pdf
                     metadatos = recopilar_metadatos(elemento, id_pdf)
                     descargar = False
                     
@@ -87,6 +88,7 @@ def recorrer_pagina(driver, seccion):
                             op.renombrarArchivo(ruta_descarga, id_pdf)
                             ruta_absoluta = os.path.join(conf.DIRECTORIO_DESCARGAS, f"{id_pdf}.pdf")
                             print(f"PDF descargado en {ruta_absoluta}\n")
+                            id_pdf += 1
                             
                 except Exception as e:
                     print(f"Error procesando la fila {i+1}: {e}\n")    
@@ -113,7 +115,12 @@ def recorrer_pagina(driver, seccion):
             except NoSuchElementException:  #no encontro el boton para seguir
                 print(f"No hay mas paginas en la seccion {seccion}...\n")
                 break
-    
+            if parar == 1:
+                parar = 0
+                time.sleep(1)
+                op.pausa_preventiva_parada(conf.PAUSA)
+            else:
+                parar += 1
     else:
         print(f"No hay paginas nuevas para recorrer en la seccion {seccion}...\n")    
    
@@ -154,7 +161,7 @@ def recopilar_metadatos(elemento, id_pdf):
     fecha = metadatos[3].text
     titulo = metadatos[5].text
     
-    print(f"tipo de documento: {tipo_documento} / numero: {num_disposicion} / estado: {estado} / fecha: {fecha} / titulo: {titulo} / ID PDF : {id_pdf}\n")
+    #print(f"tipo de documento: {tipo_documento} / numero: {num_disposicion} / estado: {estado} / fecha: {fecha} / titulo: {titulo} / ID PDF : {id_pdf}\n")
     
     fila_completa = {
         "Tipo de documento": tipo_documento, 
@@ -172,7 +179,6 @@ def agregar_metadatos_pandas(metadatos):
     dataframe = op.pandasDataframe(conf.RUTA_METADATOS)
     dataframe.loc[len(dataframe)] = metadatos
     dataframe.to_csv(conf.RUTA_METADATOS, index=False, encoding="utf-8-sig")    #guarda las modificaciones 
-
 
 def comparar_si_metadatos_existen(metadatos):   #True: si los datos existen el archivo
     dataframe = op.pandasDataframe(conf.RUTA_METADATOS)
@@ -216,7 +222,7 @@ def ultima_pagina_recorrida(seccion, driver):
         time.sleep(0.5)
         
         #scrollea hacia abajo en el menu de las paginas para revelar todas las paginas disponibles
-        for i in range(50):
+        for i in range(100):
             driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight;", menu_paginas)
             time.sleep(0.2)
         

@@ -6,7 +6,7 @@ import pandas as pd
 import time
 import glob
 import json
-
+import sys
 #os.environ['no_proxy'] = 'localhost,127.0.0.1'
 
 def nuevaCarpeta(seccion):
@@ -16,7 +16,7 @@ def nuevaCarpeta(seccion):
 def options(seccion):
     opciones = Options()
     opciones.add_argument("--window-size=1920,1080")  #Establecer tamaño de ventana
-    #opciones.add_argument("--headless")  #Ejecucion sin interfaz visual
+    opciones.add_argument("--headless")  #Ejecucion sin interfaz visual
     opciones.add_argument("--start-maximized")  #Maximiza la ventana al abrir
     opciones.add_argument("--disable-extensions")  #Deshabilita las extensiones
     opciones.add_argument("--blink-settings=imagesEnabled=false")  #Desactiva la carga de imagenes
@@ -100,3 +100,56 @@ def guardarindice(seccion, nuevo_indice):
     datos[seccion] = nuevo_indice   #en la seccion especifica, actualiza el progreso
     with open(conf.RUTA_PROGRESO, 'w') as f:
         json.dump(datos, f)
+
+def calcular_ID(seccion):
+    
+    """
+    Lee la carpeta de la seccion y devuelve el numero secuencial mas alto.
+    Retorna 1 si la carpeta no existe o está vacía.
+    """
+    ruta_carpeta = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
+    
+    # si la carpeta de esta seccion todavia no existe, arrancamos desde cero
+    if not os.path.exists(ruta_carpeta):
+        print(f"no existe la carpeta {seccion} en la carpeta de descargas")
+        return 1
+        
+    archivos = os.listdir(ruta_carpeta)
+    numeros_existentes = []
+    
+    #recorremos lo que hay en la carpeta
+    for archivo in archivos:
+        if archivo.endswith(".pdf"):
+            # le sacamos el ".pdf" para quedarnos solo con el numero
+            nombre_sin_extension = archivo.replace(".pdf", "")
+        
+            if nombre_sin_extension.isdigit():
+                numeros_existentes.append(int(nombre_sin_extension))
+                
+    #calculamos el mas grande
+    if numeros_existentes:
+        ultimo_numero = max(numeros_existentes)
+        #sumamos 1 para que sea el siguiente id a descargar
+        ultimo_numero += 1
+        
+        return ultimo_numero
+    else:
+        # Si la carpeta existe pero no hay PDFs válidos adentro
+        return 1
+########################################################################################################################
+
+def pausa_preventiva_parada(segundos=5):
+    """
+    Crea una cuenta regresiva en la consola para permitir al usuario
+    detener el script manualmente antes de una acción crítica.
+    """
+    print(f"\n--- ATENCIÓN: Acción de descarga inminente ---")
+    for i in range(segundos, 0, -1):
+        # El \r al principio y end="" hacen que el contador se actualice en la misma línea
+        sys.stdout.write(f"\rTenés {i} segundos para parar el script (Ctrl+C o Stop)... ")
+        sys.stdout.flush()
+        time.sleep(1)
+    
+    # Limpiamos la línea al terminar la cuenta
+    sys.stdout.write("\rContinuando con la ejecución...                         \n")
+    sys.stdout.flush()
