@@ -101,7 +101,8 @@ def recorrer_pagina(driver, seccion):
                 click_avanzar = driver.find_element(By.CSS_SELECTOR, "button[aria-label='Next']")
         
                 if click_avanzar.get_attribute("disabled"): #no hay mas paginas disponibles para recorrer
-                    op.guardarindice(seccion, nuevo_indice=(op.cargarindice(seccion) + 1))
+                    #op.guardarindice(seccion, nuevo_indice=(op.cargarindice(seccion) + 1))
+                    op.guardarindice(seccion, nuevo_indice=(op.cargarindice(seccion)))
                     print(f"No hay mas paginas disponibles para recorrer dentro de la seccion {seccion}...\n")
                     break 
         
@@ -222,7 +223,7 @@ def ultima_pagina_recorrida(seccion, driver):
         time.sleep(0.5)
         
         #scrollea hacia abajo en el menu de las paginas para revelar todas las paginas disponibles
-        for i in range(100):
+        for i in range(120):
             driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight;", menu_paginas)
             time.sleep(0.2)
         
