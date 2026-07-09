@@ -85,9 +85,9 @@ def recorrer_pagina(driver, seccion):
                                     
                             #le cambiamos el nombre al archivo descargado
                             ruta_descarga = os.path.join(conf.DIRECTORIO_DESCARGAS, seccion)
-                            op.renombrarArchivo(ruta_descarga, id_pdf)
-                            ruta_absoluta = os.path.join(conf.DIRECTORIO_DESCARGAS, f"{id_pdf}.pdf")
-                            print(f"PDF descargado en {ruta_absoluta}\n")
+                            ruta_absoluta = op.renombrarArchivo(ruta_descarga, id_pdf)
+                            if ruta_absoluta:
+                                print(f"PDF descargado en {ruta_absoluta}\n")
                             id_pdf += 1
                             
                 except Exception as e:

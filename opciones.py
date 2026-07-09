@@ -7,6 +7,8 @@ import time
 import glob
 import json
 import sys
+import re
+import unicodedata
 #os.environ['no_proxy'] = 'localhost,127.0.0.1'
 
 def nuevaCarpeta(seccion):
@@ -60,19 +62,54 @@ def pandasDataframe(ARCHIVO_METADOS):
         dataframe.to_csv(ARCHIVO_METADOS, index=False)
         return dataframe
     
+def normalizar_prefijo_archivo(nombre):
+    sin_tildes = unicodedata.normalize("NFKD", nombre)
+    sin_tildes = "".join(letra for letra in sin_tildes if not unicodedata.combining(letra))
+
+    caracteres = []
+    for letra in sin_tildes.upper():
+        if letra.isalnum():
+            caracteres.append(letra)
+        else:
+            caracteres.append("_")
+
+    return "_".join(parte for parte in "".join(caracteres).split("_") if parte)
+
+
+def nombre_archivo_pdf(seccion, id_pdf):
+    prefijo = normalizar_prefijo_archivo(seccion)
+    return f"{prefijo}_{id_pdf}.pdf"
+
+
+def patron_nombre_pdf(seccion):
+    prefijo = normalizar_prefijo_archivo(seccion)
+    return re.compile(rf"^{re.escape(prefijo)}_(\d+)\.pdf$", re.IGNORECASE)
+
+
+def es_nombre_pdf_definitivo(nombre_archivo, seccion):
+    return patron_nombre_pdf(seccion).match(nombre_archivo) is not None
+
+
 def renombrarArchivo(ruta, id_pdf):
     time.sleep(2) 
-    patron = os.path.join(ruta, "*.pdf")
-    archivos = glob.glob(patron)
+    seccion = os.path.basename(os.path.normpath(ruta))
+    patron_archivos = os.path.join(ruta, "*.pdf")
+    archivos = [
+        archivo
+        for archivo in glob.glob(patron_archivos)
+        if not es_nombre_pdf_definitivo(os.path.basename(archivo), seccion)
+    ]
     if not archivos:
         return #si no lo encuentra, corta
     
     archivo_reciente = max(archivos, key=os.path.getctime)  #busca el archivo mas reciente de la ruta
-    ruta_final = os.path.join(ruta, f"{id_pdf}.pdf")
+    ruta_final = os.path.join(ruta, nombre_archivo_pdf(seccion, id_pdf))
     try:
         os.rename(archivo_reciente, ruta_final)
+        return ruta_final
     except Exception as e:
         print(f"Error al renombrar: {e}")
+        return None
 
 
 
@@ -116,15 +153,21 @@ def calcular_ID(seccion):
         
     archivos = os.listdir(ruta_carpeta)
     numeros_existentes = []
+    patron_nombre_actual = patron_nombre_pdf(seccion)
     
     #recorremos lo que hay en la carpeta
     for archivo in archivos:
-        if archivo.endswith(".pdf"):
+        if archivo.lower().endswith(".pdf"):
             # le sacamos el ".pdf" para quedarnos solo con el numero
-            nombre_sin_extension = archivo.replace(".pdf", "")
+            nombre_sin_extension = os.path.splitext(archivo)[0]
         
             if nombre_sin_extension.isdigit():
                 numeros_existentes.append(int(nombre_sin_extension))
+                continue
+
+            coincidencia = patron_nombre_actual.match(archivo)
+            if coincidencia:
+                numeros_existentes.append(int(coincidencia.group(1)))
                 
     #calculamos el mas grande
     if numeros_existentes:
