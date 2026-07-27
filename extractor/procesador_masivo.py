@@ -20,6 +20,28 @@ logging.basicConfig(
 STOP_EVENT = None
 MAIN_STOP_EVENT = None # Evento global controlado por el proceso principal para el manejo de señales
 
+# Tiempo máximo por archivo (segundos). Sin esto, un PDF que cuelgue al extractor
+# bloquea al worker para siempre. Ajustable con EXTRACTOR_TIMEOUT.
+TIMEOUT_POR_ARCHIVO = int(os.environ.get("EXTRACTOR_TIMEOUT", "300"))
+
+
+def _cores_disponibles():
+    """Cores realmente asignados al proceso.
+
+    os.cpu_count() devuelve TODOS los cores del nodo, sin respetar el cpuset que
+    asigna un planificador como SLURM. En un cluster eso sobresuscribe el nodo.
+    """
+    n = os.environ.get("SLURM_CPUS_PER_TASK")
+    if n:
+        try:
+            return max(1, int(n))
+        except ValueError:
+            pass
+    try:
+        return max(1, len(os.sched_getaffinity(0)))
+    except AttributeError:  # macOS / Windows no tienen sched_getaffinity
+        return max(1, os.cpu_count() or 1)
+
 
 def init_worker(stop_event):
     global STOP_EVENT
@@ -67,7 +89,7 @@ def _terminar_proceso_hijo(proceso):
             pass
 
 
-def _ejecutar_comando(comando, cwd, entorno=None):
+def _ejecutar_comando(comando, cwd, entorno=None, timeout=None):
     creationflags = 0
     if os.name == "nt":
         creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
@@ -83,6 +105,8 @@ def _ejecutar_comando(comando, cwd, entorno=None):
         start_new_session=os.name != "nt",
     )
 
+    inicio = time.time()
+
     try:
         while True:
             if STOP_EVENT is not None and STOP_EVENT.is_set():
@@ -92,6 +116,10 @@ def _ejecutar_comando(comando, cwd, entorno=None):
             if proceso.poll() is not None:
                 stdout, stderr = proceso.communicate()
                 return stdout, stderr, proceso.returncode
+
+            if timeout is not None and (time.time() - inicio) > timeout:
+                _terminar_proceso_hijo(proceso)
+                return "", f"TIMEOUT: superó {timeout}s y fue terminado", 124
 
             time.sleep(0.2)
     except KeyboardInterrupt:
@@ -108,8 +136,9 @@ def procesar_un_archivo(archivo, ruta_origen_abs, carpeta_resultados, script_ext
 
     try:
         stdout, stderr, returncode = _ejecutar_comando(
-            ["python", script_extractor, ruta_completa_pdf],
+            [sys.executable, script_extractor, ruta_completa_pdf],
             cwd=carpeta_resultados,
+            timeout=TIMEOUT_POR_ARCHIVO,
         )
 
         if returncode != 0:
@@ -127,8 +156,9 @@ def procesar_un_archivo(archivo, ruta_origen_abs, carpeta_resultados, script_ext
 
         if os.path.exists(os.path.join(carpeta_resultados, name_md := nombre_md)) and os.path.exists(os.path.join(carpeta_resultados, nombre_json)):
             stdout, stderr, returncode = _ejecutar_comando(
-                ["python", script_post_procesador, nombre_json, nombre_md],
+                [sys.executable, script_post_procesador, nombre_json, nombre_md],
                 cwd=carpeta_resultados,
+                timeout=TIMEOUT_POR_ARCHIVO,
             )
 
             if returncode != 0:
@@ -179,6 +209,23 @@ def procesar_carpeta(ruta_destino, cantidad_aleatoria=None):
         print(f"No se encontraron archivos PDF en '{ruta_destino}'.")
         return
 
+    # Reanudación: omitir los que ya tienen su YAML canónico. Permite re-lanzar el
+    # trabajo sin reprocesar todo. Desactivable con EXTRACTOR_REANUDAR=0.
+    if os.environ.get("EXTRACTOR_REANUDAR", "1") != "0":
+        total_previo = len(archivos)
+        archivos = [
+            f for f in archivos
+            if not os.path.exists(
+                os.path.join(carpeta_resultados, os.path.splitext(f)[0] + "_canonico.yaml")
+            )
+        ]
+        omitidos = total_previo - len(archivos)
+        if omitidos:
+            print(f"--- Reanudación: {omitidos} ya procesados, se omiten ---")
+        if not archivos:
+            print("--- No queda nada por procesar ---")
+            return
+
     # Lógica para la selección aleatoria de X archivos
     if cantidad_aleatoria is not None:
         if cantidad_aleatoria >= len(archivos):
@@ -196,7 +243,11 @@ def procesar_carpeta(ruta_destino, cantidad_aleatoria=None):
     MAIN_STOP_EVENT = multiprocessing.Event()
 
     if len(archivos) > 1:
-        max_workers = max(1, min(len(archivos), (os.cpu_count() or 1) - 3))
+        cores = _cores_disponibles()
+        reserva = 3 if cores > 4 else 0  # dejar aire solo si hay cores de sobra
+        max_workers = max(1, min(len(archivos), cores - reserva))
+        if os.environ.get("EXTRACTOR_WORKERS"):
+            max_workers = max(1, int(os.environ["EXTRACTOR_WORKERS"]))
         print(f"--- Iniciando procesamiento multinúcleo con {max_workers} workers ---")
 
         # El Executor se abre normalmente

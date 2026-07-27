@@ -1,3 +1,11 @@
-fitz==0.0.1.dev2
-pandas==3.0.3
-PyYAML==6.0.3
+# `fitz` en PyPI es OTRO paquete (un stub abandonado). El que provee `import fitz`
+# es PyMuPDF.
+PyMuPDF
+# pandas y tabulate los necesita la extraccion de tablas:
+#   script_extractor.py:765  tabs.tables[i].to_pandas()  -> pandas
+#   script_extractor.py:776  df.to_markdown()            -> pandas exige tabulate
+pandas
+tabulate
+PyYAML
+# lo usa post_procesador.py:558 Levenshtein.distance(); faltaba.
+Levenshtein
