@@ -1,0 +1,27 @@
+import os
+#RUTAS Y DIRECTORIOS
+#Obtenemos la ruta absoluta de la carpeta donde esta el archivo conf.py
+_RUTA_DEL_SCRIPT = os.path.abspath(__file__)
+DIRECTORIO_BASE = os.path.dirname(_RUTA_DEL_SCRIPT)
+
+#Carpeta donde se guardan los PDF
+DIRECTORIO_DESCARGAS = os.path.join(DIRECTORIO_BASE, "Descargas")
+
+#Rutas completas a los archivos de datos
+RUTA_METADATOS = os.path.join(DIRECTORIO_BASE, "metadatos.csv")
+RUTA_PROGRESO = os.path.join(DIRECTORIO_BASE, "Indice.json")
+#
+PAUSA = 4
+SECCIONES = [
+    "DEPARTAMENTO DE CIENCIAS BÁSICAS",
+    "RESOLUCIONES ASAMBLEA UNIVERSITARIA",
+    "RESOLUCIONES RECTOR",
+    "DEPARTAMENTO DE TECNOLOGIA",
+    "ORDENES DE COMPRA",
+    "DEPARTAMENTO DE CIENCIAS SOCIALES",
+    "DEPARTAMENTO DE EDUCACION",
+    "SECRETARIAS DE RECTORADO",
+    "RESOLUCIONES H. CONSEJO SUPERIOR",
+    "RESOLUCIONES PRESIDENTE H. CONSEJO SUPERIOR",
+    "DIRECCIONES ADMINISTRATIVAS",
+]
