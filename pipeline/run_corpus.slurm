@@ -26,10 +26,15 @@ set -euo pipefail
 
 NSHARDS=4
 
-# La base se deduce de dónde está este script: funciona sin importar cómo se llame al
-# repo en el cluster.
-AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE="$(dirname "$AQUI")"
+# OJO: sbatch COPIA el script a un spool del nodo, así que la ruta del propio script
+# (BASH_SOURCE) apunta a /var/spool/slurmd, no al repo. La referencia buena es
+# SLURM_SUBMIT_DIR: el directorio desde donde se encoló.
+BASE="${RAG_BASE:-${SLURM_SUBMIT_DIR:-$PWD}}"
+if [[ ! -f "$BASE/pipeline/procesar_corpus.py" ]]; then
+  echo "ERROR: '$BASE' no parece la raíz del repo (no encuentro pipeline/procesar_corpus.py)." >&2
+  echo "       Encolá parado en la raíz, o pasá RAG_BASE=/ruta/al/repo sbatch ..." >&2
+  exit 1
+fi
 PDFS="${PDFS:-$BASE/data/portal}"
 SALIDA="${SALIDA:-$BASE/resultados/portal}"
 
