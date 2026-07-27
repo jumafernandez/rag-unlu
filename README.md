@@ -58,13 +58,32 @@ cd ../pipeline && ./01_bajar_wheels.sh 3.9
 # ... subir a Clementina y allá:
 ./02_instalar_en_clementina.sh wheels-py3.9
 
-# 3. procesar
-sbatch run_extractor.slurm
+# 3. procesar (job array: cada tarea toma un shard disjunto de los PDFs)
+sbatch pipeline/run_corpus.slurm
 
 # 4. auditar el resultado
 python pipeline/verificar_resultados.py <resultados> <pdfs>   # cobertura e integridad
 python pipeline/auditoria_rag.py <resultados>                 # calidad como insumo de RAG
 ```
+
+### Por qué un runner propio para el cluster
+
+`extractor/procesador_masivo.py` anda bien en una carpeta chica, pero la corrida de los 19.959
+en Clementina **se colgó a los 686 documentos** sin dejar rastro de dónde. Descartamos, midiendo:
+PDFs que cuelguen (3.000 probados, 0), deadlock de buffers de pipe (el PDF más grande escribe
+232 bytes) y memoria (112–142 MB por proceso; ~8 GB en total, nada para un nodo).
+
+Queda como sospechoso la escritura de decenas de miles de archivos chicos en **un solo
+directorio del filesystem compartido**. `pipeline/procesar_corpus.py` lo evita y además hace
+diagnosticable cualquier cuelgue futuro:
+
+- trabaja en el **disco local del nodo** y copia al final, en vez de martillar el FS compartido;
+- reparte la salida en **256 subdirectorios** (con 140k documentos serían ~420.000 archivos);
+- escribe un **JSONL con una línea por documento** (estado y duración): si se cuelga, el último
+  registro dice exactamente en qué archivo;
+- **shardea** entre tareas de un job array, y **se reanuda** sin reprocesar.
+
+No modifica el extractor: lo invoca igual que antes.
 
 ## Qué mide la auditoría
 
