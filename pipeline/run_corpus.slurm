@@ -26,13 +26,28 @@ set -euo pipefail
 
 NSHARDS=4
 
-BASE="$HOME/rag-unlu"
+# La base se deduce de dónde está este script: funciona sin importar cómo se llame al
+# repo en el cluster.
+AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE="$(dirname "$AQUI")"
 PDFS="${PDFS:-$BASE/data/portal}"
 SALIDA="${SALIDA:-$BASE/resultados/portal}"
-VENV="${VENV:-$BASE/extractor-venv}"
+
+# El venv puede estar en distintos lugares según cómo se instaló. Se usa su python por
+# ruta absoluta en vez de `activate`: así sigue funcionando aunque el venv se haya movido.
+if [[ -n "${VENV:-}" ]]; then
+  CANDIDATOS=("$VENV")
+else
+  CANDIDATOS=("$BASE/extractor-venv" "$BASE/venv" "$HOME/rag-unlu/extractor/venv")
+fi
+PY=""
+for v in "${CANDIDATOS[@]}"; do
+  [[ -x "$v/bin/python" ]] && { PY="$v/bin/python"; break; }
+done
+[[ -n "$PY" ]] || { echo "ERROR: no encontré el venv (probé: ${CANDIDATOS[*]}). Pasalo con VENV=/ruta sbatch $0" >&2; exit 1; }
+"$PY" -c 'import fitz, yaml, Levenshtein' || { echo "ERROR: al venv le faltan dependencias" >&2; exit 1; }
 
 mkdir -p logs "$SALIDA"
-source "$VENV/bin/activate"
 
 # Los documentos tienen acentos; con LANG=C algunos open() rompen.
 export LANG=C.UTF-8 LC_ALL=C.UTF-8
@@ -42,7 +57,7 @@ echo "=== inicio: $(date) ==="
 
 # --scratch: disco local del nodo. Si el cluster define otra ruta rápida por job,
 # cambiala acá (p.ej. /scratch/$SLURM_JOB_ID).
-python "$BASE/pipeline/procesar_corpus.py" \
+"$PY" "$BASE/pipeline/procesar_corpus.py" \
     --pdfs "$PDFS" \
     --salida "$SALIDA" \
     --shard "${SLURM_ARRAY_TASK_ID}/${NSHARDS}" \
