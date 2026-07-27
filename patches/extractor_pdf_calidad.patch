@@ -1,0 +1,188 @@
+diff --git a/post_procesador.py b/post_procesador.py
+index ba13add..f5dc27a 100644
+--- a/post_procesador.py
++++ b/post_procesador.py
+@@ -2,6 +2,7 @@ import json
+ import os
+ import sys
+ import re
++import unicodedata
+ import yaml # Requiere instalar la librería: pip install pyyaml
+ import Levenshtein # <-- NUEVO IMPORT
+ 
+@@ -400,13 +401,137 @@ def resolver_issuing_body(entidades_brutas, document_code, contenido_md, documen
+ 
+     return "unknown"
+ 
++def elegir_fecha_emision(date_cands, document_number, contenido_md):
++    """Elige la fecha de EMISIÓN entre los candidatos detectados.
++
++    Tomar `date_candidates[0]` a ciegas falla seguido: el primer candidato suele ser
++    una fecha de vigencia o del sello digital, no la del acto. Ej. real: el documento
++    dice "LUJAN, 1º DE ABRIL DE 2025" y los candidatos son
++    ['2026-03-31', '2025-04-01'] -> el [0] daba 2026, un año de más.
++
++    Criterio, en orden:
++      1. El año del número de acto ("101/2025" -> 2025) es la señal más fuerte: se
++         prefiere el candidato de ese año. Ante empate, el más temprano (la emisión
++         precede a vigencias y sellos).
++      2. Si eso no resuelve, el candidato que aparezca en el encabezado del documento
++         ("LUJÁN, 29 DE DICIEMBRE DE 2025"), que es donde va la fecha del acto.
++      3. Si nada aplica, el primero (comportamiento anterior).
++    """
++    cands = [c for c in (date_cands or []) if isinstance(c, str) and len(c) >= 4]
++    if not cands:
++        return "unknown"
++
++    año_acto = None
++    m = re.search(r"[/\-]\s*(\d{2,4})\s*$", str(document_number or ""))
++    if m:
++        yy = int(m.group(1))
++        año_acto = 2000 + yy if yy < 100 else yy
++
++    if año_acto:
++        mismos = [c for c in cands if c[:4].isdigit() and int(c[:4]) == año_acto]
++        if mismos:
++            return min(mismos)
++
++    # Fallback: la fecha que figura en el encabezado (primeras líneas del acto).
++    encabezado = "\n".join(contenido_md.split("\n")[:12]) if contenido_md else ""
++    meses = {
++        "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
++        "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
++        "noviembre": 11, "diciembre": 12,
++    }
++    mh = re.search(
++        r"(\d{1,2})\s*[ºo°]?\s+DE\s+([A-ZÁÉÍÓÚa-záéíóú]+)\s+DE\s+(\d{4})",
++        encabezado, re.IGNORECASE)
++    if mh:
++        mes = meses.get(mh.group(2).lower())
++        if mes:
++            objetivo = f"{int(mh.group(3)):04d}-{mes:02d}-{int(mh.group(1)):02d}"
++            if objetivo in cands:
++                return objetivo
++            mismo_mes = [c for c in cands if c.startswith(objetivo[:7])]
++            if mismo_mes:
++                return min(mismo_mes)
++
++    return cands[0]
++
++
++def _tokens_persona(nombre):
++    """Tokens comparables de un nombre: sin acentos, en mayúsculas, >=3 letras."""
++    txt = unicodedata.normalize("NFKD", str(nombre))
++    txt = "".join(c for c in txt if not unicodedata.combining(c)).upper()
++    return {t for t in re.split(r"[^A-Z]+", txt) if len(t) >= 3}
++
++
++def consolidar_signers(candidatos):
++    """Une las variantes de un mismo firmante y prioriza la que trae rol.
++
++    El extractor entrega CANDIDATOS: el mismo firmante suele aparecer dos veces,
++    una desde el pie del acto ("Ángel S. BERTOGLIO", con rol) y otra desde la hoja
++    de firmas del sistema ("ANGEL SEBASTIAN BERTOGLIO VIDAL", sin rol). El tutorial
++    pide que en el YAML ya no queden candidatos sino una lista consolidada.
++
++    Dos entradas son la misma persona si comparten dos o más tokens del nombre
++    (típicamente nombre + apellido), o si los tokens de una están contenidos en la
++    otra. No se descarta a nadie: solo se fusionan variantes.
++    """
++    limpios = []
++    for c in candidatos or []:
++        if not isinstance(c, dict):
++            continue
++        nombre = normalizar_espacios(str(c.get("name", ""))).strip()
++        if not nombre or nombre.lower() == "unknown":
++            continue
++        rol = normalizar_espacios(str(c.get("role", ""))).strip()
++        if rol.lower() in ("", "unknown"):
++            rol = "unknown"
++        limpios.append({"name": nombre, "role": rol, "tokens": _tokens_persona(nombre)})
++
++    grupos = []
++    for cand in limpios:
++        destino = None
++        for g in grupos:
++            comunes = cand["tokens"] & g["tokens"]
++            if len(comunes) >= 2 or (
++                comunes and (cand["tokens"] <= g["tokens"] or g["tokens"] <= cand["tokens"])
++            ):
++                destino = g
++                break
++        if destino is None:
++            grupos.append({"tokens": set(cand["tokens"]), "variantes": [cand]})
++        else:
++            destino["tokens"] |= cand["tokens"]
++            destino["variantes"].append(cand)
++
++    consolidados = []
++    for g in grupos:
++        con_rol = [v for v in g["variantes"] if v["role"] != "unknown"]
++        elegido = con_rol[0] if con_rol else g["variantes"][0]
++        consolidados.append({"name": elegido["name"], "role": elegido["role"]})
++    return consolidados
++
++
++_PARTICULAS_CIUDAD = {"de", "del", "la", "las", "los", "y"}
++
++
++def _capitalizar_ciudad(texto):
++    """'LUJÁN' -> 'Luján', 'SAN MIGUEL' -> 'San Miguel'. Conserva los acentos."""
++    palabras = []
++    for i, palabra in enumerate(texto.split()):
++        chica = palabra.lower()
++        palabras.append(chica if i and chica in _PARTICULAS_CIUDAD else chica.capitalize())
++    return " ".join(palabras)
++
++
+ def normalizar_ciudad(valor):
+     valor = re.sub(r'\s+', ' ', str(valor)).strip(" ,")
+     if not valor:
+         return "unknown"
+ 
+     partes = [p.strip().upper() for p in valor.split(",") if p.strip()]
+-    partes_normalizadas = ["LUJÁN" if p == "LUJAN" else p for p in partes]
++    # El tutorial pide la ciudad normalizada ("Luján"), no en mayúsculas.
++    partes_normalizadas = [
++        _capitalizar_ciudad("LUJÁN" if p == "LUJAN" else p) for p in partes
++    ]
+     return ", ".join(partes_normalizadas) if partes_normalizadas else "unknown"
+ 
+ def extraer_ciudad_desde_md(contenido_md):
+@@ -491,7 +616,7 @@ def procesar_metadatos(json_data, contenido_md):
+ 
+     # 3. Normalizar Fecha y Año
+     date_cands = json_data.get("detected_entities", {}).get("date_candidates", [])
+-    date_issued = date_cands[0] if date_cands else "unknown"
++    date_issued = elegir_fecha_emision(date_cands, document_number, contenido_md)
+     try:
+         year = int(date_issued.split("-")[0]) if date_issued != "unknown" else "unknown"
+     except ValueError:
+@@ -522,12 +647,11 @@ def procesar_metadatos(json_data, contenido_md):
+     source_system = json_data.get("source_system_hint", "unknown")
+     has_sig_page = json_data.get("global_hints", {}).get("has_signature_page", False)
+     
+-    if source_system == "electronic":
+-        signature_mode = "digital"
+-    elif has_sig_page:
+-        signature_mode = "separate_page"
+-    else:
+-        signature_mode = "embedded"
++    # El tutorial fija el vocabulario embedded|separate_page: describe DÓNDE están
++    # las firmas, no con qué tecnología se firmó. Que el acto sea electrónico ya
++    # queda registrado en source_system, así que "digital" era redundante y además
++    # dejaba el campo fuera del vocabulario especificado.
++    signature_mode = "separate_page" if has_sig_page else "embedded"
+ 
+     # 9. Recuperar entidades faltantes del JSON
+     # 9. Recuperar entidades faltantes del JSON
+@@ -574,7 +698,8 @@ def procesar_metadatos(json_data, contenido_md):
+         "courses": entidades_brutas.get("course_candidates", [])
+     }
+ 
+-    signers = entidades_brutas.get("signers_candidates", [])
++    # El tutorial pide una lista consolidada, no los candidatos crudos.
++    signers = consolidar_signers(entidades_brutas.get("signers_candidates", []))
+     
+     # CONSTRUCCIÓN DEL DICCIONARIO CANÓNICO
+     yaml_dict = {

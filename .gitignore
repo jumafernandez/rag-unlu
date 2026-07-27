@@ -1,0 +1,29 @@
+# Corpus de PDFs (8,6 GiB). Se baja del Drive con ingesta/download_portal_rclone.sh
+data/
+
+# Wheels para instalación offline en Clementina (58 MB, regenerables con
+# pipeline/01_bajar_wheels.sh)
+pipeline/wheels-py*/
+
+# Salidas del pipeline
+resultados_extractor/
+canonicos/
+*_canonico.yaml
+docus_error.txt
+docus_escaneos.txt
+errores_extraccion.log
+
+# Logs de SLURM
+*.out
+*.err
+slurm-*.out
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.egg-info/
+
+# macOS
+.DS_Store

@@ -1,0 +1,26 @@
+# requirements CORREGIDO para Extractor_pdf.
+#
+# El requirements.txt del repo tiene dos problemas:
+#   1. `fitz==0.0.1.dev2` NO es PyMuPDF. En PyPI, `fitz` es otro paquete (un stub
+#      abandonado). El que provee `import fitz` es PyMuPDF.
+#   2. Faltan `Levenshtein` y `tabulate`, que sí se usan.
+#
+# Por qué cada uno (verificado en el código, no supuesto):
+#   PyMuPDF     -> `import fitz` (script_extractor.py:1), apertura y parseo de PDFs.
+#   pandas      -> script_extractor.py:765 `tabs.tables[i].to_pandas()`. PyMuPDF hace
+#                  `import pandas` adentro de to_pandas(); sin pandas, los PDFs CON
+#                  TABLAS fallan. PyMuPDF no lo declara como dependencia propia.
+#   tabulate    -> script_extractor.py:776 `df.to_markdown()`. pandas exige tabulate
+#                  para to_markdown(); sin él: "ImportError: Import tabulate failed".
+#   PyYAML      -> post_procesador.py, escribe el YAML canónico.
+#   Levenshtein -> post_procesador.py:558 `Levenshtein.distance(...)`.
+#
+# Sin pin de versión a propósito: en el cluster conviene resolver contra la versión
+# de Python que haya. Si querés reproducibilidad exacta, congelalo después con
+# `pip freeze` desde el venv que quede funcionando.
+
+PyMuPDF
+pandas
+tabulate
+PyYAML
+Levenshtein
