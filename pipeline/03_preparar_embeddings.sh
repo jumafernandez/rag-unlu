@@ -1,65 +1,71 @@
 #!/usr/bin/env bash
 #
-# Prepara TODO lo que hace falta para generar embeddings en Clementina, que no tiene
-# internet: las wheels del stack y los pesos del modelo.
+# Baja los pesos de BGE-m3 para llevarlos a Clementina, que no tiene internet.
 #
-# Se corre EN TU MAC. Después se manda por rsync (el script te imprime el comando).
+# NO hace falta bajar wheels: el venv del cluster (~/trace-repro/venv) ya tiene
+# torch 2.11.0+xpu y sentence-transformers, verificado sobre las GPU Intel Max 1550.
 #
-# Uso:
-#     ./03_preparar_embeddings.sh [version_python_del_cluster]   # default 3.9
+# Se corre EN TU MAC. Al final imprime el comando de rsync.
+#
+# Uso:  ./03_preparar_embeddings.sh
 
 set -euo pipefail
 
-PYVER="${1:-3.9}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
-WHEELS="$HERE/wheels-embeddings-py${PYVER}"
-MODELO="$HERE/modelos/bge-m3"
-PIP=("${PYTHON:-python3}" -m pip)
+BASE="$(dirname "$HERE")"
+DESTINO="$BASE/modelos/bge-m3"
+PY="${PYTHON:-python3}"
 
-mkdir -p "$WHEELS" "$(dirname "$MODELO")"
+mkdir -p "$(dirname "$DESTINO")"
 
-echo ">> 1/2  Wheels del stack de embeddings (Linux x86_64, Python $PYVER)"
-# torch CPU: el índice de PyTorch para CPU evita bajar las variantes CUDA (varios GB
-# de más que en Clementina no sirven, porque las GPU son Intel, no NVIDIA).
-"${PIP[@]}" download \
-  --dest "$WHEELS" \
-  --only-binary=:all: \
-  --platform manylinux2014_x86_64 \
-  --python-version "$PYVER" \
-  --implementation cp \
-  --extra-index-url https://download.pytorch.org/whl/cpu \
-  torch FlagEmbedding numpy
-
-echo ">> wheels: $(du -sh "$WHEELS" | cut -f1)  ($(ls "$WHEELS" | wc -l | tr -d ' ') archivos)"
-
-echo
-echo ">> 2/2  Pesos de BGE-m3 (~2,3 GB)"
-if [[ -d "$MODELO" && -n "$(ls -A "$MODELO" 2>/dev/null)" ]]; then
-  echo "   ya está en $MODELO, no lo bajo de nuevo"
+if [[ -d "$DESTINO" && -n "$(ls -A "$DESTINO" 2>/dev/null)" ]]; then
+  echo ">> Ya está en $DESTINO ($(du -sh "$DESTINO" | cut -f1)); no lo bajo de nuevo."
 else
-  "${PYTHON:-python3}" - "$MODELO" <<'PY'
+  echo ">> Bajando BAAI/bge-m3 (~2,3 GB)..."
+  "$PY" - "$DESTINO" <<'PY'
 import sys
 try:
     from huggingface_hub import snapshot_download
 except ImportError:
-    sys.exit("falta huggingface_hub: pip install huggingface_hub")
+    sys.exit("falta huggingface_hub:  pip install huggingface_hub")
+
 destino = sys.argv[1]
-# Solo lo necesario para inferencia: se evitan los checkpoints de entrenamiento y ONNX.
+# Solo lo necesario para inferencia con sentence-transformers. Se excluyen ONNX y los
+# heads de recuperación esparsa/colbert: acá la parte léxica la resuelve BM25.
 snapshot_download(
     "BAAI/bge-m3",
     local_dir=destino,
-    allow_patterns=["*.json", "*.txt", "*.model", "pytorch_model.bin", "sentencepiece*", "*.safetensors"],
-    ignore_patterns=["onnx/*", "*.onnx", "colbert*", "sparse*"],
+    allow_patterns=[
+        "*.json", "*.txt", "*.md",
+        "sentencepiece.bpe.model", "tokenizer.json", "tokenizer_config.json",
+        "model.safetensors", "pytorch_model.bin",
+        "1_Pooling/*", "modules.json", "config_sentence_transformers.json",
+    ],
+    ignore_patterns=["onnx/*", "*.onnx", "colbert_linear.pt", "sparse_linear.pt"],
 )
 print("descargado en", destino)
 PY
 fi
-echo ">> modelo: $(du -sh "$MODELO" | cut -f1)"
+
+echo
+echo ">> Contenido:"
+du -sh "$DESTINO"
+ls -1 "$DESTINO" | head -12
+
+echo
+echo ">> Verificando que carga y produce vectores..."
+"$PY" - "$DESTINO" <<'PY'
+import sys
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    print("   (sentence-transformers no está en esta Mac; se omite la verificación local)")
+    sys.exit(0)
+m = SentenceTransformer(sys.argv[1], device="cpu")
+v = m.encode(["Disposición DISPCD-CB 528/2025 — Artículo 1"], normalize_embeddings=True)
+print(f"   OK: vector de dimensión {v.shape[1]}")
+PY
 
 echo
 echo "Para mandarlo a Clementina:"
-echo "    rsync -avh --progress '$WHEELS' '$MODELO' clementina:rag-unlu-git/pipeline/"
-echo
-echo "Y allá, instalar en el venv:"
-echo "    ~/rag-unlu-git/extractor-venv/bin/pip install --no-index \\"
-echo "        --find-links ~/rag-unlu-git/pipeline/$(basename "$WHEELS") torch FlagEmbedding"
+echo "    rsync -avh --progress '$BASE/modelos' clementina:rag-unlu-git/"

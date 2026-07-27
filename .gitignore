@@ -31,3 +31,8 @@ venv/
 # Frontend
 node_modules/
 dist/
+
+# Pesos de modelos (2,3 GB, se bajan con pipeline/03_preparar_embeddings.sh)
+modelos/
+indice/
+resultados/

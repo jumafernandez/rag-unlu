@@ -35,10 +35,14 @@ import numpy as np
 # común parte "893/2025" en "893" y "2025", y ahí se pierde justo lo que hace única a la
 # consulta. Estos patrones se prueban en orden y el primero que matchea gana.
 PATRONES = [
-    r'[A-ZÑ]{2,}[A-ZÑ0-9-]*\s*:\s*\d+[-/]\d+',   # RESHCS-LUJ: 0000042-24
-    r'[A-ZÑ]{2,}[A-ZÑ0-9-]*\s*:?\s*\d+\s*/\s*\d{2,4}',  # DISPCD-CB : 528 / 2025
-    r'\d+\s*/\s*\d{2,4}',                         # 893/2025
-    r'[a-zñáéíóú0-9]+(?:-[a-zñáéíóú0-9]+)*',      # palabras y siglas
+    # El código pegado a su número solo se toma junto cuando hay dos puntos de por medio,
+    # que es como los escribe el sistema. Sin esa exigencia, "expediente 175/2008" se
+    # pegaba en un token único y se perdía el "175/2008" suelto, que es justo por donde
+    # la gente busca.
+    r'[A-ZÑ]{2,}[A-ZÑ0-9-]*\s*:\s*\d+\s*[-/]\s*\d{2,4}',   # RESHCS-LUJ: 0000042-24
+    r'\d+\s*/\s*\d{2,4}',                                   # 528/2025, 175/2008
+    r'[A-ZÑ]{2,}[A-ZÑ0-9]*(?:-[A-ZÑ0-9]+)+',                # DISPCD-CB, RESHCS-LUJ
+    r'[a-zñáéíóú0-9]+(?:-[a-zñáéíóú0-9]+)*',                # palabras y siglas
 ]
 RE_TOKENS = re.compile('|'.join(f'({p})' for p in PATRONES), re.IGNORECASE)
 
