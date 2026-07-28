@@ -291,11 +291,23 @@ class Indice:
                 for i, s in mejores]
 
     def contexto(self, resultados, max_caracteres=9000):
-        """Bloque de contexto para el modelo, con las citas visibles."""
+        """Bloque de contexto para el modelo, con las citas visibles.
+
+        Incluye el TÍTULO del acto además del fragmento. En muchos documentos el título
+        es lo único que dice de qué trata: el programa de una asignatura tiene por título
+        "PROGRAMA (10821) ÁLGEBRA — INGENIERÍA INDUSTRIAL" y en el cuerpo solo el nombre
+        del docente. Sin el título, el modelo ve un nombre y un cargo, y responde con
+        razón que no sabe de qué asignatura se trata.
+        """
         partes, usados = [], 0
         for i, _, _ in resultados:
             c = self.chunks[i]
-            bloque = f"[{c['cita']}]\n{c['texto']}"
+            encabezado = f"[{c['cita']}]"
+            if c.get('titulo'):
+                encabezado += f"\n{c['titulo']}"
+            if c.get('date_issued'):
+                encabezado += f"\n(fecha: {c['date_issued']})"
+            bloque = f"{encabezado}\n{c['texto']}"
             if usados + len(bloque) > max_caracteres:
                 break
             partes.append(bloque)
