@@ -1,90 +1,104 @@
 # Privacidad del asistente
 
-Este documento describe qué guarda y qué no guarda el sistema. Está pensado para que
-cualquiera —la Dirección General de Sistemas, o cualquier integrante de la comunidad
-universitaria— pueda **verificarlo en el código y en la base de datos**, no solo creerlo.
-
-## El problema
-
-Un asistente sobre normativa se consulta por licencias, sumarios, concursos, derechos
-laborales. Si quien lo usa sospecha que la institución puede ver qué consultó, no lo usa. Y
-la sospecha sería razonable: en la mayoría de los sistemas con inicio de sesión, el vínculo
-entre persona e historial existe aunque nadie lo mire.
-
-Acá ese vínculo **no existe**.
+Qué guarda y qué no guarda el sistema. Está escrito para que se pueda **verificar en el
+código y en la base de datos**, no solo creer.
 
 ## Qué se guarda
 
+Iniciar sesión es **opcional**. Sin cuenta el asistente responde igual, y no queda ningún
+registro. Con cuenta, se guardan las conversaciones para poder recuperarlas después.
+
 | Dato | ¿Se guarda? | Dónde |
 |---|---|---|
-| Correo institucional | **No** | se usa en memoria para validar el dominio y se descarta |
-| Identificador de persona | **No** | no hay tabla de usuarios |
+| Identificador de la cuenta de Google | Sí | tabla `usuario` |
+| Correo y nombre de la cuenta | Sí | tabla `usuario` |
+| Conversaciones y mensajes | Sí, vinculados al usuario | tablas `conversacion`, `mensaje` |
+| Fuentes citadas en cada respuesta | Sí | columna `mensaje.fuentes` |
+| Valoración de las respuestas | Sí, si la persona la marca | columna `mensaje.util` |
+| Contraseña | **No** | nunca llega a este sistema |
 | Dirección IP | **No** | — |
-| Historial de conversaciones | **No en el servidor** | en el navegador de cada persona |
-| Texto de las consultas | Sí, **sin vincular a nadie** | `datos/consultas.sqlite` |
-| Fuentes recuperadas por consulta | Sí, sin vincular a nadie | idem |
-| Valoración (sirvió / no sirvió) | Sí, sin vincular a nadie | idem |
+| Consultas de quien no inicia sesión | **No** | no se registran |
 
-## Cómo se sostiene técnicamente
+Todo vive en un único archivo SQLite (`datos/chatdigesto.sqlite` por defecto), en la
+infraestructura donde se despliegue el sistema.
 
-**Autenticación sin identidad** (`backend/sesion.py`). El inicio de sesión valida contra la
-cuenta institucional que la persona pertenece al dominio autorizado, emite un token firmado
-que dice únicamente *"esta sesión pertenece a alguien del dominio"*, y descarta el correo. El
-token lleva un identificador aleatorio distinto en cada inicio de sesión: dos sesiones de la
-misma persona no se pueden vincular entre sí.
+## Decisión de diseño: la identidad se guarda
 
-**Historial del lado del usuario.** Las conversaciones se guardan en el navegador. El
-servidor no las recibe ni las almacena. Por eso el historial no se comparte entre
-dispositivos: es el precio de que la afirmación anterior sea literalmente cierta.
+Se evaluó un esquema sin identidad —autenticar solo para validar el acceso y guardar el
+historial en el navegador— que permitiría afirmar que el sistema no puede saber quién
+consultó qué. Se descartó por una razón práctica: **historial entre dispositivos y
+no-vinculabilidad son incompatibles**. Para que alguien vea desde su computadora lo que
+consultó desde el teléfono, algo tiene que unir persona e historial.
 
-**Registro de consultas desacoplado** (`backend/registro.py`). Para medir si el sistema
-recupera bien hace falta saber qué se preguntó y qué se devolvió; no hace falta saber quién
-preguntó. La tabla `consulta` no tiene ninguna columna que apunte a una persona: ni correo,
-ni usuario, ni sesión, ni IP. Cada consulta es una fila suelta.
+Se eligió el historial. En consecuencia, **el vínculo entre usuario y consultas existe** y
+quien administre la base puede verlo. Decirlo es parte del diseño: un sistema que promete
+anonimato y guarda identidad es peor que uno que guarda identidad y lo dice.
 
-Además, **el momento se redondea a la hora**. Con marcas de tiempo al milisegundo se podrían
-reagrupar por cercanía las consultas de una misma persona; la hora alcanza para analizar uso
-y no permite esa reconstrucción.
+Mitigaciones que sí están:
+
+- **Sin contraseñas.** La autenticación la resuelve Google; acá solo llega un token firmado
+  que se valida contra las claves públicas de Google. El sistema nunca ve una contraseña.
+- **Aislamiento entre usuarios**, verificado: cada operación sobre una conversación
+  comprueba que pertenezca a quien la pide. Un usuario no puede leer, renombrar, escribir
+  ni borrar conversaciones de otro.
+- **Uso opcional.** Quien no quiera dejar registro, consulta sin iniciar sesión.
+- **Borrado a demanda.** Cada persona puede borrar sus conversaciones desde la interfaz.
+
+## Qué queda pendiente de definir por la Universidad
+
+Son decisiones institucionales, no técnicas:
+
+- **Retención.** Por cuánto tiempo se conservan las conversaciones.
+- **Acceso.** Quién puede acceder a la base y con qué procedimiento.
+- **Aviso a la comunidad.** Que quien use el sistema sepa qué queda registrado.
+
+Estas definiciones importan porque el asistente se consulta sobre licencias, sumarios y
+derechos laborales: saber qué consultó una persona puede ser sensible aunque el contenido
+del digesto sea público.
+
+## Cifrado del historial
+
+Si se quisiera que ni quien administra la base pueda leer las conversaciones, la salida es
+cifrarlas del lado del cliente: el servidor guardaría texto cifrado con una clave que nunca
+sale del navegador. Funciona, pero si la persona pierde la clave pierde el historial. No
+está implementado; se puede agregar sin cambiar el resto del sistema.
 
 ## Cómo verificarlo
 
 ```bash
-# 1. No hay correos ni identificadores de persona en el esquema
-sqlite3 datos/consultas.sqlite ".schema"
+# Esquema completo: qué columnas existen realmente
+sqlite3 datos/chatdigesto.sqlite ".schema"
 
-# 2. Ni un solo correo en los datos
-sqlite3 datos/consultas.sqlite "SELECT count(*) FROM consulta WHERE pregunta LIKE '%@%'"
+# Las conversaciones de un usuario no son accesibles desde otro:
+grep -n "usuario_id" backend/historial.py
 
-# 3. En el código, el correo se usa una sola vez y no se persiste
-grep -rn "correo\|email" backend/
+# La contraseña nunca llega: solo se valida un token firmado por Google
+grep -n "verify_oauth2_token" backend/sesion.py
 ```
 
-## Lo que este diseño NO resuelve
+## Dependencias externas
 
-Conviene decirlo con todas las letras:
+| Componente | Dónde corre | Qué sale de la institución |
+|---|---|---|
+| Extractor, chunking, embeddings | Clementina (sin internet) | nada |
+| Índice y recuperación | servidor propio | nada |
+| Autenticación | Google | el inicio de sesión de la persona |
+| Generación | API externa (configurable) | la consulta y los fragmentos recuperados |
 
-- **Las consultas quedan guardadas.** Sin vínculo a la persona, pero una consulta muy
-  específica podría insinuar de quién viene (por ejemplo, si menciona un legajo concreto).
-  No se puede eliminar ese riesgo sin dejar de registrar, que es lo que se necesita para
-  evaluar el sistema.
-- **El proveedor de generación ve la consulta.** Mientras se use una API externa, la
-  consulta y los fragmentos recuperados salen de la institución. Está aislado en una sola
-  función (`backend/api.py::generar`) para poder reemplazarlo por un modelo propio.
-- **El contenido del digesto es público, pero contiene datos personales.** Los actos
-  administrativos incluyen nombres y legajos. Eso ya es público por ser normativa publicada;
-  el sistema no agrega exposición, pero sí **facilita** encontrar y agregar esa información.
-  Es una decisión institucional si eso amerita restringir el acceso al sistema.
+La generación está aislada en una única función (`backend/api.py::generar`). Reemplazarla
+por un modelo alojado en infraestructura de la Universidad no afecta al resto del sistema.
+Mientras se use una API externa, salen de la institución la consulta y los fragmentos de
+normativa recuperados; el digesto es documentación pública.
 
-## Si en el futuro se pide historial entre dispositivos
+## Sobre el contenido del digesto
 
-Historial sincronizado y no-vinculabilidad son incompatibles: algo tiene que unir persona e
-historial. La salida honesta es cifrado del lado del cliente —el servidor guarda texto
-cifrado con una clave que nunca sale del navegador—. Funciona, pero si la persona pierde la
-clave pierde el historial. No se implementó porque nadie lo pidió todavía.
+Los actos administrativos incluyen nombres y legajos. Eso ya es público por tratarse de
+normativa publicada: el sistema no agrega exposición, pero sí **facilita** encontrar y
+reunir esa información. Es una decisión institucional si eso amerita restringir el acceso.
 
 ## Marco normativo
 
-Ley 25.326 de Protección de Datos Personales. El diseño busca cumplir por construcción:
-minimización (no se recoge lo que no se necesita), limitación de finalidad (el registro se
-usa para evaluar el sistema) y ausencia de datos personales en el registro. Corresponde a la
-Universidad definir la política de retención de `datos/consultas.sqlite` y quién accede.
+Ley 25.326 de Protección de Datos Personales. El diseño busca minimizar lo que se recoge
+(no se guarda IP, ni las consultas de quien no inicia sesión) y limitar la finalidad
+(el historial existe para que cada persona recupere sus consultas). Corresponde a la
+Universidad definir retención y acceso, que es lo que falta arriba.

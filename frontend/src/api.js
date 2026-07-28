@@ -67,6 +67,51 @@ export const consultar = ({ pregunta, k = 8, conversacionId = null, generar = tr
     body: JSON.stringify({ pregunta, k, conversacion_id: conversacionId, generar })
   });
 
+/**
+ * Consulta con respuesta en flujo (server-sent events).
+ *
+ * Llama a `alRecibir` con cada novedad a medida que llega: primero las fuentes, después
+ * los fragmentos de texto, y al final los identificadores. La respuesta tarda lo mismo,
+ * pero se empieza a leer enseguida.
+ */
+export async function consultarEnFlujo(
+  { pregunta, k = 8, conversacionId = null },
+  alRecibir
+) {
+  const r = await fetch(`${BASE}/consultar/flujo`, {
+    method: "POST",
+    headers: cabeceras(),
+    body: JSON.stringify({ pregunta, k, conversacion_id: conversacionId })
+  });
+  if (r.status === 401) { cerrarSesion(); throw new Error("Tu sesión venció."); }
+  if (!r.ok) throw new Error(`La consulta falló (${r.status}).`);
+
+  const lector = r.body.getReader();
+  const decodificador = new TextDecoder();
+  let resto = "";
+
+  while (true) {
+    const { done, value } = await lector.read();
+    if (done) break;
+    resto += decodificador.decode(value, { stream: true });
+
+    // Los eventos vienen separados por una línea en blanco. Se procesan los completos
+    // y lo que quede a medio llegar espera al próximo trozo.
+    const bloques = resto.split("\n\n");
+    resto = bloques.pop() || "";
+
+    for (const bloque of bloques) {
+      let evento = "message", datos = "";
+      for (const linea of bloque.split("\n")) {
+        if (linea.startsWith("event:")) evento = linea.slice(6).trim();
+        else if (linea.startsWith("data:")) datos += linea.slice(5).trim();
+      }
+      if (!datos) continue;
+      try { alRecibir(evento, JSON.parse(datos)); } catch { /* bloque incompleto */ }
+    }
+  }
+}
+
 export const listarConversaciones = () => pedir("/conversaciones");
 export const leerConversacion = (id) => pedir(`/conversaciones/${id}`);
 export const renombrarConversacion = (id, titulo) =>

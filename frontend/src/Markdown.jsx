@@ -1,0 +1,137 @@
+/**
+ * Renderizador mínimo de Markdown para las respuestas.
+ *
+ * El modelo escribe un subconjunto muy acotado —negritas, itálicas, listas y párrafos—
+ * así que no hace falta una librería completa. Y hay una razón más fuerte para no usarla:
+ * el texto viene de un modelo, y un renderizador general puede interpretar HTML crudo.
+ * Acá NUNCA se inserta HTML: se construyen elementos de React, así que no hay forma de
+ * que el contenido inyecte marcado.
+ *
+ * Soporta: **negrita**, *itálica*, `código`, listas con - o *, listas numeradas,
+ * y párrafos separados por línea en blanco. Todo lo demás se muestra tal cual.
+ */
+
+const RE_INLINE = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g;
+
+// Citas del tipo "(Disposición DISPCD-CB 450/2025 — Artículo 1)". Se detectan para poder
+// enlazarlas con la fuente correspondiente: así la respuesta deja de ser un párrafo suelto
+// y se puede ir de la afirmación al acto que la respalda.
+const RE_CITA = /\(((?:Disposici[oó]n|Resoluci[oó]n)[^)]{4,120})\)/g;
+
+const sinTildes = (t) =>
+  t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/** Índice de la fuente que corresponde a una cita, o -1. */
+function buscarFuente(cita, fuentes) {
+  if (!fuentes?.length) return -1;
+  const objetivo = sinTildes(cita);
+  let exacta = fuentes.findIndex((f) => sinTildes(f.cita) === objetivo);
+  if (exacta >= 0) return exacta;
+  // El modelo a veces recorta o alarga la cita: alcanza con que una contenga a la otra.
+  return fuentes.findIndex((f) => {
+    const c = sinTildes(f.cita);
+    return c.includes(objetivo) || objetivo.includes(c);
+  });
+}
+
+function conFormato(texto, clave, fuentes, alTocarCita) {
+  const partes = texto.split(RE_INLINE).filter(Boolean);
+  return partes.map((parte, i) => {
+    const k = `${clave}-${i}`;
+    if (parte.startsWith("**") && parte.endsWith("**") && parte.length > 4) {
+      return <strong key={k}>{parte.slice(2, -2)}</strong>;
+    }
+    if (parte.startsWith("*") && parte.endsWith("*") && parte.length > 2) {
+      return <em key={k}>{parte.slice(1, -1)}</em>;
+    }
+    if (parte.startsWith("`") && parte.endsWith("`") && parte.length > 2) {
+      return <code key={k}>{parte.slice(1, -1)}</code>;
+    }
+    return <span key={k}>{conCitas(parte, k, fuentes, alTocarCita)}</span>;
+  });
+}
+
+/** Convierte las citas del texto en botones que llevan a su fuente. */
+function conCitas(texto, clave, fuentes, alTocarCita) {
+  if (!fuentes?.length) return texto;
+  const trozos = [];
+  let ultimo = 0;
+  for (const m of texto.matchAll(RE_CITA)) {
+    if (m.index > ultimo) trozos.push(texto.slice(ultimo, m.index));
+
+    // El modelo suele agrupar varias citas en un mismo paréntesis separadas por ";".
+    // Cada una tiene que poder tocarse por separado, no el bloque entero.
+    const sueltas = m[1].split(";").map((x) => x.trim()).filter(Boolean);
+    const enlazadas = [];
+    sueltas.forEach((cita, n) => {
+      const idx = buscarFuente(cita, fuentes);
+      if (n > 0) enlazadas.push(<span key={`${clave}-s${m.index}-${n}`}>; </span>);
+      enlazadas.push(
+        idx >= 0 ? (
+          <button
+            key={`${clave}-c${m.index}-${n}`}
+            className="cita-enlace"
+            onClick={() => alTocarCita?.(idx)}
+            title="Ver la fuente que respalda esta afirmación"
+          >
+            {cita}
+          </button>
+        ) : (
+          <span key={`${clave}-t${m.index}-${n}`}>{cita}</span>
+        )
+      );
+    });
+    trozos.push(<span key={`${clave}-g${m.index}`}>({enlazadas})</span>);
+    ultimo = m.index + m[0].length;
+  }
+  if (!trozos.length) return texto;
+  if (ultimo < texto.length) trozos.push(texto.slice(ultimo));
+  return trozos;
+}
+
+export default function Markdown({ texto, fuentes, alTocarCita }) {
+  if (!texto) return null;
+
+  const bloques = [];
+  let lista = null;   // { ordenada: bool, items: [] }
+
+  const cerrarLista = () => {
+    if (!lista) return;
+    const Etiqueta = lista.ordenada ? "ol" : "ul";
+    bloques.push(
+      <Etiqueta key={`l${bloques.length}`} className="md-lista">
+        {lista.items.map((it, i) => (
+          <li key={i}>{conFormato(it, `li${bloques.length}-${i}`, fuentes, alTocarCita)}</li>
+        ))}
+      </Etiqueta>
+    );
+    lista = null;
+  };
+
+  for (const linea of texto.split("\n")) {
+    const limpia = linea.trim();
+
+    if (!limpia) { cerrarLista(); continue; }
+
+    const numerada = limpia.match(/^(\d+)[.)]\s+(.*)$/);
+    const conGuion = limpia.match(/^[-*•]\s+(.*)$/);
+
+    if (numerada || conGuion) {
+      const ordenada = Boolean(numerada);
+      if (!lista || lista.ordenada !== ordenada) {
+        cerrarLista();
+        lista = { ordenada, items: [] };
+      }
+      lista.items.push(numerada ? numerada[2] : conGuion[1]);
+      continue;
+    }
+
+    cerrarLista();
+    bloques.push(
+      <p key={`p${bloques.length}`}>{conFormato(limpia, `p${bloques.length}`, fuentes, alTocarCita)}</p>
+    );
+  }
+  cerrarLista();
+
+  return <div className="md">{bloques}</div>;
+}

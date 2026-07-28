@@ -438,12 +438,37 @@ button, input, select, textarea { font: inherit; }
   max-width: 620px;
 }
 
+/* En pantallas chicas el panel deja de ocupar una columna y pasa a ser un cajón que
+   entra desde el costado. Antes se apilaba ARRIBA del chat y empujaba la conversación
+   fuera de la pantalla: en un teléfono había que scrollear para llegar a escribir. */
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }
+
   .sidebar {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(320px, 85vw);
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.12);
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
   }
+  .sidebar.abierto { transform: translateX(0); }
+
+  .velo {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 40, 18, 0.35);
+    z-index: 35;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Deja lugar al botón de menú, que queda flotando sobre el chat. */
+  .chat-content { padding-top: 58px; }
+
   .chat-page { min-height: unset; }
 }
 
@@ -646,12 +671,11 @@ button, input, select, textarea { font: inherit; }
 /* ---- Valoración de la respuesta ---- */
 
 .valoracion {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 12px;
-  font-size: 0.85rem;
-  color: #6b7d68;
+  font-size: 0.78rem;
+  color: #8b9a88;
 }
 
 .valoracion button {
@@ -681,3 +705,267 @@ button, input, select, textarea { font: inherit; }
   outline: none;
 }
 .history-edit:focus { border-color: #3f7a35; box-shadow: 0 0 0 2px #deecd8; }
+
+
+/* ---- Botón de menú (solo en pantallas chicas) ---- */
+
+.boton-menu {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 30;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: #2f6b2f;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.boton-menu:hover { background: #eef4eb; }
+
+/* El velo solo existe en pantallas chicas; en escritorio nunca se muestra. */
+.velo { display: none; }
+@media (max-width: 980px) { .velo { display: block; } }
+
+/* ---- Confirmación de borrado, en el lugar ---- */
+
+.confirmar-borrado {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 4px;
+}
+
+.confirmar-si {
+  border: 1px solid #c0554f;
+  background: #fdeeee;
+  color: #9b3f3a;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.confirmar-si:hover { background: #f8dcdc; }
+
+.confirmar-no {
+  border: none;
+  background: none;
+  color: #7d8c7a;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.confirmar-no:hover { background: #e3ebe0; }
+
+/* ---- Acción todavía no disponible ---- */
+
+.sidebar-action.bloqueada {
+  opacity: 0.62;
+  cursor: default;
+  position: relative;
+}
+.sidebar-action.bloqueada:hover { background: #fff; }
+
+.proximamente {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #6f8a68;
+  background: #e6efe2;
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* Se declara al final a propósito: la regla base de .boton-menu está más abajo en el
+   archivo que el media query original, y sin esto lo pisaba dejando el botón invisible. */
+@media (max-width: 980px) {
+  .boton-menu { display: inline-flex; }
+}
+
+/* Alcance del corpus: dos datos cortos, en columnas. Como frase corrida se desbordaba
+   del panel y quedaba desprolijo. */
+.alcance {
+  display: flex;
+  gap: 18px;
+  margin: 0 0 10px;
+  padding: 8px 2px 0;
+  border-top: 1px solid #dcecd4;
+  cursor: default;
+}
+.alcance > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.alcance dt {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9aab97;
+  font-weight: 600;
+}
+.alcance dd {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #4a6b45;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* El aviso remite al digesto oficial: la verificación termina en la fuente de la
+   Universidad, no en este sistema. */
+.notice a {
+  color: #3f7a35;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.notice a:hover { color: #245516; }
+
+/* ---- Tirador para ajustar el ancho del panel ---- */
+
+.tirador {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--sidebar-width) - 3px);
+  width: 6px;
+  cursor: col-resize;
+  z-index: 20;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+.tirador:hover, .tirador:active { background: #a9c79c; }
+
+/* En pantallas chicas el panel es un cajón: ajustar el ancho no aplica. */
+@media (max-width: 980px) { .tirador { display: none; } }
+
+/* ---- Copiar ---- */
+
+/* Barra al pie de la respuesta: las acciones van juntas y en su propia línea, no
+   incrustadas al final del último párrafo. */
+.acciones-respuesta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+/* Discreto, al mismo peso visual que el copiar de cada cita: es una acción secundaria,
+   no compite con la respuesta. */
+.copiar {
+  border: none;
+  background: none;
+  color: #8b9a88;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.copiar:hover { background: #eef4eb; color: #2f6b2f; }
+
+.fuente-derecha { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.copiar-cita {
+  border: none;
+  background: none;
+  color: #7d8c7a;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 1px 4px;
+  border-radius: 5px;
+  line-height: 1;
+}
+.copiar-cita:hover { background: #deecd8; color: #2f6b2f; }
+
+/* El campo crece con el contenido; el tope lo pone el alto máximo desde el código. */
+.input-area textarea {
+  resize: none;
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+/* Foco visible: navegar con teclado tiene que ser posible en un sistema público. */
+:focus-visible {
+  outline: 2px solid #3f7a35;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Cursor mientras el texto va llegando: señal de que el sistema sigue escribiendo. */
+.cursor-escribiendo {
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  margin-left: 2px;
+  background: #4a6b45;
+  vertical-align: text-bottom;
+  animation: latido 1s steps(2, start) infinite;
+}
+@keyframes latido { to { opacity: 0; } }
+
+/* Quien prefiera menos movimiento no ve la animación. */
+@media (prefers-reduced-motion: reduce) {
+  .cursor-escribiendo { animation: none; }
+}
+
+/* ---- Respuesta con formato ---- */
+
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+
+.md p { margin: 0 0 0.75em; line-height: 1.55; }
+
+.md strong { font-weight: 700; color: #24521f; }
+
+.md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  background: #eef4eb;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.md-lista { margin: 0 0 0.75em; padding-left: 1.35em; }
+.md-lista li { margin-bottom: 0.4em; line-height: 1.5; }
+.md-lista li:last-child { margin-bottom: 0; }
+
+/* El cursor de escritura acompaña al último bloque, no salta a una línea propia. */
+.md + .cursor-escribiendo { vertical-align: baseline; }
+
+/* ---- Cita navegable ----
+   La afirmación y el acto que la respalda quedan unidos: se puede ir de una a otro sin
+   buscar a mano. Es lo que convierte la respuesta en algo verificable. */
+
+.cita-enlace {
+  border: none;
+  background: none;
+  padding: 0 1px;
+  font: inherit;
+  color: #2f6b2f;
+  cursor: pointer;
+  border-bottom: 1px dotted #7aa86f;
+  text-align: left;
+}
+.cita-enlace:hover { background: #eaf4e4; border-bottom-style: solid; }
+
+/* La fuente a la que se saltó se resalta un momento para no perderla de vista. */
+.fuentes li.marcada {
+  border-left-color: #3f7a35;
+  background: #eaf4e4;
+  animation: destacar 2.4s ease-out;
+}
+@keyframes destacar {
+  0%, 25% { background: #d6ead0; }
+  100% { background: #f7f9f6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fuentes li.marcada { animation: none; }
+}

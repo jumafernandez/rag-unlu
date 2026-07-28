@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./styles.css";
 import Login from "./Login";
+import Markdown from "./Markdown";
 import {
-  consultar, leerSesion, cerrarSesion, listarConversaciones,
-  leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje
+  consultarEnFlujo, leerSesion, cerrarSesion, listarConversaciones,
+  leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje, salud
 } from "./api";
 
 function PencilIcon() {
@@ -42,6 +43,98 @@ export default function App() {
   const [convId, setConvId] = useState(null);
   const [editando, setEditando] = useState(null);   // id de la conversación en edición
   const [tituloEdit, setTituloEdit] = useState("");
+  const [panelAbierto, setPanelAbierto] = useState(false);
+  const [porBorrar, setPorBorrar] = useState(null);  // id con confirmación pendiente
+  const [alcance, setAlcance] = useState(null);
+  const [copiado, setCopiado] = useState(null);
+  const [fuenteMarcada, setFuenteMarcada] = useState(null);   // "mensaje-fuente"
+  const finDelChat = useRef(null);
+  const cajaTexto = useRef(null);
+  const buscador = useRef(null);
+  const [anchoPanel, setAnchoPanel] = useState(
+    () => Number(localStorage.getItem("chatdigesto_ancho")) || 320
+  );
+
+  // Alcance del corpus: cuántos documentos hay y hasta cuándo llega la normativa. Para
+  // quien consulta un digesto eso decide si una respuesta vacía significa "no existe" o
+  // "todavía no está cargado".
+  useEffect(() => { salud().then(setAlcance).catch(() => setAlcance(null)); }, []);
+
+  // Al llegar una respuesta se baja al final: si no, en conversaciones largas la
+  // respuesta nueva queda fuera de la vista y parece que no pasó nada.
+  useEffect(() => {
+    finDelChat.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, cargando]);
+
+  // El campo crece con el texto en vez de mostrar una sola línea con scroll interno.
+  const ajustarAlto = (el) => {
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+  };
+  useEffect(() => { ajustarAlto(cajaTexto.current); }, [input]);
+
+  // El ancho del panel se recuerda entre visitas.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--sidebar-width", `${anchoPanel}px`);
+    localStorage.setItem("chatdigesto_ancho", String(anchoPanel));
+  }, [anchoPanel]);
+
+  const arrastrar = (ev) => {
+    ev.preventDefault();
+    const mover = (e) => setAnchoPanel(Math.min(520, Math.max(240, e.clientX)));
+    const soltar = () => {
+      window.removeEventListener("mousemove", mover);
+      window.removeEventListener("mouseup", soltar);
+      document.body.style.userSelect = "";
+    };
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", mover);
+    window.addEventListener("mouseup", soltar);
+  };
+
+  const irALaFuente = (indiceMensaje, indiceFuente) => {
+    const clave = `${indiceMensaje}-${indiceFuente}`;
+    const caja = document.getElementById(`fuentes-${indiceMensaje}`);
+    if (caja && !caja.open) caja.open = true;   // desplegar si estaba cerrado
+    setFuenteMarcada(clave);
+    // Se espera al despliegue antes de desplazar, si no la posición está mal calculada.
+    requestAnimationFrame(() => {
+      document.getElementById(`fuente-${clave}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    setTimeout(() => setFuenteMarcada((v) => (v === clave ? null : v)), 2600);
+  };
+
+  const copiar = async (texto, id) => {
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiado(id);
+      setTimeout(() => setCopiado((v) => (v === id ? null : v)), 1600);
+    } catch (e) { console.error(e); }
+  };
+
+  // Atajos: ⌘K / Ctrl+K busca en las conversaciones, Escape cierra el cajón.
+  useEffect(() => {
+    const alTeclear = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPanelAbierto(true);
+        buscador.current?.focus();
+      }
+      if (e.key === "Escape") { setPanelAbierto(false); setPorBorrar(null); }
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, []);
+
+  // Si la ventana se agranda, el cajón deja de tener sentido: se cierra solo para que
+  // el estado no quede pegado al volver a escritorio.
+  useEffect(() => {
+    const alAjustar = () => { if (window.innerWidth > 980) setPanelAbierto(false); };
+    window.addEventListener("resize", alAjustar);
+    return () => window.removeEventListener("resize", alAjustar);
+  }, []);
 
   // El historial existe solo con sesión iniciada. Sin cuenta el asistente funciona
   // igual, pero no queda registro de las consultas.
@@ -60,6 +153,7 @@ export default function App() {
       const c = await leerConversacion(id);
       setConvId(c.id);
       setView("chat");
+      setPanelAbierto(false);
       setMessages(c.mensajes.map((m) => ({
         role: m.rol, content: m.texto, fuentes: m.fuentes || [],
         mensajeId: m.id, util: m.util
@@ -83,13 +177,13 @@ export default function App() {
     refrescarHistorial();
   };
 
-  const borrar = async (id) => {
-    if (!window.confirm("¿Borrar esta conversación?")) return;
-    try {
-      await borrarConversacion(id);
-      if (convId === id) { setConvId(null); setMessages([]); }
-      refrescarHistorial();
-    } catch (e) { console.error(e); }
+  const confirmarBorrado = async (id) => {
+    setPorBorrar(null);
+    // Se saca de la lista al instante; si el servidor falla, refrescar la devuelve.
+    setHistory((prev) => prev.filter((c) => c.id !== id));
+    if (convId === id) { setConvId(null); setMessages([]); }
+    try { await borrarConversacion(id); } catch (e) { console.error(e); }
+    refrescarHistorial();
   };
 
   const valorar = async (mensajeId, util, indice) => {
@@ -120,36 +214,57 @@ export default function App() {
     setInput("");
     setCargando(true);
 
-    try {
-      const r = await consultar({ pregunta: content, conversacionId: convId });
-      if (r.conversacion_id && r.conversacion_id !== convId) setConvId(r.conversacion_id);
-      const fuentes = r.fuentes || [];
-      // Tres situaciones distintas, que antes se mezclaban en un mismo mensaje:
-      // hay respuesta redactada; hay normativa pero sin redactar (p. ej. sin clave de
-      // generación); o directamente no se encontró nada.
-      const texto = r.respuesta
-        ? r.respuesta
-        : fuentes.length
-          ? `Encontré ${fuentes.length} fragmento${fuentes.length > 1 ? "s" : ""} de normativa relacionada. Abrí las fuentes para leer el texto de los actos.`
-          : "No encontré normativa que responda esa consulta.";
+    // Se agrega la burbuja de respuesta vacía y se va llenando a medida que llega el
+    // texto. Así la lectura empieza enseguida en vez de esperar la respuesta completa.
+    let indiceRespuesta = -1;
+    setMessages((prev) => {
+      indiceRespuesta = prev.length;
+      return [...prev, { role: "assistant", content: "", fuentes: [], enCurso: true }];
+    });
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: texto,
-          mensajeId: r.mensaje_id,
-          sinGenerar: !r.respuesta && fuentes.length > 0,
-          fuentes,
-          advertencia: r.advertencia,
-          segundos: r.segundos
+    const actualizar = (cambios) =>
+      setMessages((prev) =>
+        prev.map((m, i) => (i === indiceRespuesta ? { ...m, ...cambios } : m))
+      );
+
+    try {
+      let texto = "";
+      await consultarEnFlujo({ pregunta: content, conversacionId: convId }, (evento, datos) => {
+        if (evento === "fuentes") {
+          actualizar({ fuentes: datos.fuentes || [] });
+        } else if (evento === "texto") {
+          texto += datos.t;
+          actualizar({ content: texto });
+        } else if (evento === "aviso") {
+          actualizar({ advertencia: datos.mensaje });
+        } else if (evento === "fin") {
+          if (datos.conversacion_id && datos.conversacion_id !== convId) {
+            setConvId(datos.conversacion_id);
+          }
+          actualizar({
+            mensajeId: datos.mensaje_id,
+            segundos: datos.segundos,
+            enCurso: false
+          });
         }
-      ]);
+      });
+
+      // Sin texto generado pero con normativa recuperada: se explica en vez de dejar
+      // la burbuja vacía.
+      setMessages((prev) =>
+        prev.map((m, i) => {
+          if (i !== indiceRespuesta || m.content) return m;
+          return {
+            ...m,
+            content: m.fuentes?.length
+              ? `Encontré ${m.fuentes.length} fragmento${m.fuentes.length > 1 ? "s" : ""} de normativa relacionada. Abrí las fuentes para leer el texto de los actos.`
+              : "No encontré normativa que responda esa consulta.",
+            enCurso: false
+          };
+        })
+      );
     } catch (e) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `No pude consultar el Digesto. ${e.message}`, error: true }
-      ]);
+      actualizar({ content: `No pude consultar el Digesto. ${e.message}`, error: true, enCurso: false });
     } finally {
       setCargando(false);
       refrescarHistorial();
@@ -165,6 +280,7 @@ export default function App() {
     setInput("");
     setConvId(null);
     setView("chat");
+    setPanelAbierto(false);
   };
 
   const startDraft = () => {
@@ -173,10 +289,29 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <button
+        className="boton-menu"
+        onClick={() => setPanelAbierto((v) => !v)}
+        aria-label={panelAbierto ? "Cerrar el panel" : "Abrir el panel"}
+        aria-expanded={panelAbierto}
+      >
+        {panelAbierto ? "✕" : "☰"}
+      </button>
+
+      {panelAbierto && (
+        <button className="velo" aria-label="Cerrar el panel"
+                onClick={() => setPanelAbierto(false)} />
+      )}
+
+      <div className="tirador" onMouseDown={arrastrar}
+           onDoubleClick={() => setAnchoPanel(320)}
+           title="Arrastrá para ajustar. Doble clic para volver al ancho original."
+           role="separator" aria-label="Ajustar ancho del panel" />
+
+      <aside className={`sidebar ${panelAbierto ? "abierto" : ""}`}>
         <div className="sidebar-top">
           <div className="sidebar-brand">
-            <img src="/logo-unlu.png" className="logo" alt="Logo UNLu" />
+            <img src="/logo-unlu-96.png" className="logo" alt="Logo UNLu" />
             <div>
               <h1>ChatDigesto</h1>
               <p>Consulta de normativa institucional de acceso público</p>
@@ -188,16 +323,19 @@ export default function App() {
             <span>Nuevo chat</span>
           </button>
 
-          <button className="sidebar-action" onClick={() => setView("draft")}>
+          <button className="sidebar-action bloqueada" disabled
+                  title="En preparación">
             <PencilIcon />
             <span>Redacción asistida</span>
+            <em className="proximamente">Próximamente</em>
           </button>
 
           <div className="search-box">
             <SearchIcon />
             <input
+              ref={buscador}
               type="text"
-              placeholder="Buscar chats"
+              placeholder="Buscar chats  (⌘K)"
               value={searchChats}
               onChange={(e) => setSearchChats(e.target.value)}
             />
@@ -240,10 +378,21 @@ export default function App() {
                       >
                         {item.titulo}
                       </button>
-                      <button className="history-accion" title="Renombrar"
-                              onClick={() => empezarEdicion(item.id, item.titulo)}>✎</button>
-                      <button className="history-accion" title="Borrar"
-                              onClick={() => borrar(item.id)}>🗑</button>
+                      {porBorrar === item.id ? (
+                        <span className="confirmar-borrado">
+                          <button className="confirmar-si" title="Confirmar"
+                                  onClick={() => confirmarBorrado(item.id)}>Borrar</button>
+                          <button className="confirmar-no" title="Cancelar"
+                                  onClick={() => setPorBorrar(null)}>✕</button>
+                        </span>
+                      ) : (
+                        <>
+                          <button className="history-accion" title="Renombrar"
+                                  onClick={() => empezarEdicion(item.id, item.titulo)}>✎</button>
+                          <button className="history-accion" title="Borrar"
+                                  onClick={() => setPorBorrar(item.id)}>🗑</button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -267,13 +416,33 @@ export default function App() {
             )}
           </div>
 
+          {alcance?.documentos && (
+            <dl className="alcance" title={
+              alcance.indice_generado
+                ? `Índice generado el ${alcance.indice_generado}`
+                : undefined
+            }>
+              <div>
+                <dt>Documentos</dt>
+                <dd>{alcance.documentos.toLocaleString("es-AR")}</dd>
+              </div>
+              {alcance.normativa_hasta && (
+                <div>
+                  <dt>Actualizado</dt>
+                  <dd>{new Date(alcance.normativa_hasta + "T00:00:00").toLocaleDateString(
+                    "es-AR", { day: "2-digit", month: "short", year: "numeric" })}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+
           <a
             className="licdia-signature"
             href="https://licdia.unlu.edu.ar/"
             target="_blank"
             rel="noreferrer"
           >
-            <img src="/logo-licdia.png" alt="Logo LICDIA" className="licdia-logo" />
+            <img src="/logo-licdia-96.png" alt="Logo LICDIA" className="licdia-logo" />
             <span>Desarrollado por LICDIA</span>
           </a>
         </div>
@@ -313,36 +482,56 @@ export default function App() {
                   {messages.map((msg, i) => (
                     <div key={i} className={`message-row ${msg.role}`}>
                       <div className={`message-bubble ${msg.role} ${msg.error ? "error" : ""}`}>
-                        {msg.content}
+                        {msg.role === "assistant" && !msg.error
+                          ? <Markdown texto={msg.content} fuentes={msg.fuentes}
+                                      alTocarCita={(j) => irALaFuente(i, j)} />
+                          : msg.content}
+                        {msg.enCurso && <span className="cursor-escribiendo" />}
 
                         {msg.advertencia && (
                           <div className="aviso-metadata">{msg.advertencia}</div>
                         )}
 
-                        {msg.role === "assistant" && msg.mensajeId && (
-                          <div className="valoracion">
-                            <span>¿Te sirvió?</span>
-                            <button className={msg.util === 1 ? "elegido" : ""}
-                                    onClick={() => valorar(msg.mensajeId, true, i)}
-                                    aria-label="Sí, sirvió">👍</button>
-                            <button className={msg.util === 0 ? "elegido" : ""}
-                                    onClick={() => valorar(msg.mensajeId, false, i)}
-                                    aria-label="No sirvió">👎</button>
+                        {msg.role === "assistant" && !msg.enCurso && msg.content && (
+                          <div className="acciones-respuesta">
+                            <button className="copiar" title="Copiar la respuesta"
+                                    onClick={() => copiar(msg.content, `r${i}`)}>
+                              {copiado === `r${i}` ? "✓ copiado" : "⧉ copiar"}
+                            </button>
+
+                            {msg.mensajeId && (
+                              <span className="valoracion">
+                                <span>¿Te sirvió?</span>
+                                <button className={msg.util === 1 ? "elegido" : ""}
+                                        onClick={() => valorar(msg.mensajeId, true, i)}
+                                        aria-label="Sí, sirvió">👍</button>
+                                <button className={msg.util === 0 ? "elegido" : ""}
+                                        onClick={() => valorar(msg.mensajeId, false, i)}
+                                        aria-label="No sirvió">👎</button>
+                              </span>
+                            )}
                           </div>
                         )}
 
-                        {msg.fuentes?.length > 0 && (
-                          <details className="fuentes">
+                        {msg.fuentes?.length > 0 && !msg.enCurso && (
+                          <details className="fuentes" id={`fuentes-${i}`}>
                             <summary>
                               {msg.fuentes.length} fuente{msg.fuentes.length > 1 ? "s" : ""} del Digesto
                               {msg.segundos ? ` · ${msg.segundos}s` : ""}
                             </summary>
                             <ul>
                               {msg.fuentes.map((f, j) => (
-                                <li key={j}>
+                                <li key={j} id={`fuente-${i}-${j}`}
+                                    className={fuenteMarcada === `${i}-${j}` ? "marcada" : ""}>
                                   <div className="fuente-cita">
-                                    {f.cita}
-                                    {f.date_issued && <span className="fuente-fecha">{f.date_issued}</span>}
+                                    <span>{f.cita}</span>
+                                    <span className="fuente-derecha">
+                                      {f.date_issued && <span className="fuente-fecha">{f.date_issued}</span>}
+                                      <button className="copiar-cita" title="Copiar la cita"
+                                              onClick={() => copiar(f.cita, `c${i}-${j}`)}>
+                                        {copiado === `c${i}-${j}` ? "✓" : "⧉"}
+                                      </button>
+                                    </span>
                                   </div>
                                   <div className="fuente-texto">{f.texto}</div>
                                   <div className="fuente-pie">
@@ -360,20 +549,16 @@ export default function App() {
                     </div>
                   ))}
 
-                  {cargando && (
-                    <div className="message-row assistant">
-                      <div className="message-bubble assistant pensando">
-                        Buscando en el Digesto…
-                      </div>
-                    </div>
-                  )}
+
                 </section>
               )}
+              <div ref={finDelChat} />
             </div>
 
             <div className="composer-outer">
               <div className="input-area">
                 <textarea
+                  ref={cajaTexto}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -391,7 +576,10 @@ export default function App() {
                 <button onClick={sendMessage}>Enviar</button>
               </div>
               <div className="notice">
-                Las respuestas pueden contener errores. Verificá siempre la información en las fuentes oficiales.
+                Las respuestas pueden contener errores. Verificá siempre la información en las{" "}
+                <a href="http://digesto.unlu.edu.ar/" target="_blank" rel="noreferrer">
+                  fuentes oficiales
+                </a>.
               </div>
             </div>
           </div>

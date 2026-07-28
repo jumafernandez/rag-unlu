@@ -139,13 +139,14 @@ class Indice:
             cuerpos.append(tokenizar(' '.join(partes)))
         self.bm25 = BM25(cuerpos)
 
-        # Número de acto de cada chunk, para poder responder consultas que nombran una
-        # norma concreta. Sale de la metadata, no del texto: es el identificador del
-        # documento al que pertenece el fragmento, no un número citado de pasada.
-        self._ids_chunk = []
+        # Identidad del acto al que pertenece cada chunk: número y código. Sale de la
+        # metadata, no del texto, así que es el identificador del documento y no un
+        # número citado de pasada dentro del cuerpo.
+        self._ids_chunk, self._codigos_chunk = [], []
         for c in self.chunks:
             num = str(c.get('document_number') or '')
             self._ids_chunk.append({t for t in tokenizar(num) if RE_IDENTIFICADOR.fullmatch(t)})
+            self._codigos_chunk.append(normalizar(str(c.get('document_code') or '')).strip())
 
         with open(os.path.join(ruta, 'indice.json'), encoding='utf-8') as fh:
             self.info = json.load(fh)
@@ -171,6 +172,16 @@ class Indice:
         """Números de acto mencionados en la consulta ('893/2025')."""
         return {t for t in tokenizar(texto) if RE_IDENTIFICADOR.fullmatch(t)}
 
+    def _codigos(self, texto):
+        """Códigos de acto mencionados en la consulta ('DSECEXT', 'RESHCS', 'DISPCD-CB').
+
+        Se compara contra los códigos que existen en el índice en vez de adivinar por
+        forma: así 'disposicion' o 'resolucion' no se confunden con un código, y no hace
+        falta mantener una lista de siglas a mano.
+        """
+        presentes = set(self._codigos_chunk)
+        return {t for t in tokenizar(texto) if t in presentes and t}
+
     def buscar(self, consulta_densa, texto_consulta='', k=8, filtros=None,
                solo_articulos=False, candidatos=60):
         """[(indice, puntaje_rrf, detalle)] ordenado por relevancia."""
@@ -182,15 +193,27 @@ class Indice:
         # resolución 444 cuando se pidió la 893. Acá se restringe la búsqueda a los
         # documentos que efectivamente llevan ese número.
         ids = self._identificadores(texto_consulta) if texto_consulta else set()
+        codigos = self._codigos(texto_consulta) if texto_consulta else set()
         if ids:
-            exactos = {
-                i for i, c in enumerate(self.chunks)
-                if ids & self._ids_de_chunk(i)
-            }
+            exactos = {i for i in range(len(self.chunks)) if ids & self._ids_chunk[i]}
+            # El número solo no alcanza: cada tipo de acto lleva su propia numeración, así
+            # que "3/2025" existe en decenas de códigos distintos a la vez. Si la consulta
+            # también nombra el código, se exige que coincida; si no, el documento pedido
+            # queda enterrado entre los homónimos de otros organismos.
+            if codigos:
+                con_codigo = {i for i in exactos if self._codigos_chunk[i] in codigos}
+                if con_codigo:
+                    exactos = con_codigo
             if permitidos is not None:
                 exactos &= permitidos
             if exactos:
                 permitidos = exactos
+        elif codigos:
+            # Consulta que nombra el tipo de acto sin número ("disposiciones DSECEXT"):
+            # acota a ese código y deja que las señales ordenen adentro.
+            del_codigo = {i for i in range(len(self.chunks)) if self._codigos_chunk[i] in codigos}
+            if del_codigo:
+                permitidos = del_codigo if permitidos is None else (permitidos & del_codigo) or permitidos
 
         # --- densa ---
         orden_denso, sims = [], None

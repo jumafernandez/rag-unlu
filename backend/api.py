@@ -23,6 +23,7 @@ Variables:
 """
 
 import contextlib
+import json
 import os
 import threading
 import time
@@ -185,17 +186,42 @@ class Respuesta(BaseModel):
     advertencia: Optional[str] = None
 
 
-INSTRUCCION = """Sos un asistente de consulta de la normativa de la Universidad Nacional de Luján.
+# La instrucción distingue TRES situaciones. Antes trataba todo como consulta normativa, y
+# entonces a un "hola" respondía "el contexto no proporciona información", que suena a error
+# del sistema. La regla que no se afloja en ningún caso es la última: no inventar normativa.
+INSTRUCCION = """Sos el asistente de consulta del Digesto de la Universidad Nacional de Luján.
+Ayudás a encontrar y entender disposiciones, resoluciones y demás actos administrativos de
+la Universidad.
 
-Reglas, sin excepción:
-1. Respondé ÚNICAMENTE con lo que dice el CONTEXTO. No uses conocimiento propio sobre la UNLu
-   ni sobre normativa universitaria en general.
-2. Citá la fuente de cada afirmación con el identificador que aparece entre corchetes, tal cual
-   está escrito. Ejemplo: (Disposición DISPCD-CB 528/2025 — Artículo 2).
-3. Si el contexto no alcanza para responder, decilo explícitamente y señalá qué falta. No
-   completes ni supongas: en normativa una respuesta inventada causa más daño que una negativa.
-4. Si hay normas que se contradicen o se modifican entre sí, mostralo en vez de elegir una.
-5. Respondé en español rioplatense, claro y breve. Sin preámbulos."""
+Según lo que te escriban, actuás distinto:
+
+**Si es un saludo, una cortesía o una pregunta sobre vos** ("hola", "¿qué podés hacer?",
+"gracias"): respondé con naturalidad y brevedad, y ofrecé ayuda contando qué tipo de
+consultas podés resolver: buscar por tema, por número de acto (por ejemplo "RESHCS 893/2025"),
+por órgano emisor o por año. No cites normativa en estos casos ni menciones el contexto.
+
+**Si es una consulta sobre normativa y el CONTEXTO tiene la respuesta**: respondé apoyándote
+solo en el contexto, y citá la fuente de cada afirmación con el identificador que aparece
+entre corchetes, tal cual está escrito. Ejemplo: (Disposición DISPCD-CB 528/2025 — Artículo 2).
+Si hay normas que se modifican o contradicen entre sí, mostralo en vez de elegir una.
+
+**Si es una consulta sobre normativa y el CONTEXTO no alcanza**: decilo con naturalidad y
+ayudá a seguir. Sugerí reformular, precisar el tema, o buscar por número de acto si lo tienen.
+No lo plantees como una falla técnica ni hables de "el contexto": la persona no sabe ni tiene
+por qué saber cómo funciona el sistema por dentro.
+
+Y esto vale siempre, sin excepción: **nunca inventes contenido normativo, números de acto ni
+citas**. Si no lo tenés en el contexto, no existe para vos. En normativa una respuesta
+inventada hace más daño que una negativa.
+
+Escribí en español rioplatense, claro y directo. Sin preámbulos ni fórmulas de relleno."""
+
+
+def _mensajes(pregunta: str, contexto: str):
+    return [
+        {'role': 'system', 'content': INSTRUCCION},
+        {'role': 'user', 'content': f'CONTEXTO:\n\n{contexto}\n\n---\n\nPREGUNTA: {pregunta}'},
+    ]
 
 
 def generar(pregunta: str, contexto: str) -> str:
@@ -205,21 +231,68 @@ def generar(pregunta: str, contexto: str) -> str:
     r = cliente.chat.completions.create(
         model=MODELO_GEN,
         temperature=0,          # normativa: se busca reproducibilidad, no creatividad
-        messages=[
-            {'role': 'system', 'content': INSTRUCCION},
-            {'role': 'user', 'content': f'CONTEXTO:\n\n{contexto}\n\n---\n\nPREGUNTA: {pregunta}'},
-        ],
+        messages=_mensajes(pregunta, contexto),
     )
     return r.choices[0].message.content
 
 
+def generar_en_partes(pregunta: str, contexto: str):
+    """Igual que `generar`, pero devolviendo el texto a medida que llega.
+
+    La respuesta tarda lo mismo; lo que cambia es que se empieza a leer enseguida en vez
+    de mirar un cartel de espera. Es la diferencia entre sentir que el sistema piensa y
+    sentir que se colgó.
+    """
+    from openai import OpenAI
+    cliente = OpenAI()
+    flujo = cliente.chat.completions.create(
+        model=MODELO_GEN,
+        temperature=0,
+        messages=_mensajes(pregunta, contexto),
+        stream=True,
+    )
+    for parte in flujo:
+        if parte.choices and parte.choices[0].delta.content:
+            yield parte.choices[0].delta.content
+
+
 @app.get('/salud')
 def salud():
+    """Estado del índice y alcance del corpus.
+
+    Además del tamaño, informa hasta qué fecha llega la normativa indexada. Para quien
+    consulta un digesto esa es la pregunta importante: no cuántos documentos hay, sino si
+    lo que busca puede llegar a estar. Un sistema que no dice hasta cuándo cubre obliga a
+    desconfiar de cada respuesta vacía.
+    """
     try:
         ix = indice()
-        return {'estado': 'ok', 'chunks': len(ix), **ix.info}
+        return {'estado': 'ok', 'chunks': len(ix), **ix.info, **_alcance(ix)}
     except HTTPException as e:
         return {'estado': 'sin_indice', 'detalle': e.detail}
+
+
+_ALCANCE = {}
+
+
+def _alcance(ix):
+    """Documentos distintos y fecha del acto más reciente. Se calcula una sola vez."""
+    if not _ALCANCE:
+        docs, fechas = set(), []
+        for c in ix.chunks:
+            docs.add(c.get('documento'))
+            f = c.get('date_issued')
+            if isinstance(f, str) and len(f) == 10:
+                fechas.append(f)
+        _ALCANCE['documentos'] = len(docs)
+        _ALCANCE['normativa_hasta'] = max(fechas) if fechas else None
+        try:
+            import datetime
+            marca = os.path.getmtime(os.path.join(RUTA_INDICE, 'densos.npy'))
+            _ALCANCE['indice_generado'] = datetime.date.fromtimestamp(marca).isoformat()
+        except OSError:
+            _ALCANCE['indice_generado'] = None
+    return _ALCANCE
 
 
 @app.post('/consultar', response_model=Respuesta)
@@ -317,6 +390,21 @@ class Valoracion(BaseModel):
     util: Optional[bool] = None
 
 
+def _sse(evento: str, datos: dict) -> str:
+    return f'event: {evento}\ndata: {json.dumps(datos, ensure_ascii=False)}\n\n'
+
+
+def _fuente_de(ix, i, puntaje, detalle) -> 'Fuente':
+    c = ix.chunks[i]
+    return Fuente(
+        cita=c['cita'], texto=c['texto'], documento=c['documento'],
+        source_pdf=c.get('source_pdf'), seccion=c.get('seccion'),
+        date_issued=c.get('date_issued'), estado=c.get('estado'),
+        metadata_confianza=c.get('metadata_confianza'),
+        puntaje=round(puntaje, 5), ranking=detalle,
+    )
+
+
 def usuario_de(autorizacion: Optional[str]) -> Optional[str]:
     """Usuario de la petición, o None si no hay sesión. No falla si no la hay."""
     if not autorizacion or not autorizacion.lower().startswith('bearer '):
@@ -382,6 +470,69 @@ def valorar(mid: int, v: Valoracion, authorization: Optional[str] = Header(None)
     if not historial.valorar_mensaje(mid, exigir_usuario(authorization), v.util):
         raise HTTPException(404, 'mensaje no encontrado')
     return {'ok': True}
+
+
+@app.post('/consultar/flujo')
+def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None)):
+    """Igual que /consultar pero devolviendo la respuesta a medida que se genera.
+
+    Formato: server-sent events. Primero viaja un evento `fuentes` con lo recuperado (así
+    la interfaz ya puede mostrarlas), después los fragmentos de texto, y al final un
+    evento `fin` con los identificadores para guardar y valorar.
+    """
+    from fastapi.responses import StreamingResponse
+
+    t0 = time.time()
+    usuario = usuario_de(authorization)
+    ix = indice()
+
+    denso = codificador().encode([c.pregunta], normalize_embeddings=True)[0]
+    filtros = {}
+    if c.anio:
+        filtros['year'] = c.anio
+    if c.tipo:
+        filtros['document_type'] = c.tipo
+    resultados = ix.buscar(denso, texto_consulta=c.pregunta, k=c.k,
+                           filtros=filtros or None, solo_articulos=c.solo_articulos)
+    fuentes = [_fuente_de(ix, i, s, d) for i, s, d in resultados]
+
+    def eventos():
+        yield _sse('fuentes', {'fuentes': [f.model_dump() for f in fuentes]})
+
+        partes = []
+        if not fuentes:
+            texto = 'No encontré normativa relacionada con esa consulta.'
+            partes.append(texto)
+            yield _sse('texto', {'t': texto})
+        elif not os.environ.get('OPENAI_API_KEY'):
+            yield _sse('aviso', {'mensaje': 'Sin clave de generación: se muestran las fuentes.'})
+        else:
+            try:
+                for parte in generar_en_partes(c.pregunta, ix.contexto(resultados)):
+                    partes.append(parte)
+                    yield _sse('texto', {'t': parte})
+            except Exception as e:
+                yield _sse('aviso', {'mensaje': f'Falló la generación ({type(e).__name__}).'})
+
+        respuesta = ''.join(partes)
+        conversacion_id = mensaje_id = None
+        if usuario:
+            try:
+                conversacion_id = c.conversacion_id or historial.crear_conversacion(usuario, c.pregunta)
+                historial.agregar_mensaje(conversacion_id, usuario, 'user', c.pregunta)
+                mensaje_id = historial.agregar_mensaje(
+                    conversacion_id, usuario, 'assistant',
+                    respuesta or 'Se recuperó normativa relacionada.',
+                    [f.model_dump() for f in fuentes])
+            except Exception:
+                conversacion_id = mensaje_id = None
+
+        yield _sse('fin', {'conversacion_id': conversacion_id, 'mensaje_id': mensaje_id,
+                           'segundos': round(time.time() - t0, 3)})
+
+    return StreamingResponse(eventos(), media_type='text/event-stream',
+                             headers={'Cache-Control': 'no-cache',
+                                      'X-Accel-Buffering': 'no'})
 
 
 @app.get('/documento/{documento}')
