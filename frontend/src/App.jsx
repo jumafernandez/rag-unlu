@@ -4,7 +4,7 @@ import Login from "./Login";
 import Markdown from "./Markdown";
 import { INSTITUCION, TEXTOS } from "./config";
 import {
-  consultarEnFlujo, leerSesion, cerrarSesion, listarConversaciones,
+  consultarEnFlujo, leerSesion, cerrarSesion, listarConversaciones, adoptarConversacion,
   leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje, salud
 } from "./api";
 
@@ -99,11 +99,11 @@ export default function App() {
   const areaChat = useRef(null);
   const pegadoAbajo = useRef(true);
 
-  // Referencia estable. Login la tiene como dependencia de su efecto, y con una función
-  // nueva en cada render volvía a inicializar y redibujar el botón de Google todo el
-  // tiempo: durante una respuesta en flujo, una vez por fragmento. Eso era el titileo del
-  // panel izquierdo.
-  const entrar = useCallback((datos) => setSesion(datos), []);
+  // Espejo de lo que hay en pantalla. `entrar` necesita leerlo, pero no puede DEPENDER de
+  // ello: si dependiera, volvería a ser una función distinta en cada render y con eso
+  // volvería el titileo del botón de Google.
+  const mensajesRef = useRef([]);
+  const convIdRef = useRef(null);
   const cajaTexto = useRef(null);
   const buscador = useRef(null);
   const [anchoPanel, setAnchoPanel] = useState(
@@ -244,6 +244,37 @@ export default function App() {
   }, []);
 
   useEffect(() => { refrescarHistorial(); }, [refrescarHistorial, sesion]);
+
+  useEffect(() => { mensajesRef.current = messages; }, [messages]);
+  useEffect(() => { convIdRef.current = convId; }, [convId]);
+
+  // Al iniciar sesión con una conversación en curso, esa conversación se adopta: se
+  // guarda en el historial del usuario que acaba de entrar, con sus fuentes.
+  //
+  // Quien consulta sin cuenta y después entra lo hace, casi siempre, porque quiere
+  // conservar lo que está viendo. Y antes quedaba algo peor que perderlo: la conversación
+  // seguía en pantalla pero no en la base, así que la consulta siguiente guardaba una
+  // respuesta apoyada en turnos que no quedaban registrados en ningún lado.
+  const entrar = useCallback(async (datos) => {
+    setSesion(datos);
+    const previos = mensajesRef.current;
+    if (convIdRef.current || !previos?.length) return;
+    try {
+      const r = await adoptarConversacion(
+        previos
+          .filter((m) => m.content && !m.enCurso)
+          .map((m) => ({
+            rol: m.role === "user" ? "user" : "assistant",
+            texto: m.content,
+            fuentes: m.fuentes?.length ? m.fuentes : null,
+          }))
+      );
+      setConvId(r.conversacion_id);
+      refrescarHistorial();
+    } catch {
+      // Si falla, la conversación sigue en pantalla: no se pierde nada, solo no se guarda.
+    }
+  }, [refrescarHistorial]);
 
   const abrirConversacion = async (id) => {
     try {
@@ -474,7 +505,7 @@ export default function App() {
         </div>
 
         <div className="sidebar-bottom">
-          <div>
+          <div className="historial-bloque">
             <div className="sidebar-section-title">Consultas previas</div>
             <div className="history-list">
               {!sesion && (

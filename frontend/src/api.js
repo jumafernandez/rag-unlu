@@ -116,6 +116,10 @@ export async function consultarEnFlujo(
   }
 }
 
+/** Guarda en el historial una conversación que se venía teniendo sin sesión iniciada. */
+export const adoptarConversacion = (mensajes) =>
+  pedir("/conversaciones", { method: "POST", body: JSON.stringify({ mensajes }) });
+
 export const listarConversaciones = () => pedir("/conversaciones");
 export const leerConversacion = (id) => pedir(`/conversaciones/${id}`);
 export const renombrarConversacion = (id, titulo) =>

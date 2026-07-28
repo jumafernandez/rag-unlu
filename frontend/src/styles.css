@@ -41,9 +41,12 @@ button, input, select, textarea { font: inherit; }
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  /* Ahora que la página no scrollea, el panel se hace cargo de su propio desborde. */
+  /* Ahora que la página no scrollea, el panel se hace cargo de su propio desborde. Pero
+     NO scrollea entero: si lo hiciera, la caja de sesión y los indicadores quedarían por
+     debajo del corte y habría que descubrirlos bajando. Scrollea solo la lista de
+     conversaciones; lo de abajo queda siempre a la vista. */
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   gap: 18px;
 }
 
@@ -51,6 +54,7 @@ button, input, select, textarea { font: inherit; }
   display: flex;
   flex-direction: column;
   gap: 14px;
+  flex-shrink: 0;
 }
 
 .sidebar-brand {
@@ -145,7 +149,21 @@ button, input, select, textarea { font: inherit; }
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* Ocupa lo que sobra y reparte: la lista crece y scrollea, la caja de sesión no. */
+  flex: 1;
+  min-height: 0;
 }
+
+.historial-bloque {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* La caja de sesión y los indicadores quedan anclados abajo, siempre visibles: ahí está
+   el botón de salir, y un botón al que hay que scrollear para encontrarlo no existe. */
+.sesion-caja { flex-shrink: 0; }
 
 .sidebar-section-title {
   font-size: 0.95rem;
@@ -154,10 +172,15 @@ button, input, select, textarea { font: inherit; }
   margin-bottom: 10px;
 }
 
+/* Lo único que scrollea dentro del panel lateral. */
 .history-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .history-item {

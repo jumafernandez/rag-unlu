@@ -1,0 +1,557 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CACIC 2026 -- formato LLNCS (llncs.cls).
+% Reglas de la convocatoria: A4, maximo 10 paginas, sin encabezado ni pie.
+% Primera version EN ESPANOL para revision del equipo.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass{llncs}
+\pagestyle{empty}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{cmap}
+\input{glyphtounicode}
+\pdfgentounicode=1
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{float}
+
+% Marcador de valor pendiente de medicion. Todo numero que todavia no se midio va
+% con esta macro: se ve en rojo y es imposible que se filtre a la version final
+% disfrazado de resultado.
+\newcommand{\pend}[1][]{\textcolor{red}{\textbf{[pendiente#1]}}}
+\newcommand{\nota}[1]{\textcolor{blue}{\textit{[#1]}}}
+
+\begin{document}
+
+% ============================== TITULO ==============================
+% Titulo tentativo. Alternativas para discutir:
+%   - Usar lo que ya se sabe: metadatos estructurados y estado de dialogo
+%     en la recuperacion de normativa universitaria
+%   - Quien fijo el valor importa: procedencia del estado de dialogo en un
+%     asistente de consulta normativa
+\title{Usar lo que ya se sabe: metadatos estructurados y estado de di\'alogo
+en la recuperaci\'on de normativa universitaria}
+\titlerunning{Metadatos estructurados y estado de di\'alogo}
+
+% \nota{Definir orden de autoria y filiaciones antes de enviar.}
+\author{Juan Manuel Fern\'andez\inst{1} \and
+        \pend[: becario 1]\inst{1} \and
+        \pend[: becario 2]\inst{1} \and
+        Mario Oloriz\inst{1}}
+\authorrunning{J. M. Fern\'andez et al.}
+\institute{Universidad Nacional de Luj\'an, Luj\'an, Argentina\\
+\email{jmfernandez@unlu.edu.ar}}
+
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+La normativa de una universidad nacional es p\'ublica, pero encontrarla exige
+saber de antemano qu\'e acto la contiene. Presentamos un asistente conversacional
+de consulta sobre el digesto de la Universidad Nacional de Luj\'an: 19.959 actos
+administrativos, fragmentados por unidad normativa y recuperados de forma h\'ibrida
+sobre metadatos autoritativos del sistema de origen. El sistema mantiene un estado
+de di\'alogo con dos ranuras---la entidad de la que se habla y los actos en
+juego---que no completan una consulta a un esquema fijo sino que \emph{pesan} la
+recuperaci\'on. La contribuci\'on central es que ese peso lo determina la
+\emph{procedencia} del valor: lo que infiere el sistema refuerza de forma d\'ebil,
+mientras que lo que el usuario fija ---visible y editable en la interfaz--- pesa
+m\'as y deja de ser sobrescrito. Evaluamos recuperaci\'on, ablaci\'on de cada
+mecanismo y validaci\'on con evaluadores del dominio. El sistema est\'a desplegado
+y su adaptaci\'on a otras universidades con portal SUDOCU se reduce a dos valores
+de configuraci\'on.
+
+\keywords{Recuperaci\'on aumentada por generaci\'on, Estado de di\'alogo,
+Documentos normativos, Metadatos estructurados, Sistemas desplegados.}
+\end{abstract}
+
+% ============================== 1. INTRO ==============================
+\section{Introducci\'on}
+\label{sec:intro}
+
+La normativa de una universidad nacional argentina es p\'ublica y est\'a en l\'inea.
+Sin embargo, consultarla supone un conocimiento previo que la mayor\'ia de sus
+destinatarios no tiene: para encontrar una resoluci\'on hay que saber, con
+razonable precisi\'on, qu\'e resoluci\'on se busca. Los portales de publicaci\'on
+documental ofrecen b\'usqueda por n\'umero, por tipo de acto y por \'organo emisor,
+pero no por lo que a una persona efectivamente le pasa: necesita saber qu\'e dice
+la normativa sobre una licencia, sobre una designaci\'on o sobre un plan de
+estudios, sin tener idea de qu\'e acto lo establece.
+
+Este trabajo presenta un asistente conversacional sobre el digesto de la
+Universidad Nacional de Luj\'an (UNLu), construido sobre los 19.959 actos
+administrativos publicados en su portal SUDOCU desde abril de 2024. El sistema
+responde en lenguaje natural y cita los fragmentos normativos que sustentan cada
+afirmaci\'on, de modo que toda respuesta puede rastrearse hasta el documento
+original.
+
+El problema no se agota en la recuperaci\'on de un solo turno. Consultar normativa
+es conversacional por naturaleza: se pregunta por un tema, se identifica un acto y
+se repregunta sobre su articulado. Esas repreguntas no se sostienen solas
+---\emph{``¿y qu\'e dice el art\'iculo 2?''}--- y en castellano suelen omitir el
+sujeto, lo que agrava el problema: \emph{``¿est\'a en alguna comisi\'on?''} es
+\emph{``¿[ella] est\'a en alguna comisi\'on?''} y no contiene ning\'un pronombre
+que delate la dependencia del contexto.
+
+Los sistemas orientados a tareas resuelven esto manteniendo un estado de di\'alogo
+que resume la conversaci\'on~\cite{young2013pomdp,williams2013pomdp}. Aqu\'i
+adoptamos esa idea pero con un destino distinto: el estado no completa los campos
+de una consulta a una base con esquema conocido, sino que \emph{pesa} la
+recuperaci\'on sobre un corpus documental abierto, apoy\'andose en los metadatos
+estructurados que el sistema de origen ya provee.
+
+Sobre esa base introducimos el aporte central del trabajo. En la literatura, la
+decisi\'on de aplicar una restricci\'on de manera dura o blanda depende de la
+incertidumbre del modelo, del tipo de atributo o de la arquitectura del sistema.
+Nosotros la hacemos depender de \textbf{qui\'en puso el valor ah\'i}: una entidad
+inferida por el sistema refuerza d\'ebilmente la recuperaci\'on, mientras que una
+entidad fijada por el usuario ---que ve el estado y puede editarlo--- pesa m\'as y
+el modelo deja de sobrescribirla. La correcci\'on del usuario no es solo una
+enmienda: es una afirmaci\'on con mayor confianza que la que el sistema puede
+tener por s\'i mismo, y el sistema la trata como tal.
+
+Las contribuciones de este art\'iculo son:
+
+\begin{enumerate}
+\item Un sistema desplegado de consulta conversacional sobre normativa
+universitaria, con trazabilidad completa desde cada afirmaci\'on hasta el PDF
+publicado, y fragmentaci\'on por unidad normativa (Visto, Considerando, parte
+resolutiva, art\'iculos, anexos) que sigue la forma jur\'idica del acto
+administrativo argentino.
+
+\item Un estado de di\'alogo cuya \emph{procedencia} determina el r\'egimen de
+recuperaci\'on, visible y editable por quien consulta, con ablaci\'on de cada
+mecanismo por separado.
+
+\item Un an\'alisis emp\'irico del corpus que expone un l\'imite estructural: la
+Universidad no registra qu\'e norma deroga o modifica a cu\'al, de modo que
+ning\'un sistema construido sobre este digesto puede afirmar vigencia. Sostenemos
+que explicitar ese l\'imite es parte del dise\~no, no una omisi\'on.
+
+\item Portabilidad verificable: SUDOCU es un sistema de alcance nacional y el
+m\'odulo de publicaci\'on documental es un componente est\'andar suyo. La
+superficie de adaptaci\'on a otra universidad se reduce a dos valores de
+configuraci\'on.
+\end{enumerate}
+
+El resto del art\'iculo se organiza as\'i. La Secci\'on~\ref{sec:relacionado}
+revisa el trabajo relacionado. La Secci\'on~\ref{sec:corpus} describe el corpus y
+su construcci\'on. La Secci\'on~\ref{sec:sistema} detalla el sistema. La
+Secci\'on~\ref{sec:evaluacion} presenta el protocolo de evaluaci\'on y la
+Secci\'on~\ref{sec:resultados} los resultados. La Secci\'on~\ref{sec:conclusiones}
+concluye.
+
+% ========================== 2. RELACIONADO ==========================
+\section{Trabajo relacionado}
+\label{sec:relacionado}
+
+\subsection{Recuperaci\'on aumentada sobre corpus normativos}
+
+La recuperaci\'on aumentada por generaci\'on~\cite{lewis2020rag} se aplic\'o a
+dominios legales y regulatorios, donde la exigencia de citar la fuente es mayor
+que en dominio abierto: una afirmaci\'on sin respaldo no es un error menor sino un
+riesgo. El \'area sobre digestos universitarios latinoamericanos est\'a poco
+poblada; el trabajo m\'as cercano que encontramos opera sobre un corpus de un
+orden de magnitud menor.
+
+\subsection{Estado de di\'alogo como filtro de recuperaci\'on}
+
+El seguimiento del estado de di\'alogo es est\'andar en sistemas orientados a
+tareas~\cite{young2013pomdp,williams2013pomdp}, donde las ranuras completan una
+consulta a una base con esquema cerrado y conocido. Varios trabajos recientes lo
+usan, en cambio, para restringir la recuperaci\'on. ShopTalk~\cite{manku2022shoptalk}
+convierte el estado de di\'alogo en una combinaci\'on de consulta textual y
+restricciones de faceta, y ya combina un r\'egimen duro y uno blando seg\'un el
+atributo est\'e o no anclado al cat\'alogo. Thulke et al.~\cite{thulke2021dstc9}
+usan el contexto del di\'alogo para acotar jer\'arquicamente el espacio de
+candidatos antes del \emph{ranking}. RA-Rec~\cite{kemper2024rarec} nombra
+expl\'icitamente restricciones duras y blandas en el esquema del estado, aunque
+las resuelve colapsadas en una consulta en lenguaje natural.
+
+Nuestro sistema comparte con estos trabajos el uso del estado como se\~nal de
+recuperaci\'on. Se diferencia en dos puntos: el corpus es documental y abierto
+---no un cat\'alogo de \'items ni un esquema tipo MultiWOZ--- y, sobre todo, el
+r\'egimen de aplicaci\'on no lo decide la incertidumbre del modelo ni el tipo de
+atributo, sino la procedencia del valor.
+
+\subsection{Transparencia y control del usuario}
+
+Que el usuario pueda inspeccionar y corregir lo que un sistema infiri\'o es un
+principio establecido. Koenemann y Belkin~\cite{koenemann1996case} ya distingu\'ian
+sistemas opacos, transparentes y \emph{penetrables} seg\'un el usuario pudiera ver
+o intervenir el proceso de b\'usqueda. Kulesza et al.~\cite{kulesza2015principles}
+formularon el ciclo de explicaci\'on y correcci\'on. En di\'alogo orientado a
+tareas, SOVITE~\cite{li2020sovite} muestra las ranuras detectadas y permite
+repararlas por manipulaci\'on directa. En recuperaci\'on, propuestas recientes
+plantean exponer y dejar editar la intenci\'on inferida~\cite{anand2023context}.
+
+Reconocemos expl\'icitamente que la idea de mostrar y dejar editar el estado
+inferido \emph{no es nueva}. Nuestro aporte no es la editabilidad en s\'i, sino
+vincularla a un r\'egimen de recuperaci\'on: la procedencia del valor determina
+cu\'anto pesa. A eso se suma que, a diferencia de las propuestas citadas, aqu\'i
+se trata de un sistema en operaci\'on sobre un corpus institucional real.
+
+% ============================= 3. CORPUS =============================
+\section{El corpus}
+\label{sec:corpus}
+
+\subsection{Origen e ingesta}
+
+La UNLu publica sus actos administrativos en un portal SUDOCU, sistema de
+gesti\'on documental desarrollado por la Universidad Nacional de General Sarmiento
+y adoptado por el sistema universitario nacional. Recolectamos \textbf{19.959}
+documentos en PDF correspondientes a once secciones del portal, junto con sus
+metadatos publicados: tipo de acto, c\'odigo, n\'umero, fecha de emisi\'on,
+t\'itulo y \'organo emisor.
+
+El corpus abarca desde abril de 2024, fecha de puesta en producci\'on del portal.
+El digesto hist\'orico anterior, de aproximadamente 120.000 documentos, tiene otra
+fisonom\'ia y no est\'a incorporado a\'un.
+
+\subsection{Uni\'on con los metadatos autoritativos}
+\label{sec:union}
+
+La uni\'on entre cada PDF y su fila de metadatos merece detalle porque expone un
+riesgo general de estas ingestas. El proceso de descarga renombra archivos de forma
+posicional, y verificamos que 1.780 archivos hab\'ian sido renumerados por fecha de
+creaci\'on, lo que romp\'ia silenciosamente la correspondencia posicional. Un
+sistema construido sobre esa uni\'on habr\'ia citado fechas y n\'umeros
+equivocados con total aplomo.
+
+Resolvimos la uni\'on por doble v\'ia: la posicional y la basada en el c\'odigo de
+acto impreso en el propio documento. Ante desacuerdo prevalece el c\'odigo, por ser
+la identidad del acto. El resultado es cobertura de metadatos autoritativos sobre
+el \pend[: \%] de los documentos, con \pend[: n] conflictos.
+
+\subsection{Fragmentaci\'on por unidad normativa}
+
+Un acto administrativo argentino tiene una estructura reconocible: Visto,
+Considerando, parte resolutiva, art\'iculos numerados, firmas y anexos.
+Fragmentamos siguiendo esa estructura en lugar de por ventanas de tama\~no fijo,
+de modo que cada fragmento sea una unidad citable. Se obtuvieron \textbf{140.902}
+fragmentos (7,1 por documento), de los cuales \textbf{51.901} corresponden a
+art\'iculos.
+
+Esta decisi\'on tiene una consecuencia pr\'actica: la unidad de cita coincide con
+la unidad de recuperaci\'on, de modo que una respuesta puede referir
+\emph{``art\'iculo 2 de la disposici\'on X''} y enlazar exactamente a ese texto.
+
+\subsection{Un l\'imite estructural: la vigencia}
+\label{sec:vigencia}
+
+La Universidad \textbf{no lleva registro de qu\'e norma deroga o modifica a
+cu\'al}. Ese dato no existe en ning\'un sistema institucional. El campo de estado
+que publica el portal no representa vigencia.
+
+La consecuencia es directa y no admite soluci\'on t\'ecnica desde este corpus:
+ning\'un sistema construido sobre \'el puede afirmar que una norma est\'e vigente.
+Puede decir qu\'e dispuso un acto y en qu\'e fecha; no puede decir que siga en
+vigor. Optamos por hacerlo expl\'icito en la interfaz, en la documentaci\'on y en
+las instrucciones dadas al modelo generador, que tiene prohibido afirmar vigencia.
+Lo reportamos como hallazgo: es una caracter\'istica del estado de digitalizaci\'on
+de la normativa universitaria, no una limitaci\'on de la implementaci\'on.
+
+% ============================ 4. SISTEMA ============================
+\section{El sistema}
+\label{sec:sistema}
+
+\subsection{Recuperaci\'on h\'ibrida}
+
+Combinamos una se\~nal densa y una l\'exica. La densa usa BGE-m3~\cite{chen2024bge}
+(1.024 dimensiones) sobre los 140.902 fragmentos. La l\'exica es una
+implementaci\'on propia de BM25~\cite{robertson2009bm25} con un tokenizador que
+\emph{preserva los identificadores normativos}: expresiones como
+\texttt{RESHCS-LUJ: 0000042-24}, \texttt{528/2025} o \texttt{DISPCD-CB} se
+mantienen como unidades en lugar de partirse, porque son justamente lo que la
+se\~nal densa no distingue. Las dos listas se fusionan con \emph{reciprocal rank
+fusion}~\cite{cormack2009rrf}.
+
+Cuando la consulta nombra un acto concreto, la b\'usqueda se restringe a los
+documentos que llevan ese n\'umero. La fusi\'on por s\'i sola no lo garantiza: un
+documento con dos se\~nales tibias supera a uno con una se\~nal decisiva. Adem\'as,
+el n\'umero solo no alcanza, porque cada tipo de acto lleva numeraci\'on propia y
+un mismo n\'umero existe en decenas de c\'odigos distintos.
+
+\subsection{Estado de di\'alogo}
+
+El estado tiene dos ranuras:
+
+\begin{itemize}
+\item \textbf{entidad}: el sujeto del que se viene hablando (persona, carrera,
+departamento, \'organo). Cardinalidad uno, sem\'antica de reemplazo.
+\item \textbf{actos}: los actos administrativos mencionados. Conjunto que acumula.
+\end{itemize}
+
+El criterio para admitir una ranura fue restrictivo: \emph{una ranura se justifica
+solo si transporta entre turnos informaci\'on que el texto de la consulta actual no
+tiene}. Un filtro temporal, por ejemplo, no lo cumple: cuando el a\~no es
+pertinente el usuario suele reescribirlo, y arrastrarlo desde turnos anteriores
+hace m\'as da\~no que bien.
+
+\subsection{Procedencia y peso}
+\label{sec:procedencia}
+
+Cada valor del estado lleva su \textbf{procedencia}, y de ella se deriva su peso:
+
+\begin{center}
+\begin{tabular}{lcl}
+\toprule
+Procedencia & Peso & Significado \\
+\midrule
+sistema & 0,5 & inferido por el modelo a partir de la conversaci\'on \\
+usuario & 1,0 & fijado expl\'icitamente por quien consulta \\
+descartado & 0,0 & apagado por el usuario; permanece visible \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+El peso entra como bonificaci\'on aditiva sobre el puntaje ya fusionado:
+
+\begin{equation}
+\mathrm{puntaje}(d) = \mathrm{RRF}(d) + \sum_{s \in S} w_s \cdot \mathbb{1}[\,d \models s\,] \cdot u
+\label{eq:puntaje}
+\end{equation}
+
+donde $S$ es el conjunto de ranuras activas, $w_s$ el peso derivado de la
+procedencia y $u = 1/(K+1)$ la unidad de bonificaci\'on, es decir, lo que vale
+encabezar una de las dos se\~nales. Expresarla en unidades de RRF evita una
+constante arbitraria y acota el efecto: una ranura empuja, pero no puede sustituir
+a la relevancia sem\'antica, que suma por las dos se\~nales.
+
+Ninguna ranura excluye documentos. Un valor mal inferido degrada el orden pero no
+puede vaciar el resultado, que es el modo de falla que vuelve inutilizable a un
+filtro duro.
+
+\subsection{Estado visible y editable}
+
+El estado se muestra sobre el campo de escritura y es editable: se puede corregir
+la entidad, descartar un acto y volver a incorporarlo. Lo descartado no se borra,
+se muestra atenuado, porque saber qu\'e infiri\'o el sistema es parte de poder
+controlarlo.
+
+Editar tiene dos efectos, y esa es la instanciaci\'on concreta del aporte descrito
+en la Secci\'on~\ref{sec:procedencia}: el valor pasa a pesar el doble en la
+Ecuaci\'on~\ref{eq:puntaje}, y el modelo deja de sobrescribirlo en los turnos
+siguientes. Adem\'as, cuando el usuario fij\'o una entidad y la consulta con la que
+se buscar\'a no la menciona, el sistema lo declara en la interfaz en lugar de
+resolver la discrepancia en silencio.
+
+% ========================== 5. EVALUACION ==========================
+\section{Protocolo de evaluaci\'on}
+\label{sec:evaluacion}
+
+\subsection{Evaluaci\'on autom\'atica de la recuperaci\'on}
+
+No existe un conjunto anotado de consultas sobre este corpus. Construimos dos
+conjuntos con verdad de referencia:
+
+\textbf{Consultas por identificador} (\pend[: n]). Se toma un documento y se
+pregunta por su c\'odigo y n\'umero. El documento correcto se conoce de antemano,
+de modo que las m\'etricas son deterministas y no intervienen juicios.
+
+\textbf{Consultas por contenido} (\pend[: n]). Se genera, a partir de un documento,
+una pregunta cuya respuesta sea ese documento. Es la construcci\'on habitual
+cuando no hay anotaci\'on disponible, y su limitaci\'on debe declararse: mide la
+recuperaci\'on contra un sustituto de la necesidad de informaci\'on, no contra la
+necesidad real. Por eso la validaci\'on con evaluadores del dominio
+(Secci\'on~\ref{sec:humana}) no es complementaria sino necesaria: mide otra cosa.
+
+Reportamos Recall@$k$, MRR@10 y nDCG@10.
+
+\subsection{Ablaci\'on}
+
+Ablamos un mecanismo por vez sobre la configuraci\'on completa, en lugar de
+recorrer la grilla combinatoria: l\'exico, reescritura de la repregunta, ranura de
+entidad, ranura de actos e historial en la generaci\'on. Adicionalmente comparamos
+el estado \emph{inferido} contra el estado \emph{corregido}, que es la comparaci\'on
+que sostiene el aporte sobre procedencia.
+
+\subsection{Fidelidad de las citas}
+
+Dos verificaciones deterministas, sin juez: (i) todo acto citado en la respuesta
+debe estar entre lo recuperado ---citar algo no recuperado equivale a inventarlo---
+y (ii) en consultas sobre personas, el fragmento citado debe contener efectivamente
+el nombre de la persona a la que se le atribuye algo.
+
+\subsection{Validaci\'on con evaluadores del dominio}
+\label{sec:humana}
+
+Participan tres evaluadores con distinto nivel de especialidad y distinta relaci\'on
+con la normativa (Tabla~\ref{tab:evaluadores}). La heterogeneidad es deliberada: el
+sistema tiene destinatarios de perfiles muy distintos y una validaci\'on hecha solo
+por especialistas no dir\'ia nada sobre el resto.
+
+El instrumento tiene dos bloques. En el primero, \textbf{comparaci\'on pareada a
+ciegas}: dos respuestas a la misma repregunta, sin informaci\'on sobre qu\'e
+configuraci\'on produjo cada una. Con pocos evaluadores, una preferencia pareada a
+ciegas es m\'as confiable que un puntaje absoluto, y neutraliza por construcci\'on
+el sesgo de quien conoce el sistema. En el segundo, cada evaluador consulta con sus
+propias necesidades de informaci\'on y declara si se apoyar\'ia en la respuesta.
+
+Un subconjunto de \pend[: \%] de los \'items es anotado por m\'as de una persona
+para reportar acuerdo entre anotadores.
+
+\begin{table}[H]
+\centering
+\caption{Perfil de los evaluadores.}
+\label{tab:evaluadores}
+\begin{tabular}{llll}
+\toprule
+Evaluador & Rol & Relaci\'on con la normativa & \'Items \\
+\midrule
+E1 & Estudiante & Destinatario, sin experiencia previa & \pend \\
+E2 & Docente, Divisi\'on Matem\'atica & Usuario ocasional & \pend \\
+E3 & Jefe de Divisi\'on, Computaci\'on & Usuario frecuente, rol de gesti\'on & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ========================= 6. RESULTADOS =========================
+\section{Resultados}
+\label{sec:resultados}
+
+\nota{Esta seccion esta armada con la estructura definitiva y los valores sin
+medir. Ningun numero de las tablas que siguen es un resultado: todos son
+marcadores.}
+
+\subsection{Recuperaci\'on y ablaci\'on}
+
+\begin{table}[H]
+\centering
+\caption{Recuperaci\'on por tipo de consulta y ablaci\'on de cada mecanismo.
+Configuraci\'on completa y variantes con un mecanismo desactivado.}
+\label{tab:ablacion}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{Identificador} & \multicolumn{3}{c}{Contenido} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+Configuraci\'on & R@5 & MRR@10 & nDCG@10 & R@5 & MRR@10 & nDCG@10 \\
+\midrule
+Completa           & \pend & \pend & \pend & \pend & \pend & \pend \\
+\midrule
+$-$ l\'exico       & \pend & \pend & \pend & \pend & \pend & \pend \\
+$-$ reescritura    & \pend & \pend & \pend & \pend & \pend & \pend \\
+$-$ ranura entidad & \pend & \pend & \pend & \pend & \pend & \pend \\
+$-$ ranura actos   & \pend & \pend & \pend & \pend & \pend & \pend \\
+$-$ historial      & \pend & \pend & \pend & \pend & \pend & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Procedencia del estado}
+
+La Tabla~\ref{tab:procedencia} contrasta las tres condiciones que aislan el aporte
+central: sin estado, con estado inferido por el sistema y con estado corregido por
+el usuario. La diferencia entre las dos \'ultimas cuantifica cu\'anto aporta que la
+correcci\'on humana pese m\'as que la inferencia.
+
+\begin{table}[H]
+\centering
+\caption{Efecto de la procedencia del estado sobre la recuperaci\'on, en consultas
+conversacionales.}
+\label{tab:procedencia}
+\begin{tabular}{lrrr}
+\toprule
+Condici\'on & R@5 & MRR@10 & Fragmentos que mencionan la entidad \\
+\midrule
+Sin estado                & \pend & \pend & \pend \\
+Estado inferido           & \pend & \pend & \pend \\
+Estado corregido          & \pend & \pend & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Fidelidad de las citas}
+
+\begin{table}[H]
+\centering
+\caption{Verificaci\'on autom\'atica de citas y atribuci\'on.}
+\label{tab:citas}
+\begin{tabular}{lrr}
+\toprule
+Verificaci\'on & Con estado & Sin estado \\
+\midrule
+Actos citados presentes en lo recuperado (\%)      & \pend & \pend \\
+Atribuci\'on a personas con el nombre en el fragmento (\%) & \pend & \pend \\
+Consultas sin respuesta posible respondidas con ``no s\'e'' (\%) & \pend & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Validaci\'on con evaluadores}
+
+\begin{table}[H]
+\centering
+\caption{Comparaci\'on pareada a ciegas: preferencia por configuraci\'on, por
+evaluador.}
+\label{tab:pareada}
+\begin{tabular}{lrrrr}
+\toprule
+Evaluador & Prefiere con estado & Prefiere sin estado & Empate & \'Items \\
+\midrule
+E1 & \pend & \pend & \pend & \pend \\
+E2 & \pend & \pend & \pend & \pend \\
+E3 & \pend & \pend & \pend & \pend \\
+\midrule
+Total & \pend & \pend & \pend & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Consultas propias de cada evaluador: disposici\'on a apoyarse en la
+respuesta.}
+\label{tab:propias}
+\begin{tabular}{lrrrr}
+\toprule
+Evaluador & S\'i & Con reservas & No & Consultas \\
+\midrule
+E1 & \pend & \pend & \pend & \pend \\
+E2 & \pend & \pend & \pend & \pend \\
+E3 & \pend & \pend & \pend & \pend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ======================== 7. CONCLUSIONES ========================
+\section{Conclusiones y trabajo futuro}
+\label{sec:conclusiones}
+
+Presentamos un asistente conversacional de consulta normativa desplegado sobre el
+digesto de la UNLu, con 19.959 actos y 140.902 fragmentos, recuperaci\'on h\'ibrida
+y trazabilidad completa desde cada afirmaci\'on hasta el documento publicado.
+
+El aporte central es tratar la \emph{procedencia} de un valor del estado de
+di\'alogo como se\~nal de confianza que determina su peso en la recuperaci\'on.
+Lo que el sistema infiere refuerza d\'ebilmente; lo que el usuario fija ---viendo y
+editando ese estado--- pesa m\'as y no es sobrescrito. \nota{Cerrar con la magnitud
+del efecto una vez medido.}
+
+Reportamos adem\'as un hallazgo sobre el corpus que excede a este sistema: la
+ausencia de registro institucional de derogaciones impide afirmar vigencia. Es una
+limitaci\'on del estado de digitalizaci\'on de la normativa universitaria, y
+creemos que declararla es preferible a que un asistente proyecte una certeza que
+los datos no sostienen.
+
+Como trabajo futuro: incorporar el digesto hist\'orico anterior a abril de 2024
+---unos 120.000 documentos de otra fisonom\'ia--- y validar la portabilidad
+ejecutando la ingesta sobre el portal de otra universidad nacional. Distinguimos
+dos afirmaciones que suelen confundirse: que la \emph{ingesta} funcione en otra
+instalaci\'on es barato de verificar; que las \emph{respuestas} sean buenas exige
+personas que conozcan esa normativa. Solo reclamamos la primera.
+
+\subsubsection*{Agradecimientos.} \nota{Completar.}
+
+\bibliographystyle{splncs03}
+\bibliography{References}
+
+\end{document}

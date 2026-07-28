@@ -792,6 +792,43 @@ def conversaciones(authorization: Optional[str] = Header(None)):
     return {'conversaciones': historial.listar_conversaciones(exigir_usuario(authorization))}
 
 
+class MensajeAdoptado(BaseModel):
+    rol: str
+    texto: str = Field(..., max_length=8000)
+    # Las fuentes viajan con el mensaje. Sin ellas la conversación adoptada quedaría con
+    # respuestas sin cita, que es justo lo que este sistema no puede permitirse.
+    fuentes: Optional[list] = None
+
+
+class Adopcion(BaseModel):
+    mensajes: List[MensajeAdoptado] = Field(..., max_length=40)
+
+
+@app.post('/conversaciones')
+def adoptar(a: Adopcion, authorization: Optional[str] = Header(None)):
+    """Guarda en el historial una conversación que venía sin sesión iniciada.
+
+    Quien consulta sin cuenta y después entra lo hace, casi siempre, porque quiere
+    conservar lo que está viendo. Perdérselo en ese momento es el peor momento posible.
+
+    Sin esto, además, quedaba algo peor que molesto: la conversación seguía en pantalla
+    pero no en la base, y la siguiente consulta guardaba una respuesta apoyada en turnos
+    que no quedaban registrados en ninguna parte. Para un sistema que promete trazabilidad,
+    una respuesta guardada sin el intercambio que la explica es un registro roto.
+    """
+    usuario = exigir_usuario(authorization)
+    if not a.mensajes:
+        raise HTTPException(400, 'no hay mensajes para guardar')
+
+    primera = next((m.texto for m in a.mensajes if m.rol == 'user'), None)
+    cid = historial.crear_conversacion(usuario, primera or 'Consulta')
+    for m in a.mensajes:
+        historial.agregar_mensaje(cid, usuario,
+                                  'user' if m.rol == 'user' else 'assistant',
+                                  m.texto, m.fuentes)
+    return {'conversacion_id': cid}
+
+
 @app.get('/conversaciones/{cid}')
 def conversacion(cid: int, authorization: Optional[str] = Header(None)):
     d = historial.leer_conversacion(cid, exigir_usuario(authorization))
