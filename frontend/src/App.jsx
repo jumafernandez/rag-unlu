@@ -522,10 +522,19 @@ export default function App() {
                   )}
                 </div>
               ))}
-              {ocultas > 0 && (
-                <button className="ver-mas" onClick={() => setVisibles((n) => n + TANDA)}>
-                  Ver más ({ocultas})
-                </button>
+              {(ocultas > 0 || visibles > TANDA) && (
+                <div className="ver-mas-fila">
+                  {ocultas > 0 && (
+                    <button className="ver-mas" onClick={() => setVisibles((n) => n + TANDA)}>
+                      Ver más ({ocultas})
+                    </button>
+                  )}
+                  {visibles > TANDA && (
+                    <button className="ver-mas" onClick={() => setVisibles(TANDA)}>
+                      Ver menos
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

@@ -809,6 +809,11 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
     fuentes = [_fuente_de(ix, i, s, d) for i, s, d in resultados]
 
     def eventos():
+        # Se reasigna más abajo, al sumarle los actos que la respuesta acabe de citar.
+        # Sin declararlo, esa asignación convertiría a `estado` en local de esta función
+        # y este primer yield fallaría por referenciarla antes de asignarla.
+        nonlocal estado
+
         yield _sse('fuentes', {'fuentes': [f.model_dump() for f in fuentes],
                                'consulta_efectiva': consulta_busqueda, 'estado': estado})
 

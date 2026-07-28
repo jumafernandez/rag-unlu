@@ -1213,8 +1213,14 @@ button, input, select, textarea { font: inherit; }
 }
 .acto-chip.apagado:hover { opacity: 0.75; }
 
+.ver-mas-fila {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+
 .ver-mas {
-  width: 100%;
+  flex: 1;
   margin-top: 4px;
   border: none;
   background: none;
