@@ -8,7 +8,11 @@
  * Sin token todo funciona igual, solo que no queda historial.
  */
 
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// En desarrollo el front corre en Vite y la API en otro puerto. En una compilación de
+// producción el backend sirve estos mismos archivos, así que la API está en el mismo
+// origen y alcanza con rutas relativas: eso hace que funcione igual en localhost, detrás
+// de un túnel o en un despliegue, sin recompilar. VITE_API_URL sigue mandando si está.
+const BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8000" : "");
 const CLAVE_TOKEN = "chatdigesto_sesion";
 
 export function guardarSesion(datos) {

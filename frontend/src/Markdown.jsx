@@ -98,16 +98,28 @@ function conCitas(texto, clave, fuentes, alTocarCita) {
       if (n > 0) enlazadas.push(<span key={`${clave}-s${m.index}-${n}`}>; </span>);
       enlazadas.push(
         idx >= 0 ? (
-          <button
+          // Va como <span> y no como <button> a propósito. Un botón es una caja atómica:
+          // el navegador no puede partir su texto, así que ante una cita larga la baja
+          // entera al renglón siguiente y deja el paréntesis de apertura colgando solo al
+          // final de la línea. Un span fluye como texto y se parte donde corresponde.
+          <span
             key={`${clave}-c${m.index}-${n}`}
             className="cita-enlace"
+            role="button"
+            tabIndex={0}
             onClick={() => alTocarCita?.(idx)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                alTocarCita?.(idx);
+              }
+            }}
             title="Ver la fuente que respalda esta afirmación"
           >
             {/* Se muestra la cita tal como figura en la fuente, no como la escribió el
                 modelo: así una sigla mal transcrita no llega al usuario. */}
             {fuentes[idx].cita}
-          </button>
+          </span>
         ) : (
           <span key={`${clave}-t${m.index}-${n}`}>{cita}</span>
         )

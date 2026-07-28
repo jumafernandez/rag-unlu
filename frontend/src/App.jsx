@@ -298,6 +298,17 @@ export default function App() {
     return history.filter((item) => (item.titulo || "").toLowerCase().includes(q));
   }, [history, searchChats]);
 
+  // La lista se muestra de a tandas: con muchas conversaciones el panel se volvía una
+  // tira interminable, y las viejas casi nunca se buscan bajando sino por el buscador.
+  // El tamaño de la tanda es el que entra en el panel sin que aparezca la barra de
+  // scroll: si hubiera que scrollear para llegar al "Ver más", no serviría de nada.
+  const TANDA = 8;
+  const [visibles, setVisibles] = useState(TANDA);
+  // Cada búsqueda arranca desde arriba: si no, se hereda el "ver más" de la anterior.
+  useEffect(() => { setVisibles(TANDA); }, [searchChats]);
+  const historialVisible = filteredHistory.slice(0, visibles);
+  const ocultas = filteredHistory.length - historialVisible.length;
+
   const sendMessage = async () => {
     if (!input.trim() || cargando) return;
     const content = input.trim();
@@ -339,6 +350,12 @@ export default function App() {
             consultaEfectiva: datos.consulta_efectiva,
             estadoUsado: datos.estado
           });
+        } else if (evento === "estado") {
+          // Llega al final: los actos que la respuesta acaba de citar se suman al estado.
+          if (datos.estado) {
+            setEstado(datos.estado);
+            actualizar({ estadoUsado: datos.estado });
+          }
         } else if (evento === "texto") {
           texto += datos.t;
           actualizar({ content: texto });
@@ -462,7 +479,7 @@ export default function App() {
               {sesion && filteredHistory.length === 0 && (
                 <p className="history-vacio">Todavía no tenés consultas guardadas.</p>
               )}
-              {filteredHistory.map((item) => (
+              {historialVisible.map((item) => (
                 <div key={item.id} className={`history-row ${convId === item.id ? "activa" : ""}`}>
                   {editando === item.id ? (
                     <input
@@ -505,6 +522,11 @@ export default function App() {
                   )}
                 </div>
               ))}
+              {ocultas > 0 && (
+                <button className="ver-mas" onClick={() => setVisibles((n) => n + TANDA)}>
+                  Ver más ({ocultas})
+                </button>
+              )}
             </div>
           </div>
 

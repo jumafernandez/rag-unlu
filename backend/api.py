@@ -25,6 +25,7 @@ Variables:
 import contextlib
 import json
 import os
+import pathlib
 import re
 import threading
 import time
@@ -32,6 +33,7 @@ from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from fastapi import Header
@@ -251,6 +253,13 @@ de algo si su nombre aparece en el fragmento que estás citando. Que el contexto
 acto sobre el tema preguntado NO significa que esa persona esté mencionada ahí. Si el nombre
 no figura, decí que no encontraste normativa que la vincule, aunque hayas recibido documentos
 sobre el tema. Lo mismo vale para cualquier entidad concreta: carrera, departamento, cargo.
+
+Ojo con el reverso de esa regla. "¿Conocés a X?", "¿sabés algo de X?" o "¿quién es X?" no son
+preguntas de sí o no sobre trato personal: te están pidiendo qué dice la normativa sobre X.
+Si el contexto tiene actos donde X figura, contá lo que dicen. **Nunca abras con una negativa
+cuando después vas a informar algo**: empezar con "no encontré normativa que vincule a X" y
+seguir con lo que sí encontraste se lee como que el sistema falló, y además se contradice.
+Si tenés información, empezá por la información.
 
 **Tiempo verbal.** Cada acto describe algo que pasó en una fecha, no un estado actual.
 Respetá lo que dice el acto: si alguien renunció, decí que renunció; si fue designado, que
@@ -605,6 +614,12 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
             except Exception as e:
                 advertencia = f'Falló la generación ({type(e).__name__}). Se devuelven las fuentes.'
 
+    # Los actos que la respuesta acaba de citar entran al estado ahora, no en el turno
+    # siguiente. Sin esto el estado va siempre un turno atrasado: se arma con el historial,
+    # y la respuesta que el usuario está leyendo todavía no es historial.
+    if respuesta:
+        estado = fusionar_actos(estado, actos_en_juego(None, respuesta))
+
     # Si alguna fuente tiene metadata de baja confianza, se avisa: el usuario tiene que
     # saber cuándo el dato de fecha o número no está verificado contra el sistema origen.
     dudosas = [f.cita for f in fuentes if f.metadata_confianza not in ('alta', 'media')]
@@ -815,6 +830,17 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
                 yield _sse('aviso', {'mensaje': f'Falló la generación ({type(e).__name__}).'})
 
         respuesta = ''.join(partes)
+
+        # Igual que en /consultar: los actos recién citados entran al estado en este turno.
+        # Se emite actualizado para que la barra de contexto muestre lo que el usuario
+        # acaba de leer y no lo del turno anterior.
+        if respuesta:
+            nuevo = fusionar_actos(dict(estado, actos=list(estado.get('actos') or [])),
+                                   actos_en_juego(None, respuesta))
+            if nuevo != estado:
+                estado = nuevo
+                yield _sse('estado', {'estado': estado})
+
         conversacion_id = mensaje_id = None
         if usuario:
             try:
@@ -855,3 +881,20 @@ def documento(documento: str):
         'secciones': [{'seccion': p['seccion'], 'tipo': p['tipo_seccion'],
                        'cita': p['cita'], 'texto': p['texto']} for p in partes],
     }
+
+
+# ---------------------------------------------------------------------------
+# Interfaz web
+#
+# Si existe una compilación del front (frontend/dist), se sirve desde acá. Con eso la
+# aplicación entera queda en UN solo origen: no hace falta un segundo servidor, ni
+# configurar CORS, ni saber de antemano con qué dominio se va a publicar. En desarrollo
+# esta carpeta no existe y el front se sirve con Vite como siempre.
+#
+# El montaje va al FINAL a propósito: monta la raíz, así que cualquier ruta de la API
+# declarada después quedaría tapada por él.
+# ---------------------------------------------------------------------------
+
+_DIST = pathlib.Path(__file__).resolve().parent.parent / 'frontend' / 'dist'
+if _DIST.is_dir():
+    app.mount('/', StaticFiles(directory=str(_DIST), html=True), name='web')
