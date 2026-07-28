@@ -1010,7 +1010,8 @@ button, input, select, textarea { font: inherit; }
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  margin: 10px 0 0;
+  /* Separado del aviso legal: son cosas distintas y pegadas se leían como una sola. */
+  margin: 12px 0 18px;
   font-size: 0.76rem;
   color: #8b9a88;
 }
@@ -1033,3 +1034,48 @@ button, input, select, textarea { font: inherit; }
   color: #24521f;
   font-weight: 600;
 }
+
+
+/* Ayuda del alcance: explica sin ocupar lugar hasta que alguien la busca. */
+.amplitud-ayuda {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin: 0 1px 0 4px;
+  vertical-align: middle;
+  border: 1px solid #c7dabb;
+  border-radius: 50%;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #7d8c7a;
+  cursor: help;
+}
+.amplitud-ayuda:hover, .amplitud-ayuda:focus-visible { background: #deecd8; color: #24521f; }
+
+.amplitud-globo {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  transform: none;
+  width: min(300px, 78vw);
+  background: #24521f;
+  color: #f1f6ef;
+  padding: 9px 11px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+  z-index: 25;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.amplitud-globo b { color: #cfe0c8; }
+
+.amplitud-ayuda:hover .amplitud-globo,
+.amplitud-ayuda:focus-visible .amplitud-globo { opacity: 1; visibility: visible; }

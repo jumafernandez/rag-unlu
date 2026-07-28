@@ -647,7 +647,23 @@ export default function App() {
                 <button onClick={sendMessage}>Enviar</button>
               </div>
               <div className="amplitud">
-                <span>Alcance de la búsqueda</span>
+                <span>
+                  Alcance de la búsqueda
+                  <span className="amplitud-ayuda" tabIndex={0} role="button"
+                        aria-label="Qué significa el alcance de la búsqueda">
+                    ?
+                    <span className="amplitud-globo">
+                      Cuánta normativa se consulta para armar cada respuesta.{" "}
+                      <b>Preciso</b> mira pocos documentos: sirve cuando buscás algo puntual
+                      y querés la respuesta rápido. <b>Equilibrado</b> es el punto medio y
+                      cubre bien la mayoría de las consultas. <b>Exhaustivo</b> mira muchos
+                      más, para cuando necesitás relevar todo lo que existe sobre un tema.
+                      No cambia qué hay en el Digesto, solo cuánto se revisa por consulta.
+                    </span>
+                  </span>
+                  :
+                </span>
+
                 {[
                   ["preciso", "Preciso", "Menos fuentes, más directo"],
                   ["equilibrado", "Equilibrado", "El punto medio"],

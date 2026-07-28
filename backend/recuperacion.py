@@ -182,8 +182,26 @@ class Indice:
         presentes = set(self._codigos_chunk)
         return {t for t in tokenizar(texto) if t in presentes and t}
 
+    def chunks_de_actos(self, actos, tope_por_acto=3):
+        """Índices de los chunks que pertenecen a los actos indicados.
+
+        `actos` es un conjunto de (código, "número/año"). Se usa para mantener en el
+        contexto los documentos de los que ya se venía hablando.
+        """
+        if not actos:
+            return []
+        buscados = {(c.upper(), n) for c, n in actos}
+        por_acto, salida = {}, []
+        for i, c in enumerate(self.chunks):
+            clave = ((c.get('document_code') or '').upper(),
+                     re.sub(r'\s+', '', str(c.get('document_number') or '')))
+            if clave in buscados and por_acto.get(clave, 0) < tope_por_acto:
+                por_acto[clave] = por_acto.get(clave, 0) + 1
+                salida.append(i)
+        return salida
+
     def buscar(self, consulta_densa, texto_consulta='', k=8, filtros=None,
-               solo_articulos=False, candidatos=60):
+               solo_articulos=False, candidatos=60, anclas=None):
         """[(indice, puntaje_rrf, detalle)] ordenado por relevancia."""
         permitidos = self._filtrar(filtros, solo_articulos)
 
@@ -249,6 +267,25 @@ class Indice:
             detalle[i]['bm25'] = round(float(puntajes_bm[i]), 3)
 
         mejores = sorted(total.items(), key=lambda x: -x[1])[:k]
+
+        # Continuidad de la conversación: los actos que ya se citaron se agregan al final
+        # si la búsqueda no los trajo. Cuestan pocas posiciones y evitan que una
+        # repregunta sobre "el artículo 2" se quede sin el documento del que se hablaba.
+        if anclas:
+            # Solo se agrega el acto que la búsqueda NO trajo. Si ya está representado,
+            # sumar más fragmentos suyos desplaza a otros documentos y la respuesta
+            # termina girando alrededor de un único acto.
+            docs_presentes = {
+                ((self.chunks[i].get('document_code') or '').upper(),
+                 re.sub(r'\s+', '', str(self.chunks[i].get('document_number') or '')))
+                for i, _ in mejores
+            }
+            faltantes = {a for a in {(c.upper(), n) for c, n in anclas} if a not in docs_presentes}
+            if faltantes:
+                for i in self.chunks_de_actos(faltantes, tope_por_acto=2):
+                    mejores.append((i, 0.0))
+                    detalle[i]['continuidad'] = True
+
         return [(i, s, dict(detalle[i],
                             similitud=(float(sims[i]) if sims is not None and np.isfinite(sims[i]) else None)))
                 for i, s in mejores]

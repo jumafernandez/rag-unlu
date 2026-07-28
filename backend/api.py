@@ -271,8 +271,13 @@ def reescribir_consulta(pregunta: str, historial) -> str:
             messages=[
                 {'role': 'system', 'content':
                     'Reescribí la última pregunta del usuario para que se entienda sin leer la '
-                    'conversación, resolviendo pronombres y referencias con lo ya dicho. '
-                    'Conservá los números de acto y nombres propios tal cual. '
+                    'conversación, resolviendo pronombres y referencias con lo ya dicho.\n'
+                    'Reglas:\n'
+                    '- Conservá los nombres propios tal cual.\n'
+                    '- Si la conversación gira alrededor de actos concretos (por ejemplo '
+                    '"RESHCS 225/2024"), incluí esos números en la pregunta reescrita: sin ellos '
+                    'la búsqueda pierde el documento del que se estaba hablando.\n'
+                    '- No agregues temas que nadie mencionó.\n'
                     'Devolvé SOLO la pregunta reescrita, sin explicaciones.'},
                 {'role': 'user', 'content':
                     f'CONVERSACIÓN:\n{conversacion}\n\nÚLTIMA PREGUNTA: {pregunta}'},
@@ -282,6 +287,25 @@ def reescribir_consulta(pregunta: str, historial) -> str:
         return nueva or pregunta
     except Exception:
         return pregunta          # ante cualquier falla, se busca con la original
+
+
+# Identificadores de acto tal como aparecen en las citas: "DISPCD-CB 528/2025".
+RE_ACTO_CITADO = re.compile(r'\b([A-ZÑ][A-ZÑ0-9-]{2,})\s+(\d{1,6}\s*/\s*\d{2,4})\b')
+
+
+def actos_en_juego(historial) -> set:
+    """Actos que ya se citaron en la conversación.
+
+    Se los mantiene disponibles en la recuperación aunque la reescritura se desvíe: si
+    se estuvo hablando de una resolución y la repregunta es "¿y qué dice el artículo 2?",
+    ese acto tiene que seguir al alcance. Sin esto la continuidad depende de que la
+    reescritura acierte, que es una apuesta.
+    """
+    encontrados = set()
+    for t in (historial or [])[-6:]:
+        for m in RE_ACTO_CITADO.finditer(t.texto or ''):
+            encontrados.add((m.group(1).upper(), re.sub(r'\s+', '', m.group(2))))
+    return encontrados
 
 
 def _mensajes(pregunta: str, contexto: str, historial=None):
@@ -386,7 +410,8 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     # El texto crudo va también a la señal léxica: BM25 lo tokeniza conservando los
     # identificadores, que es lo que el vector denso no distingue.
     resultados = ix.buscar(denso, texto_consulta=consulta_busqueda, k=c.k,
-                           filtros=filtros or None, solo_articulos=c.solo_articulos)
+                           filtros=filtros or None, solo_articulos=c.solo_articulos,
+                           anclas=actos_en_juego(c.historial))
 
     fuentes = [
         Fuente(
@@ -576,7 +601,8 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
     if c.tipo:
         filtros['document_type'] = c.tipo
     resultados = ix.buscar(denso, texto_consulta=consulta_busqueda, k=c.k,
-                           filtros=filtros or None, solo_articulos=c.solo_articulos)
+                           filtros=filtros or None, solo_articulos=c.solo_articulos,
+                           anclas=actos_en_juego(c.historial))
     fuentes = [_fuente_de(ix, i, s, d) for i, s, d in resultados]
 
     def eventos():
