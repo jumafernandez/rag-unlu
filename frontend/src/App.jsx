@@ -40,6 +40,8 @@ export default function App() {
   const [sesion, setSesion] = useState(() => leerSesion());
   const [history, setHistory] = useState([]);
   const [convId, setConvId] = useState(null);
+  const [editando, setEditando] = useState(null);   // id de la conversación en edición
+  const [tituloEdit, setTituloEdit] = useState("");
 
   // El historial existe solo con sesión iniciada. Sin cuenta el asistente funciona
   // igual, pero no queda registro de las consultas.
@@ -65,11 +67,20 @@ export default function App() {
     } catch (e) { console.error(e); }
   };
 
-  const renombrar = async (id, actual) => {
-    const t = window.prompt("Nuevo título:", actual || "");
-    if (!t?.trim()) return;
-    try { await renombrarConversacion(id, t.trim()); refrescarHistorial(); }
-    catch (e) { console.error(e); }
+  const empezarEdicion = (id, actual) => {
+    setEditando(id);
+    setTituloEdit(actual || "");
+  };
+
+  const confirmarEdicion = async () => {
+    const id = editando, t = tituloEdit.trim();
+    setEditando(null);
+    if (!t || !id) return;
+    // Se actualiza en pantalla de inmediato; si el servidor falla, se recarga la lista
+    // real y el título vuelve a lo que estaba.
+    setHistory((prev) => prev.map((c) => (c.id === id ? { ...c, titulo: t } : c)));
+    try { await renombrarConversacion(id, t); } catch (e) { console.error(e); }
+    refrescarHistorial();
   };
 
   const borrar = async (id) => {
@@ -207,17 +218,34 @@ export default function App() {
               )}
               {filteredHistory.map((item) => (
                 <div key={item.id} className={`history-row ${convId === item.id ? "activa" : ""}`}>
-                  <button
-                    className="history-item"
-                    onClick={() => abrirConversacion(item.id)}
-                    title={item.titulo}
-                  >
-                    {item.titulo}
-                  </button>
-                  <button className="history-accion" title="Renombrar"
-                          onClick={() => renombrar(item.id, item.titulo)}>✎</button>
-                  <button className="history-accion" title="Borrar"
-                          onClick={() => borrar(item.id)}>🗑</button>
+                  {editando === item.id ? (
+                    <input
+                      className="history-edit"
+                      value={tituloEdit}
+                      autoFocus
+                      onChange={(e) => setTituloEdit(e.target.value)}
+                      onBlur={confirmarEdicion}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); confirmarEdicion(); }
+                        if (e.key === "Escape") setEditando(null);
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <button
+                        className="history-item"
+                        onClick={() => abrirConversacion(item.id)}
+                        onDoubleClick={() => empezarEdicion(item.id, item.titulo)}
+                        title={item.titulo}
+                      >
+                        {item.titulo}
+                      </button>
+                      <button className="history-accion" title="Renombrar"
+                              onClick={() => empezarEdicion(item.id, item.titulo)}>✎</button>
+                      <button className="history-accion" title="Borrar"
+                              onClick={() => borrar(item.id)}>🗑</button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -232,7 +260,10 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <Login onEntrar={(d) => setSesion(d)} />
+              <>
+                <p className="sesion-invitacion">Entrá para guardar tus consultas</p>
+                <Login onEntrar={(d) => setSesion(d)} />
+              </>
             )}
           </div>
 

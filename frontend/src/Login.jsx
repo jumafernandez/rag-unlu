@@ -31,12 +31,17 @@ export default function Login({ onEntrar }) {
           }
         }
       });
+      // Google solo permite ajustar estas propiedades del botón; el resto de la
+      // apariencia se acomoda desde CSS envolviéndolo (ver .login-google en styles.css).
       window.google.accounts.id.renderButton(contenedor.current, {
+        type: "standard",
         theme: "outline",
-        size: "medium",
-        text: "signin",
+        size: "large",
+        shape: "pill",
+        text: "signin_with",
+        logo_alignment: "center",
         locale: "es-419",
-        width: 220
+        width: 260
       });
     };
 
