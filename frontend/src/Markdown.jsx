@@ -21,13 +21,43 @@ const RE_CITA = /\(((?:Disposici[oó]n|Resoluci[oó]n)[^)]{4,120})\)/g;
 const sinTildes = (t) =>
   t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 
-/** Índice de la fuente que corresponde a una cita, o -1. */
+const RE_NUMERO_ACTO = /(\d{1,6})\s*\/\s*(\d{2,4})/;
+
+/** Índice de la fuente que corresponde a una cita, o -1.
+ *
+ * El emparejamiento se apoya en el NÚMERO de acto, no en el código: el modelo a veces
+ * transcribe mal la sigla ("DISPPCD-CB" por "DISPCD-CB"), pero el número casi nunca. Con
+ * ese número y la sección alcanza para identificar la fuente sin ambigüedad dentro de un
+ * puñado de resultados.
+ */
 function buscarFuente(cita, fuentes) {
   if (!fuentes?.length) return -1;
   const objetivo = sinTildes(cita);
-  let exacta = fuentes.findIndex((f) => sinTildes(f.cita) === objetivo);
+
+  const exacta = fuentes.findIndex((f) => sinTildes(f.cita) === objetivo);
   if (exacta >= 0) return exacta;
-  // El modelo a veces recorta o alarga la cita: alcanza con que una contenga a la otra.
+
+  const num = cita.match(RE_NUMERO_ACTO);
+  if (num) {
+    const clave = `${num[1]}/${num[2]}`;
+    const candidatos = fuentes
+      .map((f, i) => ({ f, i }))
+      .filter(({ f }) => (f.cita || "").replace(/\s+/g, "").includes(clave));
+
+    if (candidatos.length === 1) return candidatos[0].i;
+    if (candidatos.length > 1) {
+      // Varias secciones del mismo acto: se elige la que la cita menciona.
+      const seccion = sinTildes((cita.split("—")[1] || "").trim());
+      if (seccion) {
+        const conSeccion = candidatos.find(({ f }) =>
+          sinTildes((f.cita.split("—")[1] || "").trim()) === seccion
+        );
+        if (conSeccion) return conSeccion.i;
+      }
+      return candidatos[0].i;
+    }
+  }
+
   return fuentes.findIndex((f) => {
     const c = sinTildes(f.cita);
     return c.includes(objetivo) || objetivo.includes(c);
@@ -74,7 +104,9 @@ function conCitas(texto, clave, fuentes, alTocarCita) {
             onClick={() => alTocarCita?.(idx)}
             title="Ver la fuente que respalda esta afirmación"
           >
-            {cita}
+            {/* Se muestra la cita tal como figura en la fuente, no como la escribió el
+                modelo: así una sigla mal transcrita no llega al usuario. */}
+            {fuentes[idx].cita}
           </button>
         ) : (
           <span key={`${clave}-t${m.index}-${n}`}>{cita}</span>
