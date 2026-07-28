@@ -16,7 +16,18 @@ const RE_INLINE = /(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`\n]+`)/g;
 // Citas del tipo "(Disposición DISPCD-CB 450/2025 — Artículo 1)". Se detectan para poder
 // enlazarlas con la fuente correspondiente: así la respuesta deja de ser un párrafo suelto
 // y se puede ir de la afirmación al acto que la respalda.
-const RE_CITA = /\(((?:Disposici[oó]n|Resoluci[oó]n)[^)]{4,120})\)/g;
+//
+// El modelo no siempre antepone la palabra "Disposición" o "Resolución": muchas veces cita
+// directamente el código, "(DISPPCD-CB 332/2025 — Artículo 1)". Con el patrón anterior esas
+// citas quedaban como texto muerto, sin enlace, en la misma respuesta donde otras sí lo
+// tenían. Por eso se acepta también el código suelto: dos o más mayúsculas, y un número de
+// acto, que es lo que identifica a la cita.
+const RE_CITA = new RegExp(
+  '\\(((?:' +
+  '(?:Disposici[oó]n|Resoluci[oó]n)[^)]{4,120}' +       // con el tipo por delante
+  '|' +
+  '[A-ZÑ]{2,}[A-ZÑ0-9-]*\\s*\\d{1,6}\\s*/\\s*\\d{2,4}[^)]{0,80}' +   // código y número solos
+  '))\\)', 'g');
 
 const sinTildes = (t) =>
   t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
