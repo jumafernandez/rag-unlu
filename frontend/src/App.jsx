@@ -61,6 +61,18 @@ export default function App() {
   useEffect(() => { localStorage.setItem("chatdigesto_amplitud", amplitud); }, [amplitud]);
   const [copiado, setCopiado] = useState(null);
   const [fuenteMarcada, setFuenteMarcada] = useState(null);   // "mensaje-fuente"
+  // Sujeto del que se viene hablando. Se mantiene entre turnos y es editable: si el
+  // sistema lo interpretó mal, corregirlo arregla la conversación en vez de obligar a
+  // reescribir cada pregunta. Que sea visible también hace explícito qué está asumiendo.
+  const [foco, setFoco] = useState(null);
+  const [verRazonamiento, setVerRazonamiento] = useState(
+    () => localStorage.getItem("chatdigesto_razonamiento") === "1"
+  );
+  const [editandoFoco, setEditandoFoco] = useState(false);
+  const [focoEdit, setFocoEdit] = useState("");
+  useEffect(() => {
+    localStorage.setItem("chatdigesto_razonamiento", verRazonamiento ? "1" : "0");
+  }, [verRazonamiento]);
   const finDelChat = useRef(null);
   const cajaTexto = useRef(null);
   const buscador = useRef(null);
@@ -278,9 +290,14 @@ export default function App() {
 
       const K = { preciso: 5, equilibrado: 8, exhaustivo: 16 }[amplitud] ?? 8;
 
-      await consultarEnFlujo({ pregunta: content, k: K, conversacionId: convId, historial }, (evento, datos) => {
+      await consultarEnFlujo({ pregunta: content, k: K, conversacionId: convId, historial, foco }, (evento, datos) => {
         if (evento === "fuentes") {
-          actualizar({ fuentes: datos.fuentes || [] });
+          if (datos.foco?.entidad) setFoco(datos.foco);
+          actualizar({
+            fuentes: datos.fuentes || [],
+            consultaEfectiva: datos.consulta_efectiva,
+            focoUsado: datos.foco
+          });
         } else if (evento === "texto") {
           texto += datos.t;
           actualizar({ content: texto });
@@ -327,6 +344,7 @@ export default function App() {
   const handleNewChat = () => {
     setMessages([]);
     setInput("");
+    setFoco(null);
     setConvId(null);
     setView("chat");
     setPanelAbierto(false);
@@ -562,6 +580,31 @@ export default function App() {
                           </div>
                         )}
 
+                        {verRazonamiento && !msg.enCurso && msg.consultaEfectiva && (
+                          <div className="razonamiento">
+                            <div>
+                              <span>Buscó</span>
+                              <code>{msg.consultaEfectiva}</code>
+                            </div>
+                            {msg.focoUsado?.entidad && (
+                              <div>
+                                <span>Foco</span>
+                                <code>{msg.focoUsado.entidad}
+                                  {msg.focoUsado.tipo ? ` · ${msg.focoUsado.tipo}` : ""}</code>
+                              </div>
+                            )}
+                            {msg.fuentes?.some((f) => f.ranking?.foco || f.ranking?.continuidad) && (
+                              <div>
+                                <span>Sumadas</span>
+                                <code>
+                                  {msg.fuentes.filter((f) => f.ranking?.foco).length} por foco ·{" "}
+                                  {msg.fuentes.filter((f) => f.ranking?.continuidad).length} por continuidad
+                                </code>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         {msg.fuentes?.length > 0 && !msg.enCurso && (
                           <details className="fuentes" id={`fuentes-${i}`}>
                             {(() => {
@@ -627,6 +670,38 @@ export default function App() {
             </div>
 
             <div className="composer-outer">
+              {(foco?.entidad || verRazonamiento) && (
+                <div className="foco-barra">
+                  <span className="foco-etiqueta">Consultando sobre</span>
+                  {editandoFoco ? (
+                    <input
+                      className="foco-edit"
+                      value={focoEdit}
+                      autoFocus
+                      onChange={(e) => setFocoEdit(e.target.value)}
+                      onBlur={() => {
+                        setEditandoFoco(false);
+                        setFoco(focoEdit.trim() ? { ...foco, entidad: focoEdit.trim() } : null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.currentTarget.blur();
+                        if (e.key === "Escape") setEditandoFoco(false);
+                      }}
+                    />
+                  ) : (
+                    <button className="foco-valor"
+                            title="Corregir el sujeto de la conversación"
+                            onClick={() => { setFocoEdit(foco?.entidad || ""); setEditandoFoco(true); }}>
+                      {foco?.entidad || "sin definir"}
+                      {foco?.tipo && <em className="foco-tipo">{foco.tipo}</em>}
+                    </button>
+                  )}
+                  {foco?.entidad && (
+                    <button className="foco-limpiar" title="Olvidar el sujeto actual"
+                            onClick={() => setFoco(null)}>✕</button>
+                  )}
+                </div>
+              )}
               <div className="input-area">
                 <textarea
                   ref={cajaTexto}
@@ -679,6 +754,12 @@ export default function App() {
                     {etiqueta}
                   </button>
                 ))}
+
+                <button className={`razonamiento-toggle ${verRazonamiento ? "activo" : ""}`}
+                        onClick={() => setVerRazonamiento((v) => !v)}
+                        title="Mostrar con qué consulta se buscó y qué sujeto se está siguiendo">
+                  Ver razonamiento
+                </button>
               </div>
 
               <div className="notice">

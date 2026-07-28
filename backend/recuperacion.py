@@ -200,8 +200,36 @@ class Indice:
                 salida.append(i)
         return salida
 
+    def chunks_de_entidad(self, entidad, consulta_densa, tope=3):
+        """Fragmentos que mencionan a la entidad, ordenados por similitud con la consulta.
+
+        Es la segunda red: aunque la reescritura falle, si se sabe de quién o de qué se
+        está hablando se garantiza que en el contexto haya fragmentos que efectivamente
+        lo mencionen. Sin esto, una pregunta sobre una persona puede traer actos del tema
+        preguntado donde esa persona no figura, y el modelo atribuirle lo que dicen.
+        """
+        if not entidad:
+            return []
+        # Se buscan los tokens distintivos del nombre: así "Carina Natalia Duna" matchea
+        # con "Duna Carina" y con "DUNA, Carina".
+        piezas = [t for t in tokenizar(entidad) if len(t) >= 4]
+        if not piezas:
+            return []
+        candidatos = []
+        for i, c in enumerate(self.chunks):
+            texto = normalizar(f"{c.get('titulo') or ''} {c.get('texto') or ''}")
+            if sum(1 for p in piezas if p in texto) >= min(2, len(piezas)):
+                candidatos.append(i)
+        if not candidatos:
+            return []
+        q = np.asarray(consulta_densa, dtype=np.float32)
+        q = q / max(1e-9, float(np.linalg.norm(q)))
+        sims = self.densos[candidatos] @ q
+        orden = np.argsort(-sims)[:tope]
+        return [candidatos[j] for j in orden]
+
     def buscar(self, consulta_densa, texto_consulta='', k=8, filtros=None,
-               solo_articulos=False, candidatos=60, anclas=None):
+               solo_articulos=False, candidatos=60, anclas=None, entidad=None):
         """[(indice, puntaje_rrf, detalle)] ordenado por relevancia."""
         permitidos = self._filtrar(filtros, solo_articulos)
 
@@ -285,6 +313,22 @@ class Indice:
                 for i in self.chunks_de_actos(faltantes, tope_por_acto=2):
                     mejores.append((i, 0.0))
                     detalle[i]['continuidad'] = True
+
+        # Refuerzo por entidad: si casi ningún resultado menciona el sujeto de la
+        # conversación, se agregan los que sí. No es un filtro duro a propósito: una
+        # pregunta como "¿y qué dice el reglamento general?" debe poder salirse del foco.
+        if entidad:
+            ya = {i for i, _ in mejores}
+            piezas = [t for t in tokenizar(entidad) if len(t) >= 4]
+            def menciona(i):
+                texto = normalizar(f"{self.chunks[i].get('titulo') or ''} {self.chunks[i].get('texto') or ''}")
+                return piezas and sum(1 for p in piezas if p in texto) >= min(2, len(piezas))
+            if sum(1 for i in ya if menciona(i)) < 2:
+                for i in self.chunks_de_entidad(entidad, consulta_densa, tope=3):
+                    if i not in ya:
+                        mejores.append((i, 0.0))
+                        detalle[i]['foco'] = True
+                        ya.add(i)
 
         return [(i, s, dict(detalle[i],
                             similitud=(float(sims[i]) if sims is not None and np.isfinite(sims[i]) else None)))

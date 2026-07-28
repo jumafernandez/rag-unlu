@@ -1079,3 +1079,120 @@ button, input, select, textarea { font: inherit; }
 
 .amplitud-ayuda:hover .amplitud-globo,
 .amplitud-ayuda:focus-visible .amplitud-globo { opacity: 1; visibility: visible; }
+
+/* ---- Foco de la conversación ----
+   Hacer visible el sujeto que el sistema está siguiendo, y permitir corregirlo. Si se
+   equivoca, arreglarlo acá compone toda la conversación en vez de obligar a repetir el
+   nombre en cada pregunta. */
+
+.foco-barra {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 5px 10px;
+  background: #eef4eb;
+  border: 1px solid #dcecd4;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.foco-etiqueta { color: #8b9a88; flex-shrink: 0; }
+
+.foco-valor {
+  border: none;
+  background: none;
+  color: #24521f;
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 5px;
+  border-bottom: 1px dotted #a9c79c;
+}
+.foco-valor:hover { background: #deecd8; }
+
+.foco-tipo {
+  margin-left: 6px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8b9a88;
+}
+
+.foco-edit {
+  border: 1px solid #7aa86f;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 0.78rem;
+  color: #24521f;
+  background: #fff;
+  outline: none;
+  min-width: 180px;
+}
+
+.foco-limpiar {
+  border: none;
+  background: none;
+  color: #8b9a88;
+  cursor: pointer;
+  padding: 0 3px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.foco-limpiar:hover { background: #deecd8; color: #24521f; }
+
+/* ---- Razonamiento ----
+   Qué consulta se usó realmente y qué sujeto se está siguiendo. Apagado por defecto:
+   sirve para depurar y para evaluar, no para el uso cotidiano. */
+
+.razonamiento-toggle {
+  margin-left: auto;
+  border: 1px solid transparent;
+  background: none;
+  color: #8b9a88;
+  border-radius: 999px;
+  padding: 3px 11px;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.razonamiento-toggle:hover { background: #eef4eb; color: #2f6b2f; }
+.razonamiento-toggle.activo {
+  background: #deecd8;
+  border-color: #a9c79c;
+  color: #24521f;
+  font-weight: 600;
+}
+
+.razonamiento {
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: #f3f7f1;
+  border: 1px dashed #cfe0c8;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.razonamiento > div { display: flex; gap: 8px; align-items: baseline; }
+.razonamiento span {
+  color: #8b9a88;
+  text-transform: uppercase;
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  flex-shrink: 0;
+  min-width: 62px;
+}
+.razonamiento code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  color: #3a463a;
+  word-break: break-word;
+}

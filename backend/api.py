@@ -155,6 +155,9 @@ class Consulta(BaseModel):
     # Últimos intercambios de la conversación. Los manda el front en cada consulta, así
     # el contexto funciona también sin sesión iniciada.
     historial: List[Turno] = Field(default_factory=list, max_length=8)
+    # Foco vigente que devolvió la consulta anterior. Lo mantiene el cliente, así el
+    # sujeto de la conversación persiste sin depender de que haya sesión iniciada.
+    foco: Optional[dict] = None
     # Si viene, la respuesta se guarda en esa conversación; si no, se crea una nueva.
     # Sin sesión iniciada este campo se ignora y no se guarda nada.
     conversacion_id: Optional[int] = None
@@ -168,6 +171,16 @@ class Consulta(BaseModel):
     tipo: Optional[str] = None
     solo_articulos: bool = False
     generar: bool = True
+
+    # --- Mecanismos activables, para poder medir la contribución de cada uno ---
+    # Todos vienen encendidos: apagarlos es lo excepcional, y sirve para la ablación.
+    # Cada uno es independiente, así se puede aislar el aporte en vez de medir el
+    # conjunto y no saber qué parte hizo la diferencia.
+    usar_lexico: bool = True        # BM25 además de la señal densa
+    usar_reescritura: bool = True   # reescribir la repregunta con el historial
+    usar_foco: bool = True          # seguir el sujeto de la conversación y reforzarlo
+    usar_anclaje: bool = True       # mantener disponibles los actos ya citados
+    usar_historial_generacion: bool = True   # pasarle los turnos previos al modelo
 
 
 class Fuente(BaseModel):
@@ -187,6 +200,10 @@ class Fuente(BaseModel):
 
 
 class Respuesta(BaseModel):
+    # Se devuelve lo que efectivamente se usó para buscar y cuál es el foco vigente:
+    # sin esto una evaluación no puede explicar por qué una consulta salió como salió.
+    consulta_efectiva: Optional[str] = None
+    foco: Optional[dict] = None
     conversacion_id: Optional[int] = None
     mensaje_id: Optional[int] = None
     pregunta: str
@@ -226,6 +243,25 @@ Y esto vale siempre, sin excepción: **nunca inventes contenido normativo, núme
 citas**. Si no lo tenés en el contexto, no existe para vos. En normativa una respuesta
 inventada hace más daño que una negativa.
 
+Atención especial cuando la pregunta es sobre UNA PERSONA: solo podés afirmar que participa
+de algo si su nombre aparece en el fragmento que estás citando. Que el contexto traiga un
+acto sobre el tema preguntado NO significa que esa persona esté mencionada ahí. Si el nombre
+no figura, decí que no encontraste normativa que la vincule, aunque hayas recibido documentos
+sobre el tema. Lo mismo vale para cualquier entidad concreta: carrera, departamento, cargo.
+
+**Tiempo verbal.** Cada acto describe algo que pasó en una fecha, no un estado actual.
+Respetá lo que dice el acto: si alguien renunció, decí que renunció; si fue designado, que
+fue designado. Nunca conviertas un cese o una designación pasada en una afirmación en
+presente: escribir "tiene el cargo de X" cuando el acto dice que renunció es afirmar lo
+contrario de la fuente.
+
+Y no afirmes vigencia. Este sistema no tiene información sobre qué normas siguen en vigor
+ni sobre si un acto posterior modificó o dejó sin efecto a otro: la Universidad no lleva ese
+registro. Podés decir qué dispuso un acto y en qué fecha; no puedes decir que algo "está
+vigente", "sigue en vigor" ni "es la normativa actual". Si te preguntan por la situación
+actual de algo, respondé con lo que dicen los actos que tenés y su fecha, y aclarás que
+puede haber normativa posterior que no estés viendo.
+
 Escribí en español rioplatense, claro y directo. Sin preámbulos ni fórmulas de relleno."""
 
 
@@ -240,56 +276,82 @@ RE_DEPENDE_CONTEXTO = re.compile(
 def necesita_contexto(pregunta: str, historial) -> bool:
     """¿La pregunta depende de los turnos anteriores?
 
-    Se evita reescribir cuando no hace falta: una consulta como "concursos de ayudantes
-    de segunda" se busca tal cual y no paga una llamada extra al modelo. La reescritura
-    se reserva para preguntas cortas o con referencias a lo ya conversado.
+    Con conversación en curso, se asume que SÍ salvo que la pregunta traiga su propia
+    ancla (un número de acto). El criterio anterior buscaba pronombres explícitos y se
+    perdía las repreguntas más naturales del castellano, donde el sujeto se omite:
+    "¿Está en alguna comisión?" es "¿[Ella] está...?" y no contiene ningún pronombre.
+    Esa falla hizo que una consulta se buscara sin el nombre de la persona y el modelo
+    terminara atribuyéndole una comisión de la que no formaba parte.
+
+    Reescribir de más cuesta una llamada corta al modelo; reescribir de menos produce
+    respuestas equivocadas.
     """
     if not historial:
         return False
-    p = pregunta.strip()
-    if RE_DEPENDE_CONTEXTO.search(p):
-        return True
-    # Muy corta y sin identificador propio: es casi seguro un seguimiento.
-    return len(p.split()) <= 6 and not re.search(r'\d+\s*/\s*\d{2,4}', p)
+    # Si la pregunta nombra un acto concreto, se sostiene sola.
+    if re.search(r'\d+\s*/\s*\d{2,4}', pregunta):
+        return False
+    return True
 
 
-def reescribir_consulta(pregunta: str, historial) -> str:
-    """Convierte una pregunta de seguimiento en una que se sostenga sola.
+def reescribir_y_enfocar(pregunta: str, historial, foco_previo=None):
+    """Reescribe la consulta y actualiza el foco de la conversación, en una sola llamada.
 
-    Sin esto, "¿me resumís qué sabés de ella?" se busca literal contra 140.000 fragmentos
-    y no recupera nada: la memoria del modelo no alcanza si la RECUPERACIÓN va a ciegas.
+    El foco es el sujeto del que se viene hablando: una persona, una carrera, un
+    departamento, un acto. Se mantiene entre turnos porque rara vez cambia, y sirve para
+    dos cosas distintas: resolver referencias al reescribir, y reforzar la recuperación.
+
+    Ese segundo uso es el que importa. Sin él, una repregunta como "¿está en alguna
+    comisión?" recupera actos sobre comisiones en general y el modelo puede atribuirle a
+    la persona algo que el documento no dice. Sabiendo de quién se habla, se garantiza que
+    haya fragmentos que la mencionen.
+
+    A diferencia de un sistema orientado a tareas, acá el esquema es abierto: el foco no
+    sale de una lista de campos conocidos de antemano.
+
+    Devuelve (consulta_para_buscar, foco).
     """
     from openai import OpenAI
+
     conversacion = '\n'.join(
         f"{'Usuario' if t.rol == 'user' else 'Asistente'}: {t.texto[:600]}"
-        for t in historial[-6:]
+        for t in (historial or [])[-6:]
     )
+    previo = ''
+    if foco_previo and foco_previo.get('entidad'):
+        previo = (f"\nFOCO ACTUAL: {foco_previo['entidad']} "
+                  f"({foco_previo.get('tipo') or 'sin tipo'})")
+
     try:
         r = OpenAI().chat.completions.create(
             model=MODELO_GEN,
             temperature=0,
+            response_format={'type': 'json_object'},
             messages=[
                 {'role': 'system', 'content':
-                    'Reescribí la última pregunta del usuario para que se entienda sin leer la '
-                    'conversación, resolviendo pronombres y referencias con lo ya dicho.\n'
-                    'Reglas:\n'
-                    '- Conservá los nombres propios tal cual.\n'
-                    '- Si la conversación gira alrededor de actos concretos (por ejemplo '
-                    '"RESHCS 225/2024"), incluí esos números en la pregunta reescrita: sin ellos '
-                    'la búsqueda pierde el documento del que se estaba hablando.\n'
-                    '- No agregues temas que nadie mencionó.\n'
-                    'Devolvé SOLO la pregunta reescrita, sin explicaciones.'},
+                    'Analizás una conversación sobre normativa universitaria. Devolvé un JSON con:\n'
+                    '- "consulta": la última pregunta reescrita para que se entienda sin leer la '
+                    'conversación, resolviendo pronombres y sujetos omitidos. No agregues temas '
+                    'que nadie mencionó.\n'
+                    '- "entidad": el sujeto concreto del que se está hablando (nombre de persona, '
+                    'carrera, departamento, órgano o acto), tal como se lo nombra. null si la '
+                    'conversación no gira alrededor de ninguno.\n'
+                    '- "tipo": "persona" | "carrera" | "departamento" | "organo" | "acto" | null.\n'
+                    'Si el foco actual sigue vigente, repetilo; si la conversación cambió de '
+                    'sujeto, devolvé el nuevo.'},
                 {'role': 'user', 'content':
-                    f'CONVERSACIÓN:\n{conversacion}\n\nÚLTIMA PREGUNTA: {pregunta}'},
+                    f'CONVERSACIÓN:\n{conversacion}{previo}\n\nÚLTIMA PREGUNTA: {pregunta}'},
             ],
         )
-        nueva = (r.choices[0].message.content or '').strip()
-        return nueva or pregunta
+        datos = json.loads(r.choices[0].message.content or '{}')
+        foco = {'entidad': (datos.get('entidad') or None), 'tipo': (datos.get('tipo') or None)}
+        return (datos.get('consulta') or pregunta), foco
     except Exception:
-        return pregunta          # ante cualquier falla, se busca con la original
+        # Ante cualquier falla se busca con la pregunta original y se conserva el foco.
+        return pregunta, (foco_previo or {'entidad': None, 'tipo': None})
 
 
-# Identificadores de acto tal como aparecen en las citas: "DISPCD-CB 528/2025".
+# Identificadores de acto tal como aparecen # Identificadores de acto tal como aparecen en las citas: "DISPCD-CB 528/2025".
 RE_ACTO_CITADO = re.compile(r'\b([A-ZÑ][A-ZÑ0-9-]{2,})\s+(\d{1,6}\s*/\s*\d{2,4})\b')
 
 
@@ -395,10 +457,7 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     usuario = usuario_de(authorization)
     ix = indice()
 
-    consulta_busqueda = c.pregunta
-    if necesita_contexto(c.pregunta, c.historial) and os.environ.get('OPENAI_API_KEY'):
-        consulta_busqueda = reescribir_consulta(c.pregunta, c.historial)
-
+    consulta_busqueda, foco = _preparar(c)
     denso = codificador().encode([consulta_busqueda], normalize_embeddings=True)[0]
 
     filtros = {}
@@ -409,9 +468,11 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
 
     # El texto crudo va también a la señal léxica: BM25 lo tokeniza conservando los
     # identificadores, que es lo que el vector denso no distingue.
-    resultados = ix.buscar(denso, texto_consulta=consulta_busqueda, k=c.k,
-                           filtros=filtros or None, solo_articulos=c.solo_articulos,
-                           anclas=actos_en_juego(c.historial))
+    resultados = ix.buscar(denso,
+                           texto_consulta=consulta_busqueda if c.usar_lexico else '',
+                           k=c.k, filtros=filtros or None, solo_articulos=c.solo_articulos,
+                           anclas=actos_en_juego(c.historial) if c.usar_anclaje else None,
+                           entidad=(foco or {}).get('entidad') if c.usar_foco else None)
 
     fuentes = [
         Fuente(
@@ -434,7 +495,8 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
             advertencia = 'Sin OPENAI_API_KEY: se devuelven las fuentes sin respuesta generada.'
         else:
             try:
-                respuesta = generar(c.pregunta, ix.contexto(resultados), c.historial)
+                respuesta = generar(c.pregunta, ix.contexto(resultados),
+                                    c.historial if c.usar_historial_generacion else None)
             except Exception as e:
                 advertencia = f'Falló la generación ({type(e).__name__}). Se devuelven las fuentes.'
 
@@ -463,6 +525,7 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
             conversacion_id = mensaje_id = None
 
     return Respuesta(
+        consulta_efectiva=consulta_busqueda, foco=foco,
         conversacion_id=conversacion_id, mensaje_id=mensaje_id,
         pregunta=c.pregunta, respuesta=respuesta, fuentes=fuentes,
         modelo_generacion=MODELO_GEN if respuesta else None,
@@ -488,6 +551,20 @@ class Titulo(BaseModel):
 
 class Valoracion(BaseModel):
     util: Optional[bool] = None
+
+
+def _preparar(c: 'Consulta'):
+    """Consulta con la que se va a buscar y foco vigente, según qué mecanismos estén activos."""
+    foco = dict(c.foco or {'entidad': None, 'tipo': None})
+    if not c.historial or not os.environ.get('OPENAI_API_KEY'):
+        return c.pregunta, foco
+    if not (c.usar_reescritura or c.usar_foco):
+        return c.pregunta, foco
+    if not necesita_contexto(c.pregunta, c.historial):
+        return c.pregunta, foco
+
+    consulta, foco_nuevo = reescribir_y_enfocar(c.pregunta, c.historial, foco)
+    return (consulta if c.usar_reescritura else c.pregunta), (foco_nuevo if c.usar_foco else foco)
 
 
 def _sse(evento: str, datos: dict) -> str:
@@ -590,23 +667,23 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
     # Una repregunta ("¿me resumís qué sabés de ella?") no se sostiene sola: se reescribe
     # con lo conversado antes de buscar. Si no hace falta, se busca tal cual y no se paga
     # una llamada extra al modelo.
-    consulta_busqueda = c.pregunta
-    if necesita_contexto(c.pregunta, c.historial) and os.environ.get('OPENAI_API_KEY'):
-        consulta_busqueda = reescribir_consulta(c.pregunta, c.historial)
-
+    consulta_busqueda, foco = _preparar(c)
     denso = codificador().encode([consulta_busqueda], normalize_embeddings=True)[0]
     filtros = {}
     if c.anio:
         filtros['year'] = c.anio
     if c.tipo:
         filtros['document_type'] = c.tipo
-    resultados = ix.buscar(denso, texto_consulta=consulta_busqueda, k=c.k,
-                           filtros=filtros or None, solo_articulos=c.solo_articulos,
-                           anclas=actos_en_juego(c.historial))
+    resultados = ix.buscar(denso,
+                           texto_consulta=consulta_busqueda if c.usar_lexico else '',
+                           k=c.k, filtros=filtros or None, solo_articulos=c.solo_articulos,
+                           anclas=actos_en_juego(c.historial) if c.usar_anclaje else None,
+                           entidad=(foco or {}).get('entidad') if c.usar_foco else None)
     fuentes = [_fuente_de(ix, i, s, d) for i, s, d in resultados]
 
     def eventos():
-        yield _sse('fuentes', {'fuentes': [f.model_dump() for f in fuentes]})
+        yield _sse('fuentes', {'fuentes': [f.model_dump() for f in fuentes],
+                               'consulta_efectiva': consulta_busqueda, 'foco': foco})
 
         partes = []
         if not fuentes:
@@ -617,7 +694,9 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
             yield _sse('aviso', {'mensaje': 'Sin clave de generación: se muestran las fuentes.'})
         else:
             try:
-                for parte in generar_en_partes(c.pregunta, ix.contexto(resultados), c.historial):
+                for parte in generar_en_partes(
+                        c.pregunta, ix.contexto(resultados),
+                        c.historial if c.usar_historial_generacion else None):
                     partes.append(parte)
                     yield _sse('texto', {'t': parte})
             except Exception as e:
