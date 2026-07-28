@@ -93,6 +93,29 @@ export default function App() {
     window.addEventListener("mouseup", soltar);
   };
 
+  // Varias secciones del mismo acto llegan como fragmentos separados. Mostrarlas sueltas
+  // hace parecer que hay más normativa de la que hay: se agrupan por documento,
+  // conservando el índice original de cada fragmento para que las citas sigan saltando.
+  const agruparPorDocumento = (fuentes = []) => {
+    const grupos = new Map();
+    fuentes.forEach((f, indice) => {
+      const clave = f.documento || f.cita;
+      if (!grupos.has(clave)) {
+        grupos.set(clave, {
+          clave,
+          encabezado: (f.cita || "").split("—")[0].trim(),
+          fecha: f.date_issued,
+          titulo: f.titulo,
+          confianza: f.metadata_confianza,
+          pdf: f.source_pdf,
+          partes: []
+        });
+      }
+      grupos.get(clave).partes.push({ ...f, indice });
+    });
+    return [...grupos.values()];
+  };
+
   const irALaFuente = (indiceMensaje, indiceFuente) => {
     const clave = `${indiceMensaje}-${indiceFuente}`;
     const caja = document.getElementById(`fuentes-${indiceMensaje}`);
@@ -515,34 +538,55 @@ export default function App() {
 
                         {msg.fuentes?.length > 0 && !msg.enCurso && (
                           <details className="fuentes" id={`fuentes-${i}`}>
-                            <summary>
-                              {msg.fuentes.length} fuente{msg.fuentes.length > 1 ? "s" : ""} del Digesto
-                              {msg.segundos ? ` · ${msg.segundos}s` : ""}
-                            </summary>
-                            <ul>
-                              {msg.fuentes.map((f, j) => (
-                                <li key={j} id={`fuente-${i}-${j}`}
-                                    className={fuenteMarcada === `${i}-${j}` ? "marcada" : ""}>
-                                  <div className="fuente-cita">
-                                    <span>{f.cita}</span>
-                                    <span className="fuente-derecha">
-                                      {f.date_issued && <span className="fuente-fecha">{f.date_issued}</span>}
-                                      <button className="copiar-cita" title="Copiar la cita"
-                                              onClick={() => copiar(f.cita, `c${i}-${j}`)}>
-                                        {copiado === `c${i}-${j}` ? "✓" : "⧉"}
-                                      </button>
-                                    </span>
-                                  </div>
-                                  <div className="fuente-texto">{f.texto}</div>
-                                  <div className="fuente-pie">
-                                    {f.source_pdf}
-                                    {f.metadata_confianza && f.metadata_confianza !== "alta" && (
-                                      <span className="fuente-confianza"> · metadata {f.metadata_confianza}</span>
-                                    )}
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
+                            {(() => {
+                              const grupos = agruparPorDocumento(msg.fuentes);
+                              return (
+                                <>
+                                  <summary>
+                                    {grupos.length} documento{grupos.length > 1 ? "s" : ""} del Digesto
+                                    {msg.fuentes.length !== grupos.length &&
+                                      ` · ${msg.fuentes.length} fragmentos`}
+                                    {msg.segundos ? ` · ${msg.segundos}s` : ""}
+                                  </summary>
+                                  <ul>
+                                    {grupos.map((g) => (
+                                      <li key={g.clave} className="fuente-doc">
+                                        <div className="fuente-cita">
+                                          <span>{g.encabezado}</span>
+                                          <span className="fuente-derecha">
+                                            {g.fecha && <span className="fuente-fecha">{g.fecha}</span>}
+                                            <button className="copiar-cita" title="Copiar la referencia"
+                                                    onClick={() => copiar(g.encabezado, `g${i}-${g.clave}`)}>
+                                              {copiado === `g${i}-${g.clave}` ? "✓" : "⧉"}
+                                            </button>
+                                          </span>
+                                        </div>
+
+                                        {g.titulo && <div className="fuente-titulo">{g.titulo}</div>}
+
+                                        {g.partes.map((f) => (
+                                          <div key={f.indice} id={`fuente-${i}-${f.indice}`}
+                                               className={`fuente-parte ${
+                                                 fuenteMarcada === `${i}-${f.indice}` ? "marcada" : ""}`}>
+                                            <div className="fuente-seccion">
+                                              {(f.cita || "").split("—")[1]?.trim() || f.seccion || "Texto"}
+                                            </div>
+                                            <div className="fuente-texto">{f.texto}</div>
+                                          </div>
+                                        ))}
+
+                                        <div className="fuente-pie">
+                                          {g.pdf}
+                                          {g.confianza && g.confianza !== "alta" && (
+                                            <span className="fuente-confianza"> · metadata {g.confianza}</span>
+                                          )}
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </>
+                              );
+                            })()}
                           </details>
                         )}
                       </div>

@@ -99,7 +99,8 @@ export default function Markdown({ texto, fuentes, alTocarCita }) {
     if (!lista) return;
     const Etiqueta = lista.ordenada ? "ol" : "ul";
     bloques.push(
-      <Etiqueta key={`l${bloques.length}`} className="md-lista">
+      <Etiqueta key={`l${bloques.length}`} className="md-lista"
+                start={lista.ordenada ? lista.desde : undefined}>
         {lista.items.map((it, i) => (
           <li key={i}>{conFormato(it, `li${bloques.length}-${i}`, fuentes, alTocarCita)}</li>
         ))}
@@ -111,7 +112,7 @@ export default function Markdown({ texto, fuentes, alTocarCita }) {
   for (const linea of texto.split("\n")) {
     const limpia = linea.trim();
 
-    if (!limpia) { cerrarLista(); continue; }
+    if (!limpia) continue;   // una línea en blanco entre ítems no corta la lista
 
     const numerada = limpia.match(/^(\d+)[.)]\s+(.*)$/);
     const conGuion = limpia.match(/^[-*•]\s+(.*)$/);
@@ -120,7 +121,9 @@ export default function Markdown({ texto, fuentes, alTocarCita }) {
       const ordenada = Boolean(numerada);
       if (!lista || lista.ordenada !== ordenada) {
         cerrarLista();
-        lista = { ordenada, items: [] };
+        // Se conserva el número con el que arranca: el modelo separa los ítems con
+        // líneas en blanco, y sin esto cada uno abría una lista nueva desde 1.
+        lista = { ordenada, items: [], desde: numerada ? Number(numerada[1]) : undefined };
       }
       lista.items.push(numerada ? numerada[2] : conGuion[1]);
       continue;

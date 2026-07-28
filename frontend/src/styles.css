@@ -535,12 +535,38 @@ button, input, select, textarea { font: inherit; }
 
 .fuentes ul { list-style: none; margin: 10px 0 0; padding: 0; }
 
-.fuentes li {
+.fuentes li.fuente-doc {
   border-left: 3px solid #c7dabb;
-  padding: 8px 0 8px 12px;
-  margin-bottom: 12px;
+  padding: 10px 0 10px 12px;
+  margin-bottom: 14px;
   background: #f7f9f6;
   border-radius: 0 6px 6px 0;
+}
+
+/* Título del acto: dice de qué trata antes de leer el texto. */
+.fuente-titulo {
+  margin-top: 3px;
+  font-size: 0.83rem;
+  color: #5f6e5f;
+  line-height: 1.35;
+}
+
+/* Cada sección del mismo acto (Visto, Considerando, Artículo) va adentro del documento
+   en vez de aparecer como una fuente aparte. */
+.fuente-parte {
+  margin-top: 9px;
+  padding-left: 10px;
+  border-left: 2px solid #e0ebdb;
+  border-radius: 0 5px 5px 0;
+}
+
+.fuente-seccion {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8b9a88;
+  font-weight: 600;
+  margin-bottom: 3px;
 }
 
 .fuente-cita {
@@ -555,7 +581,7 @@ button, input, select, textarea { font: inherit; }
 .fuente-fecha { font-weight: 400; font-size: 0.82rem; color: #6b7d68; white-space: nowrap; }
 
 .fuente-texto {
-  margin-top: 5px;
+  margin-top: 4px;
   color: #3a463a;
   white-space: pre-wrap;
   max-height: 8.5em;
@@ -944,22 +970,27 @@ button, input, select, textarea { font: inherit; }
    La afirmación y el acto que la respalda quedan unidos: se puede ir de una a otro sin
    buscar a mano. Es lo que convierte la respuesta en algo verificable. */
 
+/* La cita fluye con el texto: como bloque rompía el párrafo y quedaba en su propia
+   línea, separada del paréntesis que la contiene. */
 .cita-enlace {
+  display: inline;
   border: none;
   background: none;
-  padding: 0 1px;
+  padding: 0;
+  margin: 0;
   font: inherit;
   color: #2f6b2f;
   cursor: pointer;
   border-bottom: 1px dotted #7aa86f;
   text-align: left;
+  white-space: normal;
 }
 .cita-enlace:hover { background: #eaf4e4; border-bottom-style: solid; }
 
 /* La fuente a la que se saltó se resalta un momento para no perderla de vista. */
-.fuentes li.marcada {
+.fuente-parte.marcada {
   border-left-color: #3f7a35;
-  background: #eaf4e4;
+  border-left-width: 3px;
   animation: destacar 2.4s ease-out;
 }
 @keyframes destacar {
@@ -967,5 +998,5 @@ button, input, select, textarea { font: inherit; }
   100% { background: #f7f9f6; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .fuentes li.marcada { animation: none; }
+  .fuente-parte.marcada { animation: none; }
 }

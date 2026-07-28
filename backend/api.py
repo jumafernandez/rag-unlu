@@ -165,6 +165,9 @@ class Fuente(BaseModel):
     cita: str
     texto: str
     documento: str
+    # Título del acto según el sistema fuente. Es lo que permite reconocer de qué trata
+    # un documento sin leer el fragmento entero.
+    titulo: Optional[str] = None
     source_pdf: Optional[str] = None
     seccion: Optional[str] = None
     date_issued: Optional[str] = None
@@ -317,7 +320,8 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     fuentes = [
         Fuente(
             cita=ix.chunks[i]['cita'], texto=ix.chunks[i]['texto'],
-            documento=ix.chunks[i]['documento'], source_pdf=ix.chunks[i].get('source_pdf'),
+            documento=ix.chunks[i]['documento'], titulo=ix.chunks[i].get('titulo'),
+            source_pdf=ix.chunks[i].get('source_pdf'),
             seccion=ix.chunks[i].get('seccion'), date_issued=ix.chunks[i].get('date_issued'),
             estado=ix.chunks[i].get('estado'),
             metadata_confianza=ix.chunks[i].get('metadata_confianza'),
@@ -398,6 +402,7 @@ def _fuente_de(ix, i, puntaje, detalle) -> 'Fuente':
     c = ix.chunks[i]
     return Fuente(
         cita=c['cita'], texto=c['texto'], documento=c['documento'],
+        titulo=c.get('titulo'),
         source_pdf=c.get('source_pdf'), seccion=c.get('seccion'),
         date_issued=c.get('date_issued'), estado=c.get('estado'),
         metadata_confianza=c.get('metadata_confianza'),
