@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./styles.css";
 import Login from "./Login";
 import Markdown from "./Markdown";
+import { INSTITUCION, TEXTOS } from "./config";
 import {
   consultarEnFlujo, leerSesion, cerrarSesion, listarConversaciones,
   leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje, salud
@@ -95,6 +96,8 @@ export default function App() {
     localStorage.setItem("chatdigesto_razonamiento", verRazonamiento ? "1" : "0");
   }, [verRazonamiento]);
   const finDelChat = useRef(null);
+  const areaChat = useRef(null);
+  const pegadoAbajo = useRef(true);
   const cajaTexto = useRef(null);
   const buscador = useRef(null);
   const [anchoPanel, setAnchoPanel] = useState(
@@ -106,11 +109,26 @@ export default function App() {
   // "todavía no está cargado".
   useEffect(() => { salud().then(setAlcance).catch(() => setAlcance(null)); }, []);
 
-  // Al llegar una respuesta se baja al final: si no, en conversaciones largas la
-  // respuesta nueva queda fuera de la vista y parece que no pasó nada.
+  // La conversación se mantiene pegada abajo mientras el usuario esté mirando el final.
+  // Si subió a leer algo —muy común mientras la respuesta se está escribiendo— no se lo
+  // arrastra de vuelta: se deja de seguir hasta que vuelva a bajar.
+  const alScrollear = () => {
+    const el = areaChat.current;
+    if (!el) return;
+    pegadoAbajo.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+
   useEffect(() => {
-    finDelChat.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (!pegadoAbajo.current) return;
+    const el = areaChat.current;
+    // Salto directo y no suave: durante el streaming esto corre con cada fragmento, y
+    // una animación por fragmento se pisa a sí misma y tiembla.
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages, cargando]);
+
+  // Al cambiar de conversación se vuelve a seguir el final, aunque en la anterior el
+  // usuario hubiera quedado leyendo más arriba.
+  useEffect(() => { pegadoAbajo.current = true; }, [convId]);
 
   // El campo crece con el texto en vez de mostrar una sola línea con scroll interno.
   const ajustarAlto = (el) => {
@@ -401,9 +419,9 @@ export default function App() {
       <aside className={`sidebar ${panelAbierto ? "abierto" : ""}`}>
         <div className="sidebar-top">
           <div className="sidebar-brand">
-            <img src="/logo-unlu-96.png" className="logo" alt="Logo UNLu" />
+            <img src={INSTITUCION.logo} className="logo" alt={`Logo ${INSTITUCION.sigla}`} />
             <div>
-              <h1>ChatDigesto</h1>
+              <h1>{INSTITUCION.producto}</h1>
               <p>Consulta de normativa institucional de acceso público</p>
             </div>
           </div>
@@ -541,7 +559,11 @@ export default function App() {
       <main className="main-panel">
         {view === "chat" && (
           <div className="chat-page">
-            <div className="chat-content">
+            {/* El scroll vive acá y no en la página: así el campo de escritura queda
+                siempre a la vista y la conversación se mantiene pegada abajo, en vez de
+                que la respuesta nueva empuje todo y haya que perseguirla. */}
+            <div className="chat-scroll" ref={areaChat} onScroll={alScrollear}>
+              <div className="chat-content">
               {messages.length === 0 ? (
                 <section className="empty-state">
                   <div className="empty-card">
@@ -701,7 +723,8 @@ export default function App() {
 
                 </section>
               )}
-              <div ref={finDelChat} />
+                <div ref={finDelChat} />
+              </div>
             </div>
 
             <div className="composer-outer">
@@ -775,7 +798,7 @@ export default function App() {
                       sendMessage();
                     }
                   }}
-                  placeholder="¿Qué querés saber del Digesto UNLu?"
+                  placeholder={TEXTOS.placeholder}
                   rows={1}
                 />
                 <button onClick={sendMessage}>Enviar</button>
@@ -823,7 +846,7 @@ export default function App() {
 
               <div className="notice">
                 Las respuestas pueden contener errores. Verificá siempre la información en las{" "}
-                <a href="http://digesto.unlu.edu.ar/" target="_blank" rel="noreferrer">
+                <a href={INSTITUCION.digestoOficial} target="_blank" rel="noreferrer">
                   fuentes oficiales
                 </a>.
               </div>
