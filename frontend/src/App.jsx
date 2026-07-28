@@ -61,15 +61,36 @@ export default function App() {
   useEffect(() => { localStorage.setItem("chatdigesto_amplitud", amplitud); }, [amplitud]);
   const [copiado, setCopiado] = useState(null);
   const [fuenteMarcada, setFuenteMarcada] = useState(null);   // "mensaje-fuente"
-  // Sujeto del que se viene hablando. Se mantiene entre turnos y es editable: si el
-  // sistema lo interpretó mal, corregirlo arregla la conversación en vez de obligar a
-  // reescribir cada pregunta. Que sea visible también hace explícito qué está asumiendo.
-  const [foco, setFoco] = useState(null);
+  // Estado de la conversación: el sujeto del que se viene hablando y los actos que se
+  // mencionaron. Se mantiene entre turnos y es EDITABLE — si el sistema lo interpretó
+  // mal, corregirlo arregla la conversación en vez de obligar a reescribir cada pregunta.
+  // Y lo que el usuario fija pesa más en la búsqueda que lo que el sistema infirió: su
+  // decisión vale más que la inferencia.
+  const [estado, setEstado] = useState(null);
   const [verRazonamiento, setVerRazonamiento] = useState(
     () => localStorage.getItem("chatdigesto_razonamiento") === "1"
   );
   const [editandoFoco, setEditandoFoco] = useState(false);
   const [focoEdit, setFocoEdit] = useState("");
+
+  // Al fijar la entidad a mano queda marcada como del usuario, y eso es lo que hace que
+  // el modelo deje de reemplazarla y que pese más al recuperar.
+  const fijarEntidad = (valor) =>
+    setEstado((e) => ({
+      ...(e || { actos: [] }),
+      entidad: valor || null,
+      entidad_origen: valor ? "usuario" : "descartado",
+    }));
+
+  // Descartar no borra: el acto queda a la vista con peso cero, para que se siga viendo
+  // qué venía siguiendo el sistema y se pueda volver atrás.
+  const cambiarActo = (codigo, numero, origen) =>
+    setEstado((e) => !e ? e : {
+      ...e,
+      actos: (e.actos || []).map((a) =>
+        a.codigo === codigo && a.numero === numero ? { ...a, origen } : a
+      ),
+    });
   useEffect(() => {
     localStorage.setItem("chatdigesto_razonamiento", verRazonamiento ? "1" : "0");
   }, [verRazonamiento]);
@@ -290,13 +311,15 @@ export default function App() {
 
       const K = { preciso: 5, equilibrado: 8, exhaustivo: 16 }[amplitud] ?? 8;
 
-      await consultarEnFlujo({ pregunta: content, k: K, conversacionId: convId, historial, foco }, (evento, datos) => {
+      await consultarEnFlujo({ pregunta: content, k: K, conversacionId: convId, historial, estado }, (evento, datos) => {
         if (evento === "fuentes") {
-          if (datos.foco?.entidad) setFoco(datos.foco);
+          // El estado que devuelve el servidor ya trae lo que el usuario había fijado,
+          // así que se reemplaza entero en vez de fusionarlo acá.
+          if (datos.estado) setEstado(datos.estado);
           actualizar({
             fuentes: datos.fuentes || [],
             consultaEfectiva: datos.consulta_efectiva,
-            focoUsado: datos.foco
+            estadoUsado: datos.estado
           });
         } else if (evento === "texto") {
           texto += datos.t;
@@ -344,7 +367,7 @@ export default function App() {
   const handleNewChat = () => {
     setMessages([]);
     setInput("");
-    setFoco(null);
+    setEstado(null);
     setConvId(null);
     setView("chat");
     setPanelAbierto(false);
@@ -586,19 +609,31 @@ export default function App() {
                               <span>Buscó</span>
                               <code>{msg.consultaEfectiva}</code>
                             </div>
-                            {msg.focoUsado?.entidad && (
+                            {msg.estadoUsado?.entidad && (
                               <div>
-                                <span>Foco</span>
-                                <code>{msg.focoUsado.entidad}
-                                  {msg.focoUsado.tipo ? ` · ${msg.focoUsado.tipo}` : ""}</code>
+                                <span>Entidad</span>
+                                <code>{msg.estadoUsado.entidad}
+                                  {msg.estadoUsado.tipo ? ` · ${msg.estadoUsado.tipo}` : ""}
+                                  {msg.estadoUsado.entidad_origen === "usuario" ? " · fijada" : ""}</code>
+                              </div>
+                            )}
+                            {msg.estadoUsado?.actos?.some((a) => a.origen !== "descartado") && (
+                              <div>
+                                <span>Actos</span>
+                                <code>
+                                  {msg.estadoUsado.actos
+                                    .filter((a) => a.origen !== "descartado")
+                                    .map((a) => `${a.codigo} ${a.numero}`)
+                                    .join(" · ")}
+                                </code>
                               </div>
                             )}
                             {msg.fuentes?.some((f) => f.ranking?.foco || f.ranking?.continuidad) && (
                               <div>
-                                <span>Sumadas</span>
+                                <span>Pesadas</span>
                                 <code>
-                                  {msg.fuentes.filter((f) => f.ranking?.foco).length} por foco ·{" "}
-                                  {msg.fuentes.filter((f) => f.ranking?.continuidad).length} por continuidad
+                                  {msg.fuentes.filter((f) => f.ranking?.foco).length} por entidad ·{" "}
+                                  {msg.fuentes.filter((f) => f.ranking?.continuidad).length} por acto
                                 </code>
                               </div>
                             )}
@@ -670,7 +705,7 @@ export default function App() {
             </div>
 
             <div className="composer-outer">
-              {(foco?.entidad || verRazonamiento) && (
+              {(estado?.entidad || estado?.actos?.length > 0 || verRazonamiento) && (
                 <div className="foco-barra">
                   <span className="foco-etiqueta">Consultando sobre</span>
                   {editandoFoco ? (
@@ -681,7 +716,7 @@ export default function App() {
                       onChange={(e) => setFocoEdit(e.target.value)}
                       onBlur={() => {
                         setEditandoFoco(false);
-                        setFoco(focoEdit.trim() ? { ...foco, entidad: focoEdit.trim() } : null);
+                        fijarEntidad(focoEdit.trim());
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") e.currentTarget.blur();
@@ -689,16 +724,40 @@ export default function App() {
                       }}
                     />
                   ) : (
-                    <button className="foco-valor"
-                            title="Corregir el sujeto de la conversación"
-                            onClick={() => { setFocoEdit(foco?.entidad || ""); setEditandoFoco(true); }}>
-                      {foco?.entidad || "sin definir"}
-                      {foco?.tipo && <em className="foco-tipo">{foco.tipo}</em>}
+                    <button className={`foco-valor${estado?.entidad_origen === "usuario" ? " fijado" : ""}`}
+                            title={estado?.entidad_origen === "usuario"
+                              ? "Lo fijaste vos: el sistema no lo va a cambiar y pesa más al buscar"
+                              : "Corregir el sujeto de la conversación"}
+                            onClick={() => { setFocoEdit(estado?.entidad || ""); setEditandoFoco(true); }}>
+                      {estado?.entidad || "sin definir"}
+                      {estado?.tipo && <em className="foco-tipo">{estado.tipo}</em>}
                     </button>
                   )}
-                  {foco?.entidad && (
+                  {estado?.entidad && (
                     <button className="foco-limpiar" title="Olvidar el sujeto actual"
-                            onClick={() => setFoco(null)}>✕</button>
+                            onClick={() => fijarEntidad(null)}>✕</button>
+                  )}
+
+                  {/* Actos que la conversación viene tocando. Se pueden apagar y volver a
+                      encender: apagado no es borrado, sigue visible para que se entienda
+                      qué venía siguiendo el sistema. */}
+                  {estado?.actos?.length > 0 && (
+                    <span className="actos-seguidos">
+                      {estado.actos.map((a) => (
+                        <button
+                          key={`${a.codigo}-${a.numero}`}
+                          className={`acto-chip${a.origen === "descartado" ? " apagado" : ""}${a.origen === "usuario" ? " fijado" : ""}`}
+                          title={a.origen === "descartado"
+                            ? "Descartado — tocá para volver a tenerlo en cuenta"
+                            : a.origen === "usuario"
+                              ? "Lo fijaste vos: pesa más al buscar. Tocá para descartarlo"
+                              : "Lo está siguiendo el sistema. Tocá para descartarlo"}
+                          onClick={() => cambiarActo(a.codigo, a.numero,
+                            a.origen === "descartado" ? "usuario" : "descartado")}>
+                          {a.codigo} {a.numero}
+                        </button>
+                      ))}
+                    </span>
                   )}
                 </div>
               )}

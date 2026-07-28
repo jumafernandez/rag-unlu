@@ -1088,12 +1088,15 @@ button, input, select, textarea { font: inherit; }
 .foco-barra {
   display: flex;
   align-items: center;
-  gap: 8px;
+  /* Con los actos seguidos la barra puede pasar de una línea, así que envuelve en vez
+     de desbordar. El radio deja de ser una píldora por lo mismo. */
+  flex-wrap: wrap;
+  gap: 6px 8px;
   margin-bottom: 8px;
-  padding: 5px 10px;
+  padding: 5px 12px;
   background: #eef4eb;
   border: 1px solid #dcecd4;
-  border-radius: 999px;
+  border-radius: 14px;
   font-size: 0.78rem;
   width: fit-content;
   max-width: 100%;
@@ -1146,6 +1149,53 @@ button, input, select, textarea { font: inherit; }
   flex-shrink: 0;
 }
 .foco-limpiar:hover { background: #deecd8; color: #24521f; }
+
+/* Lo que fijó el usuario se distingue de lo que infirió el sistema. No es decoración:
+   es la señal de que ese valor pesa más al buscar y que el modelo no lo va a pisar. */
+.foco-valor.fijado {
+  background: #dbead4;
+  border-bottom: 1px solid #6f9a63;
+}
+
+.actos-seguidos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.actos-seguidos::before {
+  content: "";
+  width: 1px;
+  height: 13px;
+  background: #cadec0;
+  margin-right: 3px;
+}
+
+.acto-chip {
+  border: 1px solid #cadec0;
+  background: #f6faf4;
+  color: #3d6b36;
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  padding: 1px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+  transition: opacity 0.12s ease, background 0.12s ease;
+}
+
+.acto-chip:hover { background: #e6f1e0; }
+.acto-chip.fijado { background: #dbead4; border-color: #6f9a63; font-weight: 600; }
+
+/* Descartado, no borrado: se atenúa pero sigue a la vista, porque saber qué venía
+   siguiendo el sistema es parte de poder controlarlo. */
+.acto-chip.apagado {
+  opacity: 0.42;
+  text-decoration: line-through;
+  background: transparent;
+}
+.acto-chip.apagado:hover { opacity: 0.75; }
 
 /* ---- Razonamiento ----
    Qué consulta se usó realmente y qué sujeto se está siguiendo. Apagado por defecto:

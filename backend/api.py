@@ -155,8 +155,11 @@ class Consulta(BaseModel):
     # Últimos intercambios de la conversación. Los manda el front en cada consulta, así
     # el contexto funciona también sin sesión iniciada.
     historial: List[Turno] = Field(default_factory=list, max_length=8)
-    # Foco vigente que devolvió la consulta anterior. Lo mantiene el cliente, así el
-    # sujeto de la conversación persiste sin depender de que haya sesión iniciada.
+    # Estado de la conversación que devolvió la consulta anterior. Lo mantiene el cliente,
+    # así persiste sin depender de que haya sesión iniciada. Ver EstadoDialogo.
+    estado: Optional[dict] = None
+    # Nombre anterior del mismo campo, cuando el estado era un único foco. Se acepta para
+    # que un cliente con el bundle viejo en caché no pierda la continuidad.
     foco: Optional[dict] = None
     # Si viene, la respuesta se guarda en esa conversación; si no, se crea una nueva.
     # Sin sesión iniciada este campo se ignora y no se guarda nada.
@@ -200,10 +203,10 @@ class Fuente(BaseModel):
 
 
 class Respuesta(BaseModel):
-    # Se devuelve lo que efectivamente se usó para buscar y cuál es el foco vigente:
-    # sin esto una evaluación no puede explicar por qué una consulta salió como salió.
+    # Se devuelve lo que efectivamente se usó para buscar y el estado vigente: sin esto
+    # una evaluación no puede explicar por qué una consulta salió como salió.
     consulta_efectiva: Optional[str] = None
-    foco: Optional[dict] = None
+    estado: Optional[dict] = None
     conversacion_id: Optional[int] = None
     mensaje_id: Optional[int] = None
     pregunta: str
@@ -294,33 +297,41 @@ def necesita_contexto(pregunta: str, historial) -> bool:
     return True
 
 
-def reescribir_y_enfocar(pregunta: str, historial, foco_previo=None):
-    """Reescribe la consulta y actualiza el foco de la conversación, en una sola llamada.
+def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
+    """Reescribe la consulta y actualiza el estado de la conversación, en una sola llamada.
 
-    El foco es el sujeto del que se viene hablando: una persona, una carrera, un
-    departamento, un acto. Se mantiene entre turnos porque rara vez cambia, y sirve para
-    dos cosas distintas: resolver referencias al reescribir, y reforzar la recuperación.
+    El estado resume de qué se viene hablando: la entidad —una persona, una carrera, un
+    departamento— y los actos mencionados. Sirve para dos cosas distintas: resolver
+    referencias al reescribir, y pesar la recuperación.
 
     Ese segundo uso es el que importa. Sin él, una repregunta como "¿está en alguna
     comisión?" recupera actos sobre comisiones en general y el modelo puede atribuirle a
     la persona algo que el documento no dice. Sabiendo de quién se habla, se garantiza que
     haya fragmentos que la mencionen.
 
-    A diferencia de un sistema orientado a tareas, acá el esquema es abierto: el foco no
-    sale de una lista de campos conocidos de antemano.
+    A diferencia de un sistema orientado a tareas, acá el esquema es abierto: la entidad
+    no sale de una lista de campos conocidos de antemano.
 
-    Devuelve (consulta_para_buscar, foco).
+    Si el usuario fijó la entidad a mano, el modelo NO la puede cambiar: su decisión vale
+    más que la inferencia, y si no fuera así editarla no serviría de nada.
+
+    Devuelve (consulta_para_buscar, estado).
     """
     from openai import OpenAI
+
+    estado = normalizar_estado(estado_previo)
+    fijada = estado['entidad_origen'] == 'usuario' and estado['entidad']
 
     conversacion = '\n'.join(
         f"{'Usuario' if t.rol == 'user' else 'Asistente'}: {t.texto[:600]}"
         for t in (historial or [])[-6:]
     )
     previo = ''
-    if foco_previo and foco_previo.get('entidad'):
-        previo = (f"\nFOCO ACTUAL: {foco_previo['entidad']} "
-                  f"({foco_previo.get('tipo') or 'sin tipo'})")
+    if estado.get('entidad'):
+        previo = (f"\nENTIDAD ACTUAL: {estado['entidad']} "
+                  f"({estado.get('tipo') or 'sin tipo'})")
+        if fijada:
+            previo += ' [FIJADA POR EL USUARIO: es una corrección, no la cambies]'
 
     try:
         r = OpenAI().chat.completions.create(
@@ -337,37 +348,130 @@ def reescribir_y_enfocar(pregunta: str, historial, foco_previo=None):
                     'carrera, departamento, órgano o acto), tal como se lo nombra. null si la '
                     'conversación no gira alrededor de ninguno.\n'
                     '- "tipo": "persona" | "carrera" | "departamento" | "organo" | "acto" | null.\n'
-                    'Si el foco actual sigue vigente, repetilo; si la conversación cambió de '
-                    'sujeto, devolvé el nuevo.'},
+                    'Si la entidad actual sigue vigente, repetila; si la conversación cambió '
+                    'de sujeto, devolvé la nueva.\n'
+                    'Si la entidad viene FIJADA POR EL USUARIO, es una corrección suya: te está '
+                    'diciendo que interpretaste mal de qué se habla. Reescribí la pregunta sobre '
+                    'esa entidad. La única excepción es que la última pregunta sea claramente '
+                    'sobre otra cosa; ahí reescribila según la pregunta.'},
                 {'role': 'user', 'content':
                     f'CONVERSACIÓN:\n{conversacion}{previo}\n\nÚLTIMA PREGUNTA: {pregunta}'},
             ],
         )
         datos = json.loads(r.choices[0].message.content or '{}')
-        foco = {'entidad': (datos.get('entidad') or None), 'tipo': (datos.get('tipo') or None)}
-        return (datos.get('consulta') or pregunta), foco
+        if not fijada:
+            nueva = (datos.get('entidad') or None)
+            if nueva != estado['entidad']:
+                # Cambió el sujeto: vuelve a ser una inferencia del sistema.
+                estado['entidad_origen'] = 'sistema'
+            estado['entidad'] = nueva
+            estado['tipo'] = (datos.get('tipo') or None)
+        return (datos.get('consulta') or pregunta), estado
     except Exception:
-        # Ante cualquier falla se busca con la pregunta original y se conserva el foco.
-        return pregunta, (foco_previo or {'entidad': None, 'tipo': None})
+        # Ante cualquier falla se busca con la pregunta original y se conserva el estado.
+        return pregunta, estado
 
 
 # Identificadores de acto tal como aparecen # Identificadores de acto tal como aparecen en las citas: "DISPCD-CB 528/2025".
 RE_ACTO_CITADO = re.compile(r'\b([A-ZÑ][A-ZÑ0-9-]{2,})\s+(\d{1,6}\s*/\s*\d{2,4})\b')
 
 
-def actos_en_juego(historial) -> set:
-    """Actos que ya se citaron en la conversación.
+def actos_en_juego(historial, pregunta='') -> set:
+    """Actos citados en los turnos recientes y en la pregunta actual.
 
     Se los mantiene disponibles en la recuperación aunque la reescritura se desvíe: si
     se estuvo hablando de una resolución y la repregunta es "¿y qué dice el artículo 2?",
     ese acto tiene que seguir al alcance. Sin esto la continuidad depende de que la
     reescritura acierte, que es una apuesta.
+
+    La ventana acota lo que se DESCUBRE, no lo que se recuerda: una vez que un acto entra
+    al estado se queda ahí. Antes no había estado y la ventana era el único registro, así
+    que un acto de siete turnos atrás desaparecía de golpe en medio de la conversación.
     """
     encontrados = set()
-    for t in (historial or [])[-6:]:
-        for m in RE_ACTO_CITADO.finditer(t.texto or ''):
+    textos = [t.texto or '' for t in (historial or [])[-6:]]
+    if pregunta:
+        textos.append(pregunta)
+    for texto in textos:
+        for m in RE_ACTO_CITADO.finditer(texto):
             encontrados.add((m.group(1).upper(), re.sub(r'\s+', '', m.group(2))))
     return encontrados
+
+
+# --- Estado de la conversación -----------------------------------------------------
+# Dos slots: la ENTIDAD de la que se habla y los ACTOS que se vienen mencionando. Cada
+# valor lleva su ORIGEN, y del origen sale el peso con el que entra en la recuperación.
+#
+# Que el usuario fije un valor no es solo corregir un error: es afirmarlo con más
+# confianza que la que puede tener el sistema, y por eso pesa más. Y lo que descarta no
+# se borra, queda con peso cero y a la vista, porque saber qué infirió el sistema es
+# parte de poder controlarlo.
+PESOS_POR_ORIGEN = {'sistema': 0.5, 'usuario': 1.0, 'descartado': 0.0}
+
+
+def peso_de(origen) -> float:
+    return PESOS_POR_ORIGEN.get(origen or 'sistema', PESOS_POR_ORIGEN['sistema'])
+
+
+def estado_vacio() -> dict:
+    return {'entidad': None, 'tipo': None, 'entidad_origen': 'sistema', 'actos': []}
+
+
+def normalizar_estado(bruto) -> dict:
+    """Sanea el estado que llega del cliente.
+
+    Es entrada de usuario —viaja por la red y puede venir editada a mano, incompleta o
+    de una versión anterior—, así que no se confía en su forma. También acepta el formato
+    viejo de foco simple, que traía solo entidad y tipo.
+    """
+    e = estado_vacio()
+    if not isinstance(bruto, dict):
+        return e
+    ent = bruto.get('entidad')
+    e['entidad'] = ent.strip()[:200] if isinstance(ent, str) and ent.strip() else None
+    tipo = bruto.get('tipo')
+    e['tipo'] = tipo.strip()[:40] if isinstance(tipo, str) and tipo.strip() else None
+    origen = bruto.get('entidad_origen')
+    e['entidad_origen'] = origen if origen in PESOS_POR_ORIGEN else 'sistema'
+    for a in (bruto.get('actos') or [])[:60]:
+        if not isinstance(a, dict):
+            continue
+        codigo, numero = a.get('codigo'), a.get('numero')
+        if not (isinstance(codigo, str) and isinstance(numero, str) and codigo and numero):
+            continue
+        og = a.get('origen')
+        e['actos'].append({
+            'codigo': codigo.strip().upper()[:40],
+            'numero': re.sub(r'\s+', '', numero)[:20],
+            'origen': og if og in PESOS_POR_ORIGEN else 'sistema',
+        })
+    return e
+
+
+def fusionar_actos(estado: dict, mencionados: set) -> dict:
+    """Suma al estado los actos que aparecieron recién, sin pisar lo que decidió el usuario.
+
+    Los actos NO se acumulan sin control: lo que los acota no es un tope arbitrario sino
+    el propio puntaje. Un acto que el usuario no fijó entra con peso medio, que lo deja
+    por debajo de casi cualquier resultado que la búsqueda haya traído por relevancia, y
+    el corte en k se encarga del resto. Un acto que el usuario fijó pesa el doble y sí
+    compite. La lista puede crecer; el ranking no se inunda.
+    """
+    ya = {(a['codigo'], a['numero']) for a in estado['actos']}
+    for codigo, numero in sorted(mencionados):
+        if (codigo, numero) not in ya:
+            estado['actos'].append({'codigo': codigo, 'numero': numero, 'origen': 'sistema'})
+    return estado
+
+
+def pesos_de_actos(estado: dict) -> dict:
+    """{(codigo, numero): peso} para los actos que todavía pesan."""
+    salida = {}
+    for a in estado.get('actos') or []:
+        w = peso_de(a.get('origen'))
+        if w > 0:
+            salida[(a['codigo'], a['numero'])] = w
+    return salida
 
 
 def _mensajes(pregunta: str, contexto: str, historial=None):
@@ -457,7 +561,7 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     usuario = usuario_de(authorization)
     ix = indice()
 
-    consulta_busqueda, foco = _preparar(c)
+    consulta_busqueda, estado = _preparar(c)
     denso = codificador().encode([consulta_busqueda], normalize_embeddings=True)[0]
 
     filtros = {}
@@ -471,8 +575,9 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     resultados = ix.buscar(denso,
                            texto_consulta=consulta_busqueda if c.usar_lexico else '',
                            k=c.k, filtros=filtros or None, solo_articulos=c.solo_articulos,
-                           anclas=actos_en_juego(c.historial) if c.usar_anclaje else None,
-                           entidad=(foco or {}).get('entidad') if c.usar_foco else None)
+                           pesos_actos=pesos_de_actos(estado) if c.usar_anclaje else None,
+                           peso_entidad=peso_de(estado.get('entidad_origen')),
+                           entidad=estado.get('entidad') if c.usar_foco else None)
 
     fuentes = [
         Fuente(
@@ -525,7 +630,7 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
             conversacion_id = mensaje_id = None
 
     return Respuesta(
-        consulta_efectiva=consulta_busqueda, foco=foco,
+        consulta_efectiva=consulta_busqueda, estado=estado,
         conversacion_id=conversacion_id, mensaje_id=mensaje_id,
         pregunta=c.pregunta, respuesta=respuesta, fuentes=fuentes,
         modelo_generacion=MODELO_GEN if respuesta else None,
@@ -554,17 +659,23 @@ class Valoracion(BaseModel):
 
 
 def _preparar(c: 'Consulta'):
-    """Consulta con la que se va a buscar y foco vigente, según qué mecanismos estén activos."""
-    foco = dict(c.foco or {'entidad': None, 'tipo': None})
-    if not c.historial or not os.environ.get('OPENAI_API_KEY'):
-        return c.pregunta, foco
-    if not (c.usar_reescritura or c.usar_foco):
-        return c.pregunta, foco
-    if not necesita_contexto(c.pregunta, c.historial):
-        return c.pregunta, foco
+    """Consulta con la que se va a buscar y estado vigente, según qué mecanismos estén activos."""
+    estado = normalizar_estado(c.estado if c.estado is not None else c.foco)
 
-    consulta, foco_nuevo = reescribir_y_enfocar(c.pregunta, c.historial, foco)
-    return (consulta if c.usar_reescritura else c.pregunta), (foco_nuevo if c.usar_foco else foco)
+    # Los actos nombrados se incorporan al estado aunque no haya reescritura ni modelo:
+    # el estado refleja la conversación, no depende de que alguien la interprete.
+    estado = fusionar_actos(estado, actos_en_juego(c.historial, c.pregunta))
+
+    if not c.historial or not os.environ.get('OPENAI_API_KEY'):
+        return c.pregunta, estado
+    if not (c.usar_reescritura or c.usar_foco):
+        return c.pregunta, estado
+    if not necesita_contexto(c.pregunta, c.historial):
+        return c.pregunta, estado
+
+    previo = dict(estado)
+    consulta, nuevo = reescribir_y_enfocar(c.pregunta, c.historial, estado)
+    return (consulta if c.usar_reescritura else c.pregunta), (nuevo if c.usar_foco else previo)
 
 
 def _sse(evento: str, datos: dict) -> str:
@@ -667,7 +778,7 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
     # Una repregunta ("¿me resumís qué sabés de ella?") no se sostiene sola: se reescribe
     # con lo conversado antes de buscar. Si no hace falta, se busca tal cual y no se paga
     # una llamada extra al modelo.
-    consulta_busqueda, foco = _preparar(c)
+    consulta_busqueda, estado = _preparar(c)
     denso = codificador().encode([consulta_busqueda], normalize_embeddings=True)[0]
     filtros = {}
     if c.anio:
@@ -677,13 +788,14 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
     resultados = ix.buscar(denso,
                            texto_consulta=consulta_busqueda if c.usar_lexico else '',
                            k=c.k, filtros=filtros or None, solo_articulos=c.solo_articulos,
-                           anclas=actos_en_juego(c.historial) if c.usar_anclaje else None,
-                           entidad=(foco or {}).get('entidad') if c.usar_foco else None)
+                           pesos_actos=pesos_de_actos(estado) if c.usar_anclaje else None,
+                           peso_entidad=peso_de(estado.get('entidad_origen')),
+                           entidad=estado.get('entidad') if c.usar_foco else None)
     fuentes = [_fuente_de(ix, i, s, d) for i, s, d in resultados]
 
     def eventos():
         yield _sse('fuentes', {'fuentes': [f.model_dump() for f in fuentes],
-                               'consulta_efectiva': consulta_busqueda, 'foco': foco})
+                               'consulta_efectiva': consulta_busqueda, 'estado': estado})
 
         partes = []
         if not fuentes:

@@ -75,13 +75,13 @@ export const consultar = ({ pregunta, k = 8, conversacionId = null, generar = tr
  * pero se empieza a leer enseguida.
  */
 export async function consultarEnFlujo(
-  { pregunta, k = 8, conversacionId = null, historial = [], foco = null },
+  { pregunta, k = 8, conversacionId = null, historial = [], estado = null },
   alRecibir
 ) {
   const r = await fetch(`${BASE}/consultar/flujo`, {
     method: "POST",
     headers: cabeceras(),
-    body: JSON.stringify({ pregunta, k, conversacion_id: conversacionId, historial, foco })
+    body: JSON.stringify({ pregunta, k, conversacion_id: conversacionId, historial, estado })
   });
   if (r.status === 401) { cerrarSesion(); throw new Error("Tu sesión venció."); }
   if (!r.ok) throw new Error(`La consulta falló (${r.status}).`);

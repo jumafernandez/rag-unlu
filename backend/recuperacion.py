@@ -228,9 +228,29 @@ class Indice:
         orden = np.argsort(-sims)[:tope]
         return [candidatos[j] for j in orden]
 
+    def menciona_entidad(self, i, piezas):
+        """¿El fragmento i nombra a la entidad? Se pide más de una coincidencia para que
+        un apellido común no arrastre documentos ajenos."""
+        if not piezas:
+            return False
+        texto = normalizar(f"{self.chunks[i].get('titulo') or ''} {self.chunks[i].get('texto') or ''}")
+        return sum(1 for p in piezas if p in texto) >= min(2, len(piezas))
+
     def buscar(self, consulta_densa, texto_consulta='', k=8, filtros=None,
-               solo_articulos=False, candidatos=60, anclas=None, entidad=None):
-        """[(indice, puntaje_rrf, detalle)] ordenado por relevancia."""
+               solo_articulos=False, candidatos=60, entidad=None,
+               peso_entidad=1.0, pesos_actos=None):
+        """[(indice, puntaje_rrf, detalle)] ordenado por relevancia.
+
+        El estado de la conversación —la entidad de la que se habla y los actos que se
+        vienen mencionando— entra como BONIFICACIÓN sobre el puntaje fusionado, con un
+        peso por slot. Antes se agregaban los fragmentos al final de la lista con puntaje
+        cero, y eso tenía dos problemas: no competían por posición, y al armar el contexto
+        el corte por longitud se los comía justamente a ellos.
+
+        La bonificación está expresada en unidades de RRF: un slot con peso 1 suma lo
+        mismo que salir primero en una de las dos señales. Así empuja de verdad pero no
+        puede reemplazar a la relevancia semántica, que suma por las dos.
+        """
         permitidos = self._filtrar(filtros, solo_articulos)
 
         # Si la consulta nombra un acto concreto ("RESHCS 893/2025"), ese acto tiene que
@@ -294,41 +314,67 @@ class Indice:
             detalle[i]['lexico'] = r + 1
             detalle[i]['bm25'] = round(float(puntajes_bm[i]), 3)
 
+        # --- estado de la conversación, como bonificación ---
+        # Unidad de bonificación: lo que vale salir primero en una de las dos señales.
+        # Expresarlo así evita una constante suelta y hace que el efecto sea comparable
+        # con el de la recuperación en vez de arbitrario.
+        UNIDAD = 1.0 / (K + 1)
+        pesos_actos = pesos_actos or {}
+        piezas_entidad = [t for t in tokenizar(entidad) if len(t) >= 4] if entidad else []
+
+        # Los actos del estado bonifican a sus propios fragmentos. Se recorre una vez el
+        # índice de identidad ya calculado, sin volver a mirar el texto.
+        if pesos_actos:
+            claves = {(c.upper(), re.sub(r'\s+', '', str(n))): w
+                      for (c, n), w in pesos_actos.items() if w > 0}
+            if claves:
+                for i in list(total):
+                    clave = ((self.chunks[i].get('document_code') or '').upper(),
+                             re.sub(r'\s+', '', str(self.chunks[i].get('document_number') or '')))
+                    w = claves.get(clave)
+                    if w:
+                        total[i] += w * UNIDAD
+                        detalle[i]['continuidad'] = round(w, 2)
+
+                # Los actos que la búsqueda no trajo se incorporan con el puntaje que les
+                # da su peso, así compiten por posición en lugar de quedar al final.
+                presentes = {((self.chunks[i].get('document_code') or '').upper(),
+                              re.sub(r'\s+', '', str(self.chunks[i].get('document_number') or '')))
+                             for i in total}
+                faltantes = {a for a in claves if a not in presentes}
+                if faltantes:
+                    for i in self.chunks_de_actos(faltantes, tope_por_acto=2):
+                        clave = ((self.chunks[i].get('document_code') or '').upper(),
+                                 re.sub(r'\s+', '', str(self.chunks[i].get('document_number') or '')))
+                        w = claves.get(clave, 0)
+                        total[i] = max(total[i], w * UNIDAD)
+                        detalle[i]['continuidad'] = round(w, 2)
+
+        if piezas_entidad and peso_entidad > 0:
+            for i in list(total):
+                if self.menciona_entidad(i, piezas_entidad):
+                    total[i] += peso_entidad * UNIDAD
+                    detalle[i]['foco'] = round(peso_entidad, 2)
+
         mejores = sorted(total.items(), key=lambda x: -x[1])[:k]
 
-        # Continuidad de la conversación: los actos que ya se citaron se agregan al final
-        # si la búsqueda no los trajo. Cuestan pocas posiciones y evitan que una
-        # repregunta sobre "el artículo 2" se quede sin el documento del que se hablaba.
-        if anclas:
-            # Solo se agrega el acto que la búsqueda NO trajo. Si ya está representado,
-            # sumar más fragmentos suyos desplaza a otros documentos y la respuesta
-            # termina girando alrededor de un único acto.
-            docs_presentes = {
-                ((self.chunks[i].get('document_code') or '').upper(),
-                 re.sub(r'\s+', '', str(self.chunks[i].get('document_number') or '')))
-                for i, _ in mejores
-            }
-            faltantes = {a for a in {(c.upper(), n) for c, n in anclas} if a not in docs_presentes}
-            if faltantes:
-                for i in self.chunks_de_actos(faltantes, tope_por_acto=2):
-                    mejores.append((i, 0.0))
-                    detalle[i]['continuidad'] = True
-
-        # Refuerzo por entidad: si casi ningún resultado menciona el sujeto de la
-        # conversación, se agregan los que sí. No es un filtro duro a propósito: una
-        # pregunta como "¿y qué dice el reglamento general?" debe poder salirse del foco.
-        if entidad:
+        # Garantía de entidad. La bonificación ordena, pero no asegura presencia: si la
+        # consulta se fue de tema, puede que ningún fragmento del top-k mencione al sujeto
+        # y el modelo termine atribuyéndole lo que dicen documentos donde no figura —que
+        # es exactamente la alucinación que este mecanismo existe para evitar. Cuando pasa,
+        # se cede la última posición al mejor fragmento que sí lo nombra.
+        # No es un filtro duro a propósito: una pregunta como "¿y qué dice el reglamento
+        # general?" tiene que poder salirse del foco.
+        if piezas_entidad and peso_entidad > 0:
             ya = {i for i, _ in mejores}
-            piezas = [t for t in tokenizar(entidad) if len(t) >= 4]
-            def menciona(i):
-                texto = normalizar(f"{self.chunks[i].get('titulo') or ''} {self.chunks[i].get('texto') or ''}")
-                return piezas and sum(1 for p in piezas if p in texto) >= min(2, len(piezas))
-            if sum(1 for i in ya if menciona(i)) < 2:
-                for i in self.chunks_de_entidad(entidad, consulta_densa, tope=3):
+            if not any(self.menciona_entidad(i, piezas_entidad) for i in ya):
+                for i in self.chunks_de_entidad(entidad, consulta_densa, tope=1):
                     if i not in ya:
-                        mejores.append((i, 0.0))
-                        detalle[i]['foco'] = True
-                        ya.add(i)
+                        if len(mejores) >= k:
+                            mejores.pop()
+                        mejores.append((i, peso_entidad * UNIDAD))
+                        detalle[i]['foco'] = round(peso_entidad, 2)
+                        detalle[i]['garantia'] = True
 
         return [(i, s, dict(detalle[i],
                             similitud=(float(sims[i]) if sims is not None and np.isfinite(sims[i]) else None)))
@@ -342,18 +388,56 @@ class Indice:
         "PROGRAMA (10821) ÁLGEBRA — INGENIERÍA INDUSTRIAL" y en el cuerpo solo el nombre
         del docente. Sin el título, el modelo ve un nombre y un cargo, y responde con
         razón que no sabe de qué asignatura se trata.
+
+        El presupuesto se REPARTE, no se consume por orden de llegada. Antes se cortaba al
+        primer fragmento que no entraba, y eso tenía dos consecuencias malas: un anexo largo
+        en las primeras posiciones dejaba afuera a todos los que seguían aunque fueran
+        cortos, y los 26 fragmentos del corpus que solos superan el presupuesto entero
+        devolvían contexto VACÍO —el modelo respondía que no sabía nada mientras la interfaz
+        mostraba ocho fuentes—.
+
+        Ahora cada resultado tiene su parte y lo que sobra se reparte entre los que quedaron
+        cortados. Un fragmento largo se trunca; ninguno desaparece.
         """
-        partes, usados = [], 0
+        if not resultados:
+            return ''
+
+        encabezados, cuerpos = [], []
         for i, _, _ in resultados:
             c = self.chunks[i]
-            encabezado = f"[{c['cita']}]"
+            enc = f"[{c['cita']}]"
             if c.get('titulo'):
-                encabezado += f"\n{c['titulo']}"
+                enc += f"\n{c['titulo']}"
             if c.get('date_issued'):
-                encabezado += f"\n(fecha: {c['date_issued']})"
-            bloque = f"{encabezado}\n{c['texto']}"
-            if usados + len(bloque) > max_caracteres:
+                enc += f"\n(fecha: {c['date_issued']})"
+            encabezados.append(enc)
+            cuerpos.append(c['texto'] or '')
+
+        # El encabezado va siempre: es la cita, el título y la fecha, o sea lo que permite
+        # reconocer el documento. Lo que se recorta es el cuerpo.
+        disponible = max(0, max_caracteres - sum(len(e) + 1 for e in encabezados))
+        parte = disponible // len(cuerpos)
+
+        asignado = [min(len(t), parte) for t in cuerpos]
+        sobrante = disponible - sum(asignado)
+        # Lo que no usaron los fragmentos cortos se reparte entre los truncados, por orden
+        # de relevancia: el presupuesto se aprovecha entero sin que ninguno monopolice.
+        for j, t in enumerate(cuerpos):
+            if sobrante <= 0:
                 break
-            partes.append(bloque)
-            usados += len(bloque)
+            falta = len(t) - asignado[j]
+            if falta > 0:
+                extra = min(falta, sobrante)
+                asignado[j] += extra
+                sobrante -= extra
+
+        partes = []
+        for enc, texto, n in zip(encabezados, cuerpos, asignado):
+            if len(texto) > n:
+                # Se corta en el último espacio para no partir una palabra al medio, y se
+                # marca: el modelo tiene que saber que lo que ve está incompleto.
+                recorte = texto[:n]
+                corte = recorte.rfind(' ')
+                texto = (recorte[:corte] if corte > n // 2 else recorte) + ' […]'
+            partes.append(f"{enc}\n{texto}")
         return '\n\n---\n\n'.join(partes)
