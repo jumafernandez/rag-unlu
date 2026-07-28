@@ -39,3 +39,5 @@ resultados/
 
 # Claves y configuración local: NUNCA se versiona
 .env
+
+frontend/.env.local

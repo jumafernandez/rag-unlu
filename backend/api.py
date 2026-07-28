@@ -32,6 +32,9 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from fastapi import Header
+
+from . import historial, sesion
 from .recuperacion import Indice
 
 
@@ -84,6 +87,22 @@ async def ciclo_de_vida(_app):
 
 
 app = FastAPI(title='ChatDigesto UNLu', version='1.0', lifespan=ciclo_de_vida)
+
+
+@app.middleware('http')
+async def limitar_tamano(request, call_next):
+    """Rechaza cuerpos desmedidos antes de leerlos.
+
+    La validación del modelo actúa DESPUÉS de parsear el JSON: con un cuerpo de varios MB
+    el servidor ya gastó tiempo y memoria antes de rechazarlo. Este corte es previo.
+    """
+    largo = request.headers.get('content-length')
+    if largo and largo.isdigit() and int(largo) > 64 * 1024:
+        from fastapi.responses import JSONResponse
+        return JSONResponse({'detail': 'La consulta es demasiado extensa.'}, status_code=413)
+    return await call_next(request)
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get('RAG_CORS', 'http://localhost:5174,http://localhost:5173').split(','),
@@ -126,7 +145,14 @@ def codificador():
 
 
 class Consulta(BaseModel):
-    pregunta: str
+    # Si viene, la respuesta se guarda en esa conversación; si no, se crea una nueva.
+    # Sin sesión iniciada este campo se ignora y no se guarda nada.
+    conversacion_id: Optional[int] = None
+    # El techo de longitud NO es cosmético: sin él, una sola petición con un texto muy
+    # largo hace que el modelo de embeddings quede minutos codificando y deja al servidor
+    # sin responder a nadie más, ni siquiera a /salud. Verificado: 1 MB lo tumba por
+    # completo. 2000 caracteres son de sobra para una consulta sobre normativa.
+    pregunta: str = Field(..., min_length=1, max_length=2000)
     k: int = Field(8, ge=1, le=30)
     anio: Optional[int] = None
     tipo: Optional[str] = None
@@ -148,6 +174,8 @@ class Fuente(BaseModel):
 
 
 class Respuesta(BaseModel):
+    conversacion_id: Optional[int] = None
+    mensaje_id: Optional[int] = None
     pregunta: str
     respuesta: Optional[str]
     fuentes: List[Fuente]
@@ -195,8 +223,9 @@ def salud():
 
 
 @app.post('/consultar', response_model=Respuesta)
-def consultar(c: Consulta):
+def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     t0 = time.time()
+    usuario = usuario_de(authorization)
     ix = indice()
 
     denso = codificador().encode([c.pregunta], normalize_embeddings=True)[0]
@@ -243,12 +272,116 @@ def consultar(c: Consulta):
         aviso = f'{len(dudosas)} fuente(s) con metadata sin verificar contra el sistema origen.'
         advertencia = f'{advertencia} {aviso}'.strip() if advertencia else aviso
 
+    # Guardado: solo si hay sesión. Es accesorio, así que un fallo acá no debe romper
+    # la respuesta que el usuario ya tiene.
+    conversacion_id = mensaje_id = None
+    if usuario:
+        try:
+            conversacion_id = c.conversacion_id
+            if not conversacion_id:
+                conversacion_id = historial.crear_conversacion(usuario, c.pregunta)
+            historial.agregar_mensaje(conversacion_id, usuario, 'user', c.pregunta)
+            mensaje_id = historial.agregar_mensaje(
+                conversacion_id, usuario, 'assistant',
+                respuesta or (fuentes and 'Se recuperó normativa relacionada.') or
+                'No se encontró normativa relacionada.',
+                [f.model_dump() for f in fuentes])
+        except Exception:
+            conversacion_id = mensaje_id = None
+
     return Respuesta(
+        conversacion_id=conversacion_id, mensaje_id=mensaje_id,
         pregunta=c.pregunta, respuesta=respuesta, fuentes=fuentes,
         modelo_generacion=MODELO_GEN if respuesta else None,
         modelo_embeddings=MODELO_EMB,
         segundos=round(time.time() - t0, 3), advertencia=advertencia,
     )
+
+
+# ---------------------------------------------------------------------------
+# Sesión e historial
+#
+# El inicio de sesión es OPCIONAL: sin cuenta el asistente funciona igual, solo que no
+# guarda nada. Quien entra, recupera sus consultas anteriores.
+# ---------------------------------------------------------------------------
+
+class Credencial(BaseModel):
+    credencial: str = Field(..., max_length=4096)
+
+
+class Titulo(BaseModel):
+    titulo: str = Field(..., min_length=1, max_length=120)
+
+
+class Valoracion(BaseModel):
+    util: Optional[bool] = None
+
+
+def usuario_de(autorizacion: Optional[str]) -> Optional[str]:
+    """Usuario de la petición, o None si no hay sesión. No falla si no la hay."""
+    if not autorizacion or not autorizacion.lower().startswith('bearer '):
+        return None
+    return sesion.leer_sesion(autorizacion[7:])
+
+
+def exigir_usuario(autorizacion: Optional[str]) -> str:
+    uid = usuario_de(autorizacion)
+    if not uid:
+        raise HTTPException(401, 'sesión no válida o vencida')
+    return uid
+
+
+@app.post('/sesion')
+def iniciar_sesion(c: Credencial):
+    """Recibe el token de Google, lo valida y devuelve una sesión propia."""
+    try:
+        datos = sesion.verificar_credencial_google(c.credencial)
+    except RuntimeError as e:
+        raise HTTPException(503, str(e))
+    except Exception:
+        # Sin detalles: un mensaje preciso acá solo le sirve a quien esté probando tokens.
+        raise HTTPException(401, 'no se pudo validar la credencial')
+
+    if not sesion.dominio_autorizado(datos['email']):
+        raise HTTPException(403, 'esa cuenta no está autorizada')
+
+    historial.registrar_usuario(datos['sub'], datos['email'], datos['nombre'])
+    return {'token': sesion.emitir_sesion(datos['sub']),
+            'nombre': datos['nombre'], 'correo': datos['email']}
+
+
+@app.get('/conversaciones')
+def conversaciones(authorization: Optional[str] = Header(None)):
+    return {'conversaciones': historial.listar_conversaciones(exigir_usuario(authorization))}
+
+
+@app.get('/conversaciones/{cid}')
+def conversacion(cid: int, authorization: Optional[str] = Header(None)):
+    d = historial.leer_conversacion(cid, exigir_usuario(authorization))
+    if d is None:
+        raise HTTPException(404, 'conversación no encontrada')
+    return d
+
+
+@app.patch('/conversaciones/{cid}')
+def renombrar(cid: int, t: Titulo, authorization: Optional[str] = Header(None)):
+    if not historial.renombrar_conversacion(cid, exigir_usuario(authorization), t.titulo):
+        raise HTTPException(404, 'conversación no encontrada')
+    return {'ok': True}
+
+
+@app.delete('/conversaciones/{cid}')
+def borrar(cid: int, authorization: Optional[str] = Header(None)):
+    if not historial.borrar_conversacion(cid, exigir_usuario(authorization)):
+        raise HTTPException(404, 'conversación no encontrada')
+    return {'ok': True}
+
+
+@app.post('/mensajes/{mid}/valoracion')
+def valorar(mid: int, v: Valoracion, authorization: Optional[str] = Header(None)):
+    if not historial.valorar_mensaje(mid, exigir_usuario(authorization), v.util):
+        raise HTTPException(404, 'mensaje no encontrado')
+    return {'ok': True}
 
 
 @app.get('/documento/{documento}')

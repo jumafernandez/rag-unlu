@@ -1,6 +1,10 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import "./styles.css";
-import { consultar } from "./api";
+import Login from "./Login";
+import {
+  consultar, leerSesion, cerrarSesion, listarConversaciones,
+  leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje
+} from "./api";
 
 function PencilIcon() {
   return (
@@ -33,11 +37,56 @@ export default function App() {
   const [searchChats, setSearchChats] = useState("");
   const [cargando, setCargando] = useState(false);
 
-  const [history] = useState([
-    { id: 1, title: "Normativa sobre concursos docentes" },
-    { id: 2, title: "Licencias y resoluciones vinculadas" },
-    { id: 3, title: "Designaciones y antecedentes" }
-  ]);
+  const [sesion, setSesion] = useState(() => leerSesion());
+  const [history, setHistory] = useState([]);
+  const [convId, setConvId] = useState(null);
+
+  // El historial existe solo con sesión iniciada. Sin cuenta el asistente funciona
+  // igual, pero no queda registro de las consultas.
+  const refrescarHistorial = useCallback(async () => {
+    if (!leerSesion()?.token) { setHistory([]); return; }
+    try {
+      const r = await listarConversaciones();
+      setHistory(r.conversaciones || []);
+    } catch { setHistory([]); }
+  }, []);
+
+  useEffect(() => { refrescarHistorial(); }, [refrescarHistorial, sesion]);
+
+  const abrirConversacion = async (id) => {
+    try {
+      const c = await leerConversacion(id);
+      setConvId(c.id);
+      setView("chat");
+      setMessages(c.mensajes.map((m) => ({
+        role: m.rol, content: m.texto, fuentes: m.fuentes || [],
+        mensajeId: m.id, util: m.util
+      })));
+    } catch (e) { console.error(e); }
+  };
+
+  const renombrar = async (id, actual) => {
+    const t = window.prompt("Nuevo título:", actual || "");
+    if (!t?.trim()) return;
+    try { await renombrarConversacion(id, t.trim()); refrescarHistorial(); }
+    catch (e) { console.error(e); }
+  };
+
+  const borrar = async (id) => {
+    if (!window.confirm("¿Borrar esta conversación?")) return;
+    try {
+      await borrarConversacion(id);
+      if (convId === id) { setConvId(null); setMessages([]); }
+      refrescarHistorial();
+    } catch (e) { console.error(e); }
+  };
+
+  const valorar = async (mensajeId, util, indice) => {
+    if (!mensajeId) return;
+    const nuevo = util;
+    setMessages((prev) => prev.map((m, i) => (i === indice ? { ...m, util: nuevo } : m)));
+    try { await valorarMensaje(mensajeId, nuevo); } catch (e) { console.error(e); }
+  };
 
   const [formData, setFormData] = useState({
     tipo: "",
@@ -50,7 +99,7 @@ export default function App() {
   const filteredHistory = useMemo(() => {
     if (!searchChats.trim()) return history;
     const q = searchChats.toLowerCase();
-    return history.filter((item) => item.title.toLowerCase().includes(q));
+    return history.filter((item) => (item.titulo || "").toLowerCase().includes(q));
   }, [history, searchChats]);
 
   const sendMessage = async () => {
@@ -61,7 +110,8 @@ export default function App() {
     setCargando(true);
 
     try {
-      const r = await consultar({ pregunta: content });
+      const r = await consultar({ pregunta: content, conversacionId: convId });
+      if (r.conversacion_id && r.conversacion_id !== convId) setConvId(r.conversacion_id);
       const fuentes = r.fuentes || [];
       // Tres situaciones distintas, que antes se mezclaban en un mismo mensaje:
       // hay respuesta redactada; hay normativa pero sin redactar (p. ej. sin clave de
@@ -77,6 +127,7 @@ export default function App() {
         {
           role: "assistant",
           content: texto,
+          mensajeId: r.mensaje_id,
           sinGenerar: !r.respuesta && fuentes.length > 0,
           fuentes,
           advertencia: r.advertencia,
@@ -90,6 +141,7 @@ export default function App() {
       ]);
     } finally {
       setCargando(false);
+      refrescarHistorial();
     }
   };
 
@@ -100,6 +152,7 @@ export default function App() {
   const handleNewChat = () => {
     setMessages([]);
     setInput("");
+    setConvId(null);
     setView("chat");
   };
 
@@ -144,17 +197,43 @@ export default function App() {
           <div>
             <div className="sidebar-section-title">Consultas previas</div>
             <div className="history-list">
+              {!sesion && (
+                <p className="history-vacio">
+                  Iniciá sesión para guardar tus consultas.
+                </p>
+              )}
+              {sesion && filteredHistory.length === 0 && (
+                <p className="history-vacio">Todavía no tenés consultas guardadas.</p>
+              )}
               {filteredHistory.map((item) => (
-                <button
-                  key={item.id}
-                  className="history-item"
-                  onClick={() => setView("chat")}
-                  title={item.title}
-                >
-                  {item.title}
-                </button>
+                <div key={item.id} className={`history-row ${convId === item.id ? "activa" : ""}`}>
+                  <button
+                    className="history-item"
+                    onClick={() => abrirConversacion(item.id)}
+                    title={item.titulo}
+                  >
+                    {item.titulo}
+                  </button>
+                  <button className="history-accion" title="Renombrar"
+                          onClick={() => renombrar(item.id, item.titulo)}>✎</button>
+                  <button className="history-accion" title="Borrar"
+                          onClick={() => borrar(item.id)}>🗑</button>
+                </div>
               ))}
             </div>
+          </div>
+
+          <div className="sesion-caja">
+            {sesion ? (
+              <div className="sesion-activa">
+                <span className="sesion-nombre" title={sesion.correo}>{sesion.nombre || sesion.correo}</span>
+                <button className="sesion-salir" onClick={() => { cerrarSesion(); setSesion(null); setHistory([]); setConvId(null); }}>
+                  Salir
+                </button>
+              </div>
+            ) : (
+              <Login onEntrar={(d) => setSesion(d)} />
+            )}
           </div>
 
           <a
@@ -209,6 +288,18 @@ export default function App() {
                           <div className="aviso-metadata">{msg.advertencia}</div>
                         )}
 
+                        {msg.role === "assistant" && msg.mensajeId && (
+                          <div className="valoracion">
+                            <span>¿Te sirvió?</span>
+                            <button className={msg.util === 1 ? "elegido" : ""}
+                                    onClick={() => valorar(msg.mensajeId, true, i)}
+                                    aria-label="Sí, sirvió">👍</button>
+                            <button className={msg.util === 0 ? "elegido" : ""}
+                                    onClick={() => valorar(msg.mensajeId, false, i)}
+                                    aria-label="No sirvió">👎</button>
+                          </div>
+                        )}
+
                         {msg.fuentes?.length > 0 && (
                           <details className="fuentes">
                             <summary>
@@ -254,6 +345,15 @@ export default function App() {
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Enter envía; Shift+Enter hace salto de línea. Se ignora mientras
+                    // el navegador está componiendo caracteres (acentos, teclados IME),
+                    // porque ahí el Enter confirma la composición, no la consulta.
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      sendMessage();
+                    }
+                  }}
                   placeholder="¿Qué querés saber del Digesto UNLu?"
                   rows={1}
                 />
