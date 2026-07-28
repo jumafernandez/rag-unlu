@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import "./styles.css";
+import { consultar } from "./api";
 
 function PencilIcon() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [searchChats, setSearchChats] = useState("");
+  const [cargando, setCargando] = useState(false);
 
   const [history] = useState([
     { id: 1, title: "Normativa sobre concursos docentes" },
@@ -51,11 +53,44 @@ export default function App() {
     return history.filter((item) => item.title.toLowerCase().includes(q));
   }, [history, searchChats]);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+  const sendMessage = async () => {
+    if (!input.trim() || cargando) return;
     const content = input.trim();
     setMessages((prev) => [...prev, { role: "user", content }]);
     setInput("");
+    setCargando(true);
+
+    try {
+      const r = await consultar({ pregunta: content });
+      const fuentes = r.fuentes || [];
+      // Tres situaciones distintas, que antes se mezclaban en un mismo mensaje:
+      // hay respuesta redactada; hay normativa pero sin redactar (p. ej. sin clave de
+      // generación); o directamente no se encontró nada.
+      const texto = r.respuesta
+        ? r.respuesta
+        : fuentes.length
+          ? `Encontré ${fuentes.length} fragmento${fuentes.length > 1 ? "s" : ""} de normativa relacionada. Abrí las fuentes para leer el texto de los actos.`
+          : "No encontré normativa que responda esa consulta.";
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: texto,
+          sinGenerar: !r.respuesta && fuentes.length > 0,
+          fuentes,
+          advertencia: r.advertencia,
+          segundos: r.segundos
+        }
+      ]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `No pude consultar el Digesto. ${e.message}`, error: true }
+      ]);
+    } finally {
+      setCargando(false);
+    }
   };
 
   const handleSuggestion = (text) => {
@@ -167,11 +202,49 @@ export default function App() {
                 <section className="messages">
                   {messages.map((msg, i) => (
                     <div key={i} className={`message-row ${msg.role}`}>
-                      <div className={`message-bubble ${msg.role}`}>
+                      <div className={`message-bubble ${msg.role} ${msg.error ? "error" : ""}`}>
                         {msg.content}
+
+                        {msg.advertencia && (
+                          <div className="aviso-metadata">{msg.advertencia}</div>
+                        )}
+
+                        {msg.fuentes?.length > 0 && (
+                          <details className="fuentes">
+                            <summary>
+                              {msg.fuentes.length} fuente{msg.fuentes.length > 1 ? "s" : ""} del Digesto
+                              {msg.segundos ? ` · ${msg.segundos}s` : ""}
+                            </summary>
+                            <ul>
+                              {msg.fuentes.map((f, j) => (
+                                <li key={j}>
+                                  <div className="fuente-cita">
+                                    {f.cita}
+                                    {f.date_issued && <span className="fuente-fecha">{f.date_issued}</span>}
+                                  </div>
+                                  <div className="fuente-texto">{f.texto}</div>
+                                  <div className="fuente-pie">
+                                    {f.source_pdf}
+                                    {f.metadata_confianza && f.metadata_confianza !== "alta" && (
+                                      <span className="fuente-confianza"> · metadata {f.metadata_confianza}</span>
+                                    )}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        )}
                       </div>
                     </div>
                   ))}
+
+                  {cargando && (
+                    <div className="message-row assistant">
+                      <div className="message-bubble assistant pensando">
+                        Buscando en el Digesto…
+                      </div>
+                    </div>
+                  )}
                 </section>
               )}
             </div>

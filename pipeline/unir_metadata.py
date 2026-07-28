@@ -196,7 +196,14 @@ def main():
 
             if fila_pos and fila_cod:
                 mismo = clave_acto(fila_pos.get('Numero')) == clave_acto(fila_cod.get('Numero'))
-                elegida, conf, via = (fila_cod, 'alta', 'ambos') if mismo else (None, 'conflicto', 'ambos')
+                if mismo:
+                    elegida, conf, via = fila_cod, 'alta', 'ambos'
+                else:
+                    # Ante desacuerdo gana el código: está impreso en el propio documento y
+                    # es su identidad. El camino posicional depende del mapeo de renombrado,
+                    # que sabemos incorrecto para 1.780 archivos. Se etiqueta aparte para que
+                    # quede visible en auditoría cuántos casos se resolvieron así.
+                    elegida, conf, via = fila_cod, 'media', 'codigo_sobre_posicional'
             elif fila_cod:
                 elegida, conf, via = fila_cod, 'media', 'codigo'
             elif fila_pos:
@@ -214,7 +221,7 @@ def main():
 
     total = len(pdfs)
     print(f'PDFs: {total}   ->  {a.salida}\n')
-    for k in ('alta', 'media', 'conflicto', 'sin_metadata'):
+    for k in ("alta", "media", "conflicto", "sin_metadata"):
         if conteo[k]:
             print(f'  {k:14s} {conteo[k]:6d}  ({100*conteo[k]/total:.1f}%)')
     usable = conteo['alta'] + conteo['media']

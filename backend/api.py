@@ -22,7 +22,9 @@ Variables:
     RAG_MODELO_GEN  modelo de generación (default: gpt-4o-mini)
 """
 
+import contextlib
 import os
+import threading
 import time
 from typing import List, Optional
 
@@ -32,11 +34,56 @@ from pydantic import BaseModel, Field
 
 from .recuperacion import Indice
 
+
+def _cargar_env():
+    """Lee un .env en la raíz del repo, si existe.
+
+    Evita tener que exportar la clave en cada sesión y, sobre todo, evita que quede
+    en el historial del shell. El archivo está en .gitignore: nunca se versiona.
+    Las variables ya presentes en el entorno tienen prioridad.
+    """
+    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    if not os.path.exists(ruta):
+        return
+    with open(ruta, encoding='utf-8') as fh:
+        for linea in fh:
+            linea = linea.strip()
+            if not linea or linea.startswith('#') or '=' not in linea:
+                continue
+            clave, valor = linea.split('=', 1)
+            os.environ.setdefault(clave.strip(), valor.strip().strip('"').strip("'"))
+
+
+_cargar_env()
+
 RUTA_INDICE = os.environ.get('RAG_INDICE', 'indice')
 MODELO_EMB = os.environ.get('RAG_MODELO_EMB', 'BAAI/bge-m3')
 MODELO_GEN = os.environ.get('RAG_MODELO_GEN', 'gpt-4o-mini')
 
-app = FastAPI(title='ChatDigesto UNLu', version='1.0')
+@contextlib.asynccontextmanager
+async def ciclo_de_vida(_app):
+    """Carga el índice y el modelo ANTES de aceptar tráfico.
+
+    Con carga perezosa, varias consultas simultáneas al arranque disparaban cada una su
+    propia construcción del índice (~2,5 GB y 37 s), y el servidor se ahogaba solo. Acá
+    se carga una vez; uvicorn no atiende hasta que termina.
+    """
+    t0 = time.time()
+    try:
+        ix = indice()
+        print(f'índice cargado: {len(ix)} chunks en {time.time() - t0:.0f}s', flush=True)
+    except Exception as e:
+        print(f'AVISO: no se pudo cargar el índice ({e}). /salud lo va a reportar.', flush=True)
+    try:
+        t1 = time.time()
+        codificador()
+        print(f'modelo de embeddings cargado en {time.time() - t1:.0f}s', flush=True)
+    except Exception as e:
+        print(f'AVISO: no se pudo cargar el modelo de embeddings ({e})', flush=True)
+    yield
+
+
+app = FastAPI(title='ChatDigesto UNLu', version='1.0', lifespan=ciclo_de_vida)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=os.environ.get('RAG_CORS', 'http://localhost:5174,http://localhost:5173').split(','),
@@ -45,22 +92,36 @@ app.add_middleware(
 
 _indice: Optional[Indice] = None
 _codificador = None
+# Candado para que dos peticiones simultáneas no construyan el índice dos veces.
+_candado = threading.Lock()
 
 
 def indice() -> Indice:
     global _indice
     if _indice is None:
-        if not os.path.isdir(RUTA_INDICE):
-            raise HTTPException(503, f'no está el índice en {RUTA_INDICE}')
-        _indice = Indice(RUTA_INDICE)
+        with _candado:
+            if _indice is None:          # revisar de nuevo: otra petición pudo cargarlo
+                if not os.path.isdir(RUTA_INDICE):
+                    raise HTTPException(503, f'no está el índice en {RUTA_INDICE}')
+                _indice = Indice(RUTA_INDICE)
     return _indice
 
 
 def codificador():
+    """Modelo de embeddings, cargado una sola vez (la primera consulta tarda ~20 s).
+
+    Por defecto en CPU: una consulta es un texto corto y se codifica en milisegundos,
+    así que la GPU no aporta acá (sí en la generación masiva del índice, que corre en
+    Clementina). Además mantiene la API desplegable en cualquier servidor sin GPU.
+    Se puede forzar otro dispositivo con RAG_DISPOSITIVO.
+    """
     global _codificador
     if _codificador is None:
-        from FlagEmbedding import BGEM3FlagModel
-        _codificador = BGEM3FlagModel(MODELO_EMB, use_fp16=False)
+        with _candado:
+            if _codificador is None:
+                from sentence_transformers import SentenceTransformer
+                _codificador = SentenceTransformer(
+                    MODELO_EMB, device=os.environ.get('RAG_DISPOSITIVO', 'cpu'))
     return _codificador
 
 
@@ -138,10 +199,7 @@ def consultar(c: Consulta):
     t0 = time.time()
     ix = indice()
 
-    salida = codificador().encode([c.pregunta], return_dense=True, return_sparse=True,
-                                  return_colbert_vecs=False)
-    denso = salida['dense_vecs'][0]
-    esparso = {k: float(v) for k, v in salida['lexical_weights'][0].items()}
+    denso = codificador().encode([c.pregunta], normalize_embeddings=True)[0]
 
     filtros = {}
     if c.anio:
@@ -149,8 +207,10 @@ def consultar(c: Consulta):
     if c.tipo:
         filtros['document_type'] = c.tipo
 
-    resultados = ix.buscar(denso, esparso, k=c.k, filtros=filtros or None,
-                           solo_articulos=c.solo_articulos)
+    # El texto crudo va también a la señal léxica: BM25 lo tokeniza conservando los
+    # identificadores, que es lo que el vector denso no distingue.
+    resultados = ix.buscar(denso, texto_consulta=c.pregunta, k=c.k,
+                           filtros=filtros or None, solo_articulos=c.solo_articulos)
 
     fuentes = [
         Fuente(

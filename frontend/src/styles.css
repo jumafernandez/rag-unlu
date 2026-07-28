@@ -485,3 +485,71 @@ button, input, select, textarea { font: inherit; }
 
   .draft-disclaimer { max-width: unset; }
 }
+
+/* ---- Fuentes citadas ----
+   La trazabilidad es lo que hace usable un asistente sobre normativa: la respuesta
+   sirve en la medida en que se pueda verificar contra el acto original. Por eso las
+   fuentes van con la respuesta, no escondidas en otra pantalla. */
+
+.fuentes {
+  margin-top: 14px;
+  border-top: 1px solid #dcecd4;
+  padding-top: 10px;
+  font-size: 0.9rem;
+}
+
+.fuentes summary {
+  cursor: pointer;
+  color: #2f6b2f;
+  font-weight: 600;
+  list-style: none;
+}
+.fuentes summary::-webkit-details-marker { display: none; }
+.fuentes summary::before { content: "▸ "; }
+.fuentes[open] summary::before { content: "▾ "; }
+
+.fuentes ul { list-style: none; margin: 10px 0 0; padding: 0; }
+
+.fuentes li {
+  border-left: 3px solid #c7dabb;
+  padding: 8px 0 8px 12px;
+  margin-bottom: 12px;
+  background: #f7f9f6;
+  border-radius: 0 6px 6px 0;
+}
+
+.fuente-cita {
+  font-weight: 600;
+  color: #24521f;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.fuente-fecha { font-weight: 400; font-size: 0.82rem; color: #6b7d68; white-space: nowrap; }
+
+.fuente-texto {
+  margin-top: 5px;
+  color: #3a463a;
+  white-space: pre-wrap;
+  max-height: 8.5em;
+  overflow-y: auto;
+  line-height: 1.45;
+}
+
+.fuente-pie { margin-top: 6px; font-size: 0.78rem; color: #7d8c7a; }
+.fuente-confianza { color: #a06a1f; }
+
+.aviso-metadata {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #fdf6e6;
+  border-left: 3px solid #d9a441;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.85rem;
+  color: #7a5a15;
+}
+
+.message-bubble.error { background: #fdeeee; border-left: 3px solid #c0554f; }
+.message-bubble.pensando { opacity: 0.7; font-style: italic; }

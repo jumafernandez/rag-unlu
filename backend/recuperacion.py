@@ -46,6 +46,10 @@ PATRONES = [
 ]
 RE_TOKENS = re.compile('|'.join(f'({p})' for p in PATRONES), re.IGNORECASE)
 
+# Un identificador de acto: '893/2025'. Sirve para detectar cuándo la consulta nombra
+# una norma concreta en vez de describir un tema.
+RE_IDENTIFICADOR = re.compile(r'\d{1,6}/\d{4}')
+
 VACIAS = {
     'de', 'la', 'el', 'los', 'las', 'del', 'y', 'o', 'a', 'en', 'que', 'por', 'para',
     'con', 'un', 'una', 'se', 'su', 'sus', 'al', 'lo', 'es', 'como', 'mas', 'pero',
@@ -135,6 +139,14 @@ class Indice:
             cuerpos.append(tokenizar(' '.join(partes)))
         self.bm25 = BM25(cuerpos)
 
+        # Número de acto de cada chunk, para poder responder consultas que nombran una
+        # norma concreta. Sale de la metadata, no del texto: es el identificador del
+        # documento al que pertenece el fragmento, no un número citado de pasada.
+        self._ids_chunk = []
+        for c in self.chunks:
+            num = str(c.get('document_number') or '')
+            self._ids_chunk.append({t for t in tokenizar(num) if RE_IDENTIFICADOR.fullmatch(t)})
+
         with open(os.path.join(ruta, 'indice.json'), encoding='utf-8') as fh:
             self.info = json.load(fh)
 
@@ -152,10 +164,33 @@ class Indice:
             permitidos = arts if permitidos is None else (permitidos & arts)
         return permitidos
 
+    def _ids_de_chunk(self, i):
+        return self._ids_chunk[i]
+
+    def _identificadores(self, texto):
+        """Números de acto mencionados en la consulta ('893/2025')."""
+        return {t for t in tokenizar(texto) if RE_IDENTIFICADOR.fullmatch(t)}
+
     def buscar(self, consulta_densa, texto_consulta='', k=8, filtros=None,
                solo_articulos=False, candidatos=60):
         """[(indice, puntaje_rrf, detalle)] ordenado por relevancia."""
         permitidos = self._filtrar(filtros, solo_articulos)
+
+        # Si la consulta nombra un acto concreto ("RESHCS 893/2025"), ese acto tiene que
+        # venir primero. La fusión RRF por sí sola no lo garantiza: un documento con dos
+        # señales tibias le gana a uno con una señal decisiva, y termina devolviendo la
+        # resolución 444 cuando se pidió la 893. Acá se restringe la búsqueda a los
+        # documentos que efectivamente llevan ese número.
+        ids = self._identificadores(texto_consulta) if texto_consulta else set()
+        if ids:
+            exactos = {
+                i for i, c in enumerate(self.chunks)
+                if ids & self._ids_de_chunk(i)
+            }
+            if permitidos is not None:
+                exactos &= permitidos
+            if exactos:
+                permitidos = exactos
 
         # --- densa ---
         orden_denso, sims = [], None

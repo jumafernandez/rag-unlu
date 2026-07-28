@@ -36,3 +36,6 @@ dist/
 modelos/
 indice/
 resultados/
+
+# Claves y configuración local: NUNCA se versiona
+.env
