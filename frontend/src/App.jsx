@@ -31,6 +31,12 @@ function PlusIcon() {
   );
 }
 
+// El atajo funciona con Ctrl y con ⌘ en cualquier sistema; solo cambia cómo se nombra.
+// En la UNLu la mayoría usa Windows, así que mostrar "⌘K" a todos confunde.
+const TECLA_ATAJO = /Mac|iPhone|iPad/i.test(
+  (typeof navigator !== "undefined" && (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent)) || ""
+) ? "⌘K" : "Ctrl+K";
+
 export default function App() {
   const [view, setView] = useState("chat");
   const [messages, setMessages] = useState([]);
@@ -46,6 +52,13 @@ export default function App() {
   const [panelAbierto, setPanelAbierto] = useState(false);
   const [porBorrar, setPorBorrar] = useState(null);  // id con confirmación pendiente
   const [alcance, setAlcance] = useState(null);
+  // Cuánta normativa traer por consulta. Se expone en lenguaje de usuario, no como un
+  // número: a quien consulta le importa "rápido y preciso" o "traeme todo", no el valor
+  // de k. Se recuerda entre visitas.
+  const [amplitud, setAmplitud] = useState(
+    () => localStorage.getItem("chatdigesto_amplitud") || "equilibrado"
+  );
+  useEffect(() => { localStorage.setItem("chatdigesto_amplitud", amplitud); }, [amplitud]);
   const [copiado, setCopiado] = useState(null);
   const [fuenteMarcada, setFuenteMarcada] = useState(null);   // "mensaje-fuente"
   const finDelChat = useRef(null);
@@ -103,7 +116,11 @@ export default function App() {
       if (!grupos.has(clave)) {
         grupos.set(clave, {
           clave,
-          encabezado: (f.cita || "").split("—")[0].trim(),
+          // Se muestra el código tal como se lo nombra en la UNLu ("DISPCD-T 204/2024"),
+          // sin anteponer el tipo de acto: es la forma instalada y evita depender de
+          // cómo esté escrito "Disposición"/"Resolución" en la metadata.
+          encabezado: (f.cita || "").split("—")[0].trim()
+            .replace(/^(Disposici[oó]n|Resoluci[oó]n)\s+/i, ""),
           fecha: f.date_issued,
           titulo: f.titulo,
           confianza: f.metadata_confianza,
@@ -252,7 +269,16 @@ export default function App() {
 
     try {
       let texto = "";
-      await consultarEnFlujo({ pregunta: content, conversacionId: convId }, (evento, datos) => {
+      // Se envían los últimos intercambios: sin esto cada consulta llega aislada y una
+      // repregunta como "¿me resumís qué sabés de ella?" no tiene a qué referirse.
+      const historial = messages
+        .filter((m) => m.content && !m.error)
+        .slice(-6)
+        .map((m) => ({ rol: m.role === "user" ? "user" : "assistant", texto: m.content }));
+
+      const K = { preciso: 5, equilibrado: 8, exhaustivo: 16 }[amplitud] ?? 8;
+
+      await consultarEnFlujo({ pregunta: content, k: K, conversacionId: convId, historial }, (evento, datos) => {
         if (evento === "fuentes") {
           actualizar({ fuentes: datos.fuentes || [] });
         } else if (evento === "texto") {
@@ -358,7 +384,7 @@ export default function App() {
             <input
               ref={buscador}
               type="text"
-              placeholder="Buscar chats  (⌘K)"
+              placeholder={`Buscar chats  (${TECLA_ATAJO})`}
               value={searchChats}
               onChange={(e) => setSearchChats(e.target.value)}
             />
@@ -575,12 +601,13 @@ export default function App() {
                                           </div>
                                         ))}
 
-                                        <div className="fuente-pie">
-                                          {g.pdf}
-                                          {g.confianza && g.confianza !== "alta" && (
-                                            <span className="fuente-confianza"> · metadata {g.confianza}</span>
-                                          )}
-                                        </div>
+                                        {g.confianza && g.confianza !== "alta" && (
+                                          <div className="fuente-pie">
+                                            <span className="fuente-confianza">
+                                              metadata sin verificar contra el sistema origen
+                                            </span>
+                                          </div>
+                                        )}
                                       </li>
                                     ))}
                                   </ul>
@@ -619,6 +646,25 @@ export default function App() {
                 />
                 <button onClick={sendMessage}>Enviar</button>
               </div>
+              <div className="amplitud">
+                <span>Alcance de la búsqueda</span>
+                {[
+                  ["preciso", "Preciso", "Menos fuentes, más directo"],
+                  ["equilibrado", "Equilibrado", "El punto medio"],
+                  ["exhaustivo", "Exhaustivo", "Para relevar todo lo que existe sobre un tema"]
+                ].map(([valor, etiqueta, ayuda]) => (
+                  <button
+                    key={valor}
+                    className={amplitud === valor ? "elegida" : ""}
+                    onClick={() => setAmplitud(valor)}
+                    title={ayuda}
+                    aria-pressed={amplitud === valor}
+                  >
+                    {etiqueta}
+                  </button>
+                ))}
+              </div>
+
               <div className="notice">
                 Las respuestas pueden contener errores. Verificá siempre la información en las{" "}
                 <a href="http://digesto.unlu.edu.ar/" target="_blank" rel="noreferrer">

@@ -25,6 +25,7 @@ Variables:
 import contextlib
 import json
 import os
+import re
 import threading
 import time
 from typing import List, Optional
@@ -145,7 +146,15 @@ def codificador():
     return _codificador
 
 
+class Turno(BaseModel):
+    rol: str
+    texto: str = Field(..., max_length=4000)
+
+
 class Consulta(BaseModel):
+    # Últimos intercambios de la conversación. Los manda el front en cada consulta, así
+    # el contexto funciona también sin sesión iniciada.
+    historial: List[Turno] = Field(default_factory=list, max_length=8)
     # Si viene, la respuesta se guarda en esa conversación; si no, se crea una nueva.
     # Sin sesión iniciada este campo se ignora y no se guarda nada.
     conversacion_id: Optional[int] = None
@@ -220,26 +229,84 @@ inventada hace más daño que una negativa.
 Escribí en español rioplatense, claro y directo. Sin preámbulos ni fórmulas de relleno."""
 
 
-def _mensajes(pregunta: str, contexto: str):
-    return [
-        {'role': 'system', 'content': INSTRUCCION},
-        {'role': 'user', 'content': f'CONTEXTO:\n\n{contexto}\n\n---\n\nPREGUNTA: {pregunta}'},
-    ]
+# Señales de que una pregunta se apoya en lo dicho antes y no se sostiene sola.
+RE_DEPENDE_CONTEXTO = re.compile(
+    r'\b(ella|el mismo|la misma|eso|esa|ese|esto|esta|este|esos|esas|'
+    r'ahi|ah[ií]|dicha|dicho|mencionad[oa]|anterior|lo que dijiste|resum[ií]|'
+    r'ampli[aá]|detall[aá]|explic[aá]melo|y qu[eé] m[aá]s|contame m[aá]s)\b',
+    re.IGNORECASE)
 
 
-def generar(pregunta: str, contexto: str) -> str:
+def necesita_contexto(pregunta: str, historial) -> bool:
+    """¿La pregunta depende de los turnos anteriores?
+
+    Se evita reescribir cuando no hace falta: una consulta como "concursos de ayudantes
+    de segunda" se busca tal cual y no paga una llamada extra al modelo. La reescritura
+    se reserva para preguntas cortas o con referencias a lo ya conversado.
+    """
+    if not historial:
+        return False
+    p = pregunta.strip()
+    if RE_DEPENDE_CONTEXTO.search(p):
+        return True
+    # Muy corta y sin identificador propio: es casi seguro un seguimiento.
+    return len(p.split()) <= 6 and not re.search(r'\d+\s*/\s*\d{2,4}', p)
+
+
+def reescribir_consulta(pregunta: str, historial) -> str:
+    """Convierte una pregunta de seguimiento en una que se sostenga sola.
+
+    Sin esto, "¿me resumís qué sabés de ella?" se busca literal contra 140.000 fragmentos
+    y no recupera nada: la memoria del modelo no alcanza si la RECUPERACIÓN va a ciegas.
+    """
+    from openai import OpenAI
+    conversacion = '\n'.join(
+        f"{'Usuario' if t.rol == 'user' else 'Asistente'}: {t.texto[:600]}"
+        for t in historial[-6:]
+    )
+    try:
+        r = OpenAI().chat.completions.create(
+            model=MODELO_GEN,
+            temperature=0,
+            messages=[
+                {'role': 'system', 'content':
+                    'Reescribí la última pregunta del usuario para que se entienda sin leer la '
+                    'conversación, resolviendo pronombres y referencias con lo ya dicho. '
+                    'Conservá los números de acto y nombres propios tal cual. '
+                    'Devolvé SOLO la pregunta reescrita, sin explicaciones.'},
+                {'role': 'user', 'content':
+                    f'CONVERSACIÓN:\n{conversacion}\n\nÚLTIMA PREGUNTA: {pregunta}'},
+            ],
+        )
+        nueva = (r.choices[0].message.content or '').strip()
+        return nueva or pregunta
+    except Exception:
+        return pregunta          # ante cualquier falla, se busca con la original
+
+
+def _mensajes(pregunta: str, contexto: str, historial=None):
+    mensajes = [{'role': 'system', 'content': INSTRUCCION}]
+    for t in (historial or [])[-6:]:
+        mensajes.append({'role': 'assistant' if t.rol != 'user' else 'user',
+                         'content': t.texto[:2000]})
+    mensajes.append({'role': 'user',
+                     'content': f'CONTEXTO:\n\n{contexto}\n\n---\n\nPREGUNTA: {pregunta}'})
+    return mensajes
+
+
+def generar(pregunta: str, contexto: str, historial=None) -> str:
     """Única puerta a la generación: cambiar de proveedor se hace acá."""
     from openai import OpenAI
     cliente = OpenAI()
     r = cliente.chat.completions.create(
         model=MODELO_GEN,
         temperature=0,          # normativa: se busca reproducibilidad, no creatividad
-        messages=_mensajes(pregunta, contexto),
+        messages=_mensajes(pregunta, contexto, historial),
     )
     return r.choices[0].message.content
 
 
-def generar_en_partes(pregunta: str, contexto: str):
+def generar_en_partes(pregunta: str, contexto: str, historial=None):
     """Igual que `generar`, pero devolviendo el texto a medida que llega.
 
     La respuesta tarda lo mismo; lo que cambia es que se empieza a leer enseguida en vez
@@ -251,7 +318,7 @@ def generar_en_partes(pregunta: str, contexto: str):
     flujo = cliente.chat.completions.create(
         model=MODELO_GEN,
         temperature=0,
-        messages=_mensajes(pregunta, contexto),
+        messages=_mensajes(pregunta, contexto, historial),
         stream=True,
     )
     for parte in flujo:
@@ -304,7 +371,11 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     usuario = usuario_de(authorization)
     ix = indice()
 
-    denso = codificador().encode([c.pregunta], normalize_embeddings=True)[0]
+    consulta_busqueda = c.pregunta
+    if necesita_contexto(c.pregunta, c.historial) and os.environ.get('OPENAI_API_KEY'):
+        consulta_busqueda = reescribir_consulta(c.pregunta, c.historial)
+
+    denso = codificador().encode([consulta_busqueda], normalize_embeddings=True)[0]
 
     filtros = {}
     if c.anio:
@@ -314,7 +385,7 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
 
     # El texto crudo va también a la señal léxica: BM25 lo tokeniza conservando los
     # identificadores, que es lo que el vector denso no distingue.
-    resultados = ix.buscar(denso, texto_consulta=c.pregunta, k=c.k,
+    resultados = ix.buscar(denso, texto_consulta=consulta_busqueda, k=c.k,
                            filtros=filtros or None, solo_articulos=c.solo_articulos)
 
     fuentes = [
@@ -338,7 +409,7 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
             advertencia = 'Sin OPENAI_API_KEY: se devuelven las fuentes sin respuesta generada.'
         else:
             try:
-                respuesta = generar(c.pregunta, ix.contexto(resultados))
+                respuesta = generar(c.pregunta, ix.contexto(resultados), c.historial)
             except Exception as e:
                 advertencia = f'Falló la generación ({type(e).__name__}). Se devuelven las fuentes.'
 
@@ -491,13 +562,20 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
     usuario = usuario_de(authorization)
     ix = indice()
 
-    denso = codificador().encode([c.pregunta], normalize_embeddings=True)[0]
+    # Una repregunta ("¿me resumís qué sabés de ella?") no se sostiene sola: se reescribe
+    # con lo conversado antes de buscar. Si no hace falta, se busca tal cual y no se paga
+    # una llamada extra al modelo.
+    consulta_busqueda = c.pregunta
+    if necesita_contexto(c.pregunta, c.historial) and os.environ.get('OPENAI_API_KEY'):
+        consulta_busqueda = reescribir_consulta(c.pregunta, c.historial)
+
+    denso = codificador().encode([consulta_busqueda], normalize_embeddings=True)[0]
     filtros = {}
     if c.anio:
         filtros['year'] = c.anio
     if c.tipo:
         filtros['document_type'] = c.tipo
-    resultados = ix.buscar(denso, texto_consulta=c.pregunta, k=c.k,
+    resultados = ix.buscar(denso, texto_consulta=consulta_busqueda, k=c.k,
                            filtros=filtros or None, solo_articulos=c.solo_articulos)
     fuentes = [_fuente_de(ix, i, s, d) for i, s, d in resultados]
 
@@ -513,7 +591,7 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
             yield _sse('aviso', {'mensaje': 'Sin clave de generación: se muestran las fuentes.'})
         else:
             try:
-                for parte in generar_en_partes(c.pregunta, ix.contexto(resultados)):
+                for parte in generar_en_partes(c.pregunta, ix.contexto(resultados), c.historial):
                     partes.append(parte)
                     yield _sse('texto', {'t': parte})
             except Exception as e:
