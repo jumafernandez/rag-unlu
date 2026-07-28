@@ -98,6 +98,12 @@ export default function App() {
   const finDelChat = useRef(null);
   const areaChat = useRef(null);
   const pegadoAbajo = useRef(true);
+
+  // Referencia estable. Login la tiene como dependencia de su efecto, y con una función
+  // nueva en cada render volvía a inicializar y redibujar el botón de Google todo el
+  // tiempo: durante una respuesta en flujo, una vez por fragmento. Eso era el titileo del
+  // panel izquierdo.
+  const entrar = useCallback((datos) => setSesion(datos), []);
   const cajaTexto = useRef(null);
   const buscador = useRef(null);
   const [anchoPanel, setAnchoPanel] = useState(
@@ -550,7 +556,7 @@ export default function App() {
             ) : (
               <>
                 <p className="sesion-invitacion">Entrá para guardar tus consultas</p>
-                <Login onEntrar={(d) => setSesion(d)} />
+                <Login onEntrar={entrar} />
               </>
             )}
           </div>
@@ -790,6 +796,15 @@ export default function App() {
                   {estado?.entidad && (
                     <button className="foco-limpiar" title="Olvidar el sujeto actual"
                             onClick={() => fijarEntidad(null)}>✕</button>
+                  )}
+
+                  {/* El sistema fue contra lo que fijó el usuario en un caso donde podría
+                      haber aplicado. Se dice, en lugar de resolverlo en silencio. */}
+                  {estado?.discrepancia && (
+                    <span className="foco-discrepancia"
+                          title="Podés reformular la pregunta si querés que se use igual">
+                      Esta pregunta no parecía ser sobre {estado.discrepancia}
+                    </span>
                   )}
 
                   {/* Actos que la conversación viene tocando. Se pueden apagar y volver a

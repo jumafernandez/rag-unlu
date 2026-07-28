@@ -1173,6 +1173,18 @@ button, input, select, textarea { font: inherit; }
   border-bottom: 1px solid #6f9a63;
 }
 
+/* Discrepancia entre lo que fijó el usuario y lo que el sistema entendió. Ámbar y no
+   rojo: no es un error, es una decisión que se está declarando. */
+.foco-discrepancia {
+  font-size: 0.7rem;
+  color: #7a5a15;
+  background: #fdf6e6;
+  border: 1px solid #d9a441;
+  border-radius: 999px;
+  padding: 1px 8px;
+  cursor: default;
+}
+
 .actos-seguidos {
   display: flex;
   flex-wrap: wrap;

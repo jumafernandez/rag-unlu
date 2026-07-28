@@ -28,6 +28,7 @@ import os
 import pathlib
 import re
 import threading
+import unicodedata
 import time
 from typing import List, Optional
 
@@ -306,6 +307,22 @@ def necesita_contexto(pregunta: str, historial) -> bool:
     return True
 
 
+def nombra_entidad(texto: str, entidad: str) -> bool:
+    """¿El texto menciona a la entidad?
+
+    Se compara por piezas y sin tildes para que "Carina Duna" reconozca a "Carina Natalia
+    Duna" y a "DUNA, Carina": la reescritura suele completar o reordenar el nombre.
+    """
+    if not entidad or not texto:
+        return False
+    quitar = lambda t: re.sub(r'[̀-ͯ]', '', unicodedata.normalize('NFD', t)).lower()
+    objetivo, base = quitar(texto), quitar(entidad)
+    piezas = [p for p in re.split(r'\W+', base) if len(p) >= 4]
+    if not piezas:
+        return base in objetivo
+    return sum(1 for p in piezas if p in objetivo) >= min(2, len(piezas))
+
+
 def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
     """Reescribe la consulta y actualiza el estado de la conversación, en una sola llamada.
 
@@ -368,6 +385,19 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
             ],
         )
         datos = json.loads(r.choices[0].message.content or '{}')
+
+        # Aviso de discrepancia: el usuario fijó una entidad y la consulta con la que se
+        # va a buscar no la nombra. Se decide acá y no se le pregunta al modelo: cuando se
+        # le pedía que juzgara si su desvío "correspondía", contestaba que la pregunta era
+        # de otro tema y el aviso no aparecía nunca. Un aviso que a veces sale y a veces no,
+        # sin que se note cuál de las dos, es peor que no tenerlo.
+        #
+        # Es transitorio a propósito: describe UNA decisión de ESTE turno, y
+        # normalizar_estado() lo descarta cuando el cliente devuelve el estado.
+        consulta_nueva = datos.get('consulta') or pregunta
+        if fijada and not nombra_entidad(consulta_nueva, estado['entidad']):
+            estado['discrepancia'] = estado['entidad']
+
         if not fijada:
             nueva = (datos.get('entidad') or None)
             if nueva != estado['entidad']:
