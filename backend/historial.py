@@ -19,7 +19,10 @@ import sqlite3
 import threading
 import time
 
-RUTA = os.environ.get('RAG_BD', 'datos/chatdigesto.sqlite')
+def ruta():
+    """Ruta de la base. Se lee al usarla y no al importar el módulo: `api.py` importa esto
+    antes de cargar el `.env`, así que a nivel de módulo `RAG_BD` todavía no existe."""
+    return os.environ.get('RAG_BD', 'datos/chatdigesto.sqlite')
 
 _candado = threading.Lock()
 _conexion = None
@@ -63,10 +66,10 @@ CREATE INDEX IF NOT EXISTS idx_msg_conv ON mensaje(conversacion_id, id);
 def _bd():
     global _conexion
     if _conexion is None:
-        carpeta = os.path.dirname(RUTA)
+        carpeta = os.path.dirname(ruta())
         if carpeta:
             os.makedirs(carpeta, exist_ok=True)
-        _conexion = sqlite3.connect(RUTA, check_same_thread=False)
+        _conexion = sqlite3.connect(ruta(), check_same_thread=False)
         _conexion.row_factory = sqlite3.Row
         _conexion.execute('PRAGMA foreign_keys = ON')
         _conexion.executescript(ESQUEMA)
