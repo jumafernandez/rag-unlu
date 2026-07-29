@@ -20,10 +20,20 @@ import time
 
 from . import historial
 
-# Administradores de arranque. Van en el entorno y no en la base para que un sistema recién
-# instalado tenga dueño sin depender de que alguien escriba SQL, y para que no exista nunca
-# una credencial por defecto.
-ADMINS_ENTORNO = [c.strip().lower() for c in os.environ.get('RAG_ADMINS', '').split(',') if c.strip()]
+def admins_entorno():
+    """Administradores de arranque, leídos del entorno.
+
+    Van en el entorno y no en la base para que un sistema recién instalado tenga dueño sin
+    depender de que alguien escriba SQL, y para que no exista nunca una credencial por
+    defecto.
+
+    Se lee CADA VEZ y no al importar el módulo: `api.py` importa este archivo antes de
+    cargar el `.env`, así que a nivel de módulo la variable todavía no existe y la lista
+    quedaba vacía. Leerla al usarla también evita tener que reiniciar para que un cambio
+    en el entorno tenga efecto.
+    """
+    crudo = os.environ.get('RAG_ADMINS', '')
+    return [c.strip().lower() for c in crudo.split(',') if c.strip()]
 
 ESQUEMA = """
 CREATE TABLE IF NOT EXISTS admin (
@@ -77,7 +87,7 @@ def es_admin(correo: str) -> bool:
     if not correo:
         return False
     correo = correo.strip().lower()
-    if correo in ADMINS_ENTORNO:
+    if correo in admins_entorno():
         return True
     with historial._candado:
         fila = _bd().execute('SELECT 1 FROM admin WHERE correo=?', (correo,)).fetchone()
@@ -91,8 +101,9 @@ def listar_admins():
              for f in filas]
     # Los del entorno se muestran como fijos: no se pueden quitar desde el panel, porque si
     # se pudiera, un administrador podría dejar al sistema sin ninguno.
-    fijos = [{'correo': c, 'alta': None, 'por': 'entorno', 'fijo': True} for c in ADMINS_ENTORNO]
-    return fijos + [x for x in de_bd if x['correo'] not in ADMINS_ENTORNO]
+    entorno = admins_entorno()
+    fijos = [{'correo': c, 'alta': None, 'por': 'entorno', 'fijo': True} for c in entorno]
+    return fijos + [x for x in de_bd if x['correo'] not in entorno]
 
 
 def agregar_admin(correo: str, por: str):
@@ -109,7 +120,7 @@ def agregar_admin(correo: str, por: str):
 
 def quitar_admin(correo: str) -> bool:
     correo = (correo or '').strip().lower()
-    if correo in ADMINS_ENTORNO:
+    if correo in admins_entorno():
         return False
     with historial._candado:
         bd = _bd()
