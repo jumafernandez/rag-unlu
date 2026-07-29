@@ -1,42 +1,11 @@
 :root {
-  /* Paleta. Antes había 49 colores sueltos en la hoja, casi todos variantes del mismo
-     verde con dos o tres puntos de diferencia: imposible cambiar la identidad visual sin
-     ir a mano por cada regla. Ahora son 18 roles, y el valor de cada uno es el hex
-     que más se usaba de su familia, así la estética queda igual.
-
-     Para adaptar el sistema a otra institución alcanza con pisar --marca y sus derivados. */
-  --blanco: #ffffff;
-  --fondo: #f7f9f6;
-  --fondo-marca: #eef4eb;
-  --realce: #deecd8;
-  --borde: #c7dabb;
-  --borde-fuerte: #a9c79c;
-  --marca-clara: #7aa86f;
-  /* Etiquetas y metadatos secundarios. Era #8b9a88, que con 2,97 de contraste sobre
-     blanco no cumplía AA para texto normal. Se bajó la luminosidad conservando tono y
-     saturación ---es el mismo gris verdoso, no otro color--- hasta llegar a 4,5. */
-  --texto-tenue: #6b7a68;
-  /* El más oscuro de su familia, no el más usado: así los diez usos que
-     fusiona MEJORAN su contraste en lugar de perderlo (5,41 sobre blanco). */
-  --texto-suave: #5f6e5f;
-  --marca: #2f6b2f;
-  --marca-media: #4a6b45;
-  --marca-oscura: #24521f;
-  --texto: #1f2a1f;
-  --peligro: #c0554f;
-  --peligro-fondo: #fdeeee;
-  --aviso: #a06a1f;
-  --aviso-borde: #d9a441;
-  --aviso-fondo: #fdf6e6;
-
-  /* Nombres anteriores, mantenidos como alias */
-  --unlu-green: var(--marca);
-  --unlu-green-dark: var(--marca-oscura);
-  --unlu-green-soft: var(--fondo-marca);
-  --panel: var(--blanco);
-  --border: var(--borde);
-  --text-main: var(--texto);
-  --text-soft: var(--texto-suave);
+  --unlu-green: #2f6f1e;
+  --unlu-green-dark: #245516;
+  --unlu-green-soft: #eaf4e4;
+  --panel: #ffffff;
+  --border: #d9e1d6;
+  --text-main: #1f2a1f;
+  --text-soft: #5f6e5f;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.07);
   --sidebar-width: 320px;
 }
@@ -47,7 +16,7 @@ html, body, #root {
   margin: 0;
   min-height: 100%;
   font-family: Arial, Helvetica, sans-serif;
-  background: linear-gradient(180deg, var(--fondo) 0%, var(--fondo) 100%);
+  background: linear-gradient(180deg, #f1f6ef 0%, #f7f9f6 100%);
   color: var(--text-main);
 }
 
@@ -66,7 +35,7 @@ button, input, select, textarea { font: inherit; }
 }
 
 .sidebar {
-  background: var(--fondo-marca);
+  background: #eef4eb;
   border-right: 1px solid var(--border);
   padding: 18px 14px;
   display: flex;
@@ -144,8 +113,8 @@ button, input, select, textarea { font: inherit; }
 
 .sidebar-action:hover,
 .history-item:hover {
-  border-color: var(--borde);
-  background: var(--fondo);
+  border-color: #c7d7c1;
+  background: #f9fbf8;
 }
 
 .primary-side {
@@ -314,7 +283,7 @@ button, input, select, textarea { font: inherit; }
 }
 
 .suggestion-chip {
-  border: 1px solid var(--borde);
+  border: 1px solid #cfe0c8;
   background: var(--unlu-green-soft);
   color: var(--unlu-green-dark);
   border-radius: 999px;
@@ -324,7 +293,7 @@ button, input, select, textarea { font: inherit; }
   transition: 0.2s ease;
 }
 
-.suggestion-chip:hover { background: var(--realce); }
+.suggestion-chip:hover { background: #dcecd4; }
 
 .messages {
   display: flex;
@@ -346,8 +315,8 @@ button, input, select, textarea { font: inherit; }
 }
 
 .message-bubble.user {
-  background: var(--realce);
-  border: 1px solid var(--borde);
+  background: #deecd8;
+  border: 1px solid #c7dabb;
 }
 
 .message-bubble.assistant {
@@ -366,7 +335,7 @@ button, input, select, textarea { font: inherit; }
   display: flex;
   align-items: center;
   gap: 12px;
-  background: var(--blanco);
+  background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 24px;
   padding: 12px 14px;
@@ -468,7 +437,7 @@ button, input, select, textarea { font: inherit; }
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 14px;
-  background: var(--fondo);
+  background: #fbfcfb;
   outline: none;
 }
 
@@ -588,14 +557,14 @@ button, input, select, textarea { font: inherit; }
 
 .fuentes {
   margin-top: 14px;
-  border-top: 1px solid var(--realce);
+  border-top: 1px solid #dcecd4;
   padding-top: 10px;
   font-size: 0.9rem;
 }
 
 .fuentes summary {
   cursor: pointer;
-  color: var(--marca);
+  color: #2f6b2f;
   font-weight: 600;
   list-style: none;
 }
@@ -606,10 +575,10 @@ button, input, select, textarea { font: inherit; }
 .fuentes ul { list-style: none; margin: 10px 0 0; padding: 0; }
 
 .fuentes li.fuente-doc {
-  border-left: 3px solid var(--borde);
+  border-left: 3px solid #c7dabb;
   padding: 10px 0 10px 12px;
   margin-bottom: 14px;
-  background: var(--fondo);
+  background: #f7f9f6;
   border-radius: 0 6px 6px 0;
 }
 
@@ -617,7 +586,7 @@ button, input, select, textarea { font: inherit; }
 .fuente-titulo {
   margin-top: 3px;
   font-size: 0.83rem;
-  color: var(--texto-suave);
+  color: #5f6e5f;
   line-height: 1.35;
 }
 
@@ -626,7 +595,7 @@ button, input, select, textarea { font: inherit; }
 .fuente-parte {
   margin-top: 9px;
   padding-left: 10px;
-  border-left: 2px solid var(--realce);
+  border-left: 2px solid #e0ebdb;
   border-radius: 0 5px 5px 0;
 }
 
@@ -634,25 +603,25 @@ button, input, select, textarea { font: inherit; }
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--texto-tenue);
+  color: #8b9a88;
   font-weight: 600;
   margin-bottom: 3px;
 }
 
 .fuente-cita {
   font-weight: 600;
-  color: var(--marca-oscura);
+  color: #24521f;
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: baseline;
 }
 
-.fuente-fecha { font-weight: 400; font-size: 0.82rem; color: var(--texto-suave); white-space: nowrap; }
+.fuente-fecha { font-weight: 400; font-size: 0.82rem; color: #6b7d68; white-space: nowrap; }
 
 .fuente-texto {
   margin-top: 4px;
-  color: var(--texto);
+  color: #3a463a;
   white-space: pre-wrap;
   max-height: 8.5em;
   overflow-y: auto;
@@ -662,20 +631,20 @@ button, input, select, textarea { font: inherit; }
 .fuente-pie {
   margin-top: 6px;
   font-size: 0.78rem;
-  color: var(--texto-suave);
+  color: #7d8c7a;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 12px;
 }
-.fuente-confianza { color: var(--aviso); }
+.fuente-confianza { color: #a06a1f; }
 
 /* Enlace al PDF publicado en el portal. Discreto pero presente en cada acto: es el final
    de la cadena de trazabilidad y lo que permite comprobar la respuesta contra la fuente. */
 .fuente-pdf {
-  color: var(--marca);
+  color: #2f6b2f;
   text-decoration: none;
-  border-bottom: 1px dotted var(--marca-clara);
+  border-bottom: 1px dotted #7aa86f;
 }
 .fuente-pdf:hover { border-bottom-style: solid; }
 .fuente-pdf::before { content: "↗ "; }
@@ -683,21 +652,21 @@ button, input, select, textarea { font: inherit; }
 .aviso-metadata {
   margin-top: 10px;
   padding: 8px 10px;
-  background: var(--aviso-fondo);
-  border-left: 3px solid var(--aviso-borde);
+  background: #fdf6e6;
+  border-left: 3px solid #d9a441;
   border-radius: 0 6px 6px 0;
   font-size: 0.85rem;
-  color: var(--aviso);
+  color: #7a5a15;
 }
 
-.message-bubble.error { background: var(--peligro-fondo); border-left: 3px solid var(--peligro); }
+.message-bubble.error { background: #fdeeee; border-left: 3px solid #c0554f; }
 .message-bubble.pensando { opacity: 0.7; font-style: italic; }
 
 /* ---- Historial y sesión ---- */
 
 .history-vacio {
   font-size: 0.85rem;
-  color: var(--texto-suave);
+  color: #7d8c7a;
   padding: 4px 2px 10px;
   line-height: 1.4;
 }
@@ -708,8 +677,8 @@ button, input, select, textarea { font: inherit; }
   gap: 2px;
   border-radius: 8px;
 }
-.history-row:hover { background: var(--fondo-marca); }
-.history-row.activa { background: var(--realce); }
+.history-row:hover { background: #eaf4e4; }
+.history-row.activa { background: #deecd8; }
 
 .history-row .history-item {
   flex: 1;
@@ -727,19 +696,19 @@ button, input, select, textarea { font: inherit; }
   cursor: pointer;
   padding: 2px 5px;
   font-size: 0.85rem;
-  color: var(--marca-media);
+  color: #4a6b45;
   border-radius: 5px;
 }
 .history-row:hover .history-accion { opacity: 1; }
-.history-accion:hover { background: var(--borde); }
+.history-accion:hover { background: #c7dabb; }
 
-.sesion-caja { padding: 10px 0; border-top: 1px solid var(--realce); margin-top: 8px; }
+.sesion-caja { padding: 10px 0; border-top: 1px solid #dcecd4; margin-top: 8px; }
 
 .sesion-activa { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
 
 .sesion-nombre {
   font-size: 0.85rem;
-  color: var(--marca);
+  color: #2f6b2f;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -747,16 +716,16 @@ button, input, select, textarea { font: inherit; }
 }
 
 .sesion-salir {
-  border: 1px solid var(--borde);
-  background: var(--blanco);
-  color: var(--marca-media);
+  border: 1px solid #c7dabb;
+  background: #fff;
+  color: #4a6b45;
   border-radius: 6px;
   padding: 3px 9px;
   font-size: 0.8rem;
   cursor: pointer;
   flex-shrink: 0;
 }
-.sesion-salir:hover { background: var(--fondo-marca); }
+.sesion-salir:hover { background: #eef4eb; }
 
 /* El botón lo dibuja Google dentro de un iframe y casi no se puede estilar por dentro.
    Lo que sí se puede es acomodar el envoltorio para que respire igual que el resto de
@@ -776,7 +745,7 @@ button, input, select, textarea { font: inherit; }
 
 .sesion-invitacion {
   font-size: 0.8rem;
-  color: var(--texto-suave);
+  color: #7d8c7a;
   text-align: center;
   margin-bottom: 8px;
   line-height: 1.35;
@@ -789,7 +758,7 @@ button, input, select, textarea { font: inherit; }
   align-items: center;
   gap: 6px;
   font-size: 0.78rem;
-  color: var(--texto-tenue);
+  color: #8b9a88;
 }
 
 .valoracion button {
@@ -803,22 +772,22 @@ button, input, select, textarea { font: inherit; }
   filter: grayscale(1);
   opacity: 0.55;
 }
-.valoracion button:hover { background: var(--fondo-marca); opacity: 1; filter: none; }
-.valoracion button.elegido { filter: none; opacity: 1; background: var(--realce); border-color: var(--borde); }
+.valoracion button:hover { background: #eef4eb; opacity: 1; filter: none; }
+.valoracion button.elegido { filter: none; opacity: 1; background: #deecd8; border-color: #c7dabb; }
 
 .history-edit {
   flex: 1;
   min-width: 0;
-  border: 1px solid var(--marca-clara);
+  border: 1px solid #7aa86f;
   border-radius: 7px;
   padding: 6px 9px;
   font: inherit;
   font-size: 0.92rem;
-  color: var(--marca-oscura);
-  background: var(--blanco);
+  color: #24521f;
+  background: #fff;
   outline: none;
 }
-.history-edit:focus { border-color: var(--marca); box-shadow: 0 0 0 2px var(--realce); }
+.history-edit:focus { border-color: #3f7a35; box-shadow: 0 0 0 2px #deecd8; }
 
 
 /* ---- Botón de menú (solo en pantallas chicas) ---- */
@@ -835,12 +804,12 @@ button, input, select, textarea { font: inherit; }
   height: 40px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: var(--blanco);
-  color: var(--marca);
+  background: #fff;
+  color: #2f6b2f;
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
-.boton-menu:hover { background: var(--fondo-marca); }
+.boton-menu:hover { background: #eef4eb; }
 
 /* El velo solo existe en pantallas chicas; en escritorio nunca se muestra. */
 .velo { display: none; }
@@ -856,27 +825,27 @@ button, input, select, textarea { font: inherit; }
 }
 
 .confirmar-si {
-  border: 1px solid var(--peligro);
-  background: var(--peligro-fondo);
-  color: var(--peligro);
+  border: 1px solid #c0554f;
+  background: #fdeeee;
+  color: #9b3f3a;
   border-radius: 6px;
   padding: 3px 9px;
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
 }
-.confirmar-si:hover { background: var(--peligro-fondo); }
+.confirmar-si:hover { background: #f8dcdc; }
 
 .confirmar-no {
   border: none;
   background: none;
-  color: var(--texto-suave);
+  color: #7d8c7a;
   cursor: pointer;
   padding: 3px 5px;
   border-radius: 6px;
   font-size: 0.85rem;
 }
-.confirmar-no:hover { background: var(--fondo-marca); }
+.confirmar-no:hover { background: #e3ebe0; }
 
 /* ---- Acción todavía no disponible ---- */
 
@@ -885,7 +854,7 @@ button, input, select, textarea { font: inherit; }
   cursor: default;
   position: relative;
 }
-.sidebar-action.bloqueada:hover { background: var(--blanco); }
+.sidebar-action.bloqueada:hover { background: #fff; }
 
 .proximamente {
   margin-left: auto;
@@ -894,8 +863,8 @@ button, input, select, textarea { font: inherit; }
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--marca-clara);
-  background: var(--fondo-marca);
+  color: #6f8a68;
+  background: #e6efe2;
   border-radius: 999px;
   padding: 2px 8px;
   white-space: nowrap;
@@ -914,7 +883,7 @@ button, input, select, textarea { font: inherit; }
   gap: 18px;
   margin: 0 0 10px;
   padding: 8px 2px 0;
-  border-top: 1px solid var(--realce);
+  border-top: 1px solid #dcecd4;
   cursor: default;
 }
 .alcance > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -922,13 +891,13 @@ button, input, select, textarea { font: inherit; }
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--texto-tenue);
+  color: #9aab97;
   font-weight: 600;
 }
 .alcance dd {
   margin: 0;
   font-size: 0.82rem;
-  color: var(--marca-media);
+  color: #4a6b45;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -936,11 +905,11 @@ button, input, select, textarea { font: inherit; }
 /* El aviso remite al digesto oficial: la verificación termina en la fuente de la
    Universidad, no en este sistema. */
 .notice a {
-  color: var(--marca);
+  color: #3f7a35;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.notice a:hover { color: var(--marca-oscura); }
+.notice a:hover { color: #245516; }
 
 /* ---- Tirador para ajustar el ancho del panel ---- */
 
@@ -955,7 +924,7 @@ button, input, select, textarea { font: inherit; }
   background: transparent;
   transition: background 0.15s ease;
 }
-.tirador:hover, .tirador:active { background: var(--borde-fuerte); }
+.tirador:hover, .tirador:active { background: #a9c79c; }
 
 /* En pantallas chicas el panel es un cajón: ajustar el ancho no aplica. */
 @media (max-width: 980px) { .tirador { display: none; } }
@@ -977,27 +946,27 @@ button, input, select, textarea { font: inherit; }
 .copiar {
   border: none;
   background: none;
-  color: var(--texto-tenue);
+  color: #8b9a88;
   border-radius: 6px;
   padding: 2px 6px;
   font-size: 0.76rem;
   cursor: pointer;
 }
-.copiar:hover { background: var(--fondo-marca); color: var(--marca); }
+.copiar:hover { background: #eef4eb; color: #2f6b2f; }
 
 .fuente-derecha { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; }
 
 .copiar-cita {
   border: none;
   background: none;
-  color: var(--texto-suave);
+  color: #7d8c7a;
   cursor: pointer;
   font-size: 0.9rem;
   padding: 1px 4px;
   border-radius: 5px;
   line-height: 1;
 }
-.copiar-cita:hover { background: var(--realce); color: var(--marca); }
+.copiar-cita:hover { background: #deecd8; color: #2f6b2f; }
 
 /* El campo crece con el contenido; el tope lo pone el alto máximo desde el código. */
 .input-area textarea {
@@ -1008,7 +977,7 @@ button, input, select, textarea { font: inherit; }
 
 /* Foco visible: navegar con teclado tiene que ser posible en un sistema público. */
 :focus-visible {
-  outline: 2px solid var(--marca);
+  outline: 2px solid #3f7a35;
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -1019,7 +988,7 @@ button, input, select, textarea { font: inherit; }
   width: 7px;
   height: 1.05em;
   margin-left: 2px;
-  background: var(--marca-media);
+  background: #4a6b45;
   vertical-align: text-bottom;
   animation: latido 1s steps(2, start) infinite;
 }
@@ -1037,12 +1006,12 @@ button, input, select, textarea { font: inherit; }
 
 .md p { margin: 0 0 0.75em; line-height: 1.55; }
 
-.md strong { font-weight: 700; color: var(--marca-oscura); }
+.md strong { font-weight: 700; color: #24521f; }
 
 .md code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.88em;
-  background: var(--fondo-marca);
+  background: #eef4eb;
   border-radius: 4px;
   padding: 1px 5px;
 }
@@ -1067,23 +1036,23 @@ button, input, select, textarea { font: inherit; }
   padding: 0;
   margin: 0;
   font: inherit;
-  color: var(--marca);
+  color: #2f6b2f;
   cursor: pointer;
-  border-bottom: 1px dotted var(--marca-clara);
+  border-bottom: 1px dotted #7aa86f;
   text-align: left;
   white-space: normal;
 }
-.cita-enlace:hover { background: var(--fondo-marca); border-bottom-style: solid; }
+.cita-enlace:hover { background: #eaf4e4; border-bottom-style: solid; }
 
 /* La fuente a la que se saltó se resalta un momento para no perderla de vista. */
 .fuente-parte.marcada {
-  border-left-color: var(--marca);
+  border-left-color: #3f7a35;
   border-left-width: 3px;
   animation: destacar 2.4s ease-out;
 }
 @keyframes destacar {
-  0%, 25% { background: var(--realce); }
-  100% { background: var(--fondo); }
+  0%, 25% { background: #d6ead0; }
+  100% { background: #f7f9f6; }
 }
 @media (prefers-reduced-motion: reduce) {
   .fuente-parte.marcada { animation: none; }
@@ -1101,7 +1070,7 @@ button, input, select, textarea { font: inherit; }
   /* Separado del aviso legal: son cosas distintas y pegadas se leían como una sola. */
   margin: 12px 0 18px;
   font-size: 0.76rem;
-  color: var(--texto-tenue);
+  color: #8b9a88;
 }
 
 .amplitud > span { margin-right: 2px; }
@@ -1109,17 +1078,17 @@ button, input, select, textarea { font: inherit; }
 .amplitud button {
   border: 1px solid transparent;
   background: none;
-  color: var(--texto-suave);
+  color: #7d8c7a;
   border-radius: 999px;
   padding: 3px 11px;
   font-size: 0.76rem;
   cursor: pointer;
 }
-.amplitud button:hover { background: var(--fondo-marca); color: var(--marca); }
+.amplitud button:hover { background: #eef4eb; color: #2f6b2f; }
 .amplitud button.elegida {
-  background: var(--realce);
-  border-color: var(--borde-fuerte);
-  color: var(--marca-oscura);
+  background: #deecd8;
+  border-color: #a9c79c;
+  color: #24521f;
   font-weight: 600;
 }
 
@@ -1134,14 +1103,14 @@ button, input, select, textarea { font: inherit; }
   height: 15px;
   margin: 0 1px 0 4px;
   vertical-align: middle;
-  border: 1px solid var(--borde);
+  border: 1px solid #c7dabb;
   border-radius: 50%;
   font-size: 0.66rem;
   font-weight: 700;
-  color: var(--texto-suave);
+  color: #7d8c7a;
   cursor: help;
 }
-.amplitud-ayuda:hover, .amplitud-ayuda:focus-visible { background: var(--realce); color: var(--marca-oscura); }
+.amplitud-ayuda:hover, .amplitud-ayuda:focus-visible { background: #deecd8; color: #24521f; }
 
 .amplitud-globo {
   position: absolute;
@@ -1149,8 +1118,8 @@ button, input, select, textarea { font: inherit; }
   left: 0;
   transform: none;
   width: min(300px, 78vw);
-  background: var(--marca-oscura);
-  color: var(--fondo);
+  background: #24521f;
+  color: #f1f6ef;
   padding: 9px 11px;
   border-radius: 8px;
   font-size: 0.76rem;
@@ -1163,7 +1132,7 @@ button, input, select, textarea { font: inherit; }
   z-index: 25;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
-.amplitud-globo b { color: var(--borde); }
+.amplitud-globo b { color: #cfe0c8; }
 
 .amplitud-ayuda:hover .amplitud-globo,
 .amplitud-ayuda:focus-visible .amplitud-globo { opacity: 1; visibility: visible; }
@@ -1182,28 +1151,28 @@ button, input, select, textarea { font: inherit; }
   gap: 6px 8px;
   margin-bottom: 8px;
   padding: 5px 12px;
-  background: var(--fondo-marca);
-  border: 1px solid var(--realce);
+  background: #eef4eb;
+  border: 1px solid #dcecd4;
   border-radius: 14px;
   font-size: 0.78rem;
   width: fit-content;
   max-width: 100%;
 }
 
-.foco-etiqueta { color: var(--texto-tenue); flex-shrink: 0; }
+.foco-etiqueta { color: #8b9a88; flex-shrink: 0; }
 
 .foco-valor {
   border: none;
   background: none;
-  color: var(--marca-oscura);
+  color: #24521f;
   font-weight: 600;
   font-size: 0.78rem;
   cursor: pointer;
   padding: 1px 4px;
   border-radius: 5px;
-  border-bottom: 1px dotted var(--borde-fuerte);
+  border-bottom: 1px dotted #a9c79c;
 }
-.foco-valor:hover { background: var(--realce); }
+.foco-valor:hover { background: #deecd8; }
 
 .foco-tipo {
   margin-left: 6px;
@@ -1212,17 +1181,17 @@ button, input, select, textarea { font: inherit; }
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--texto-tenue);
+  color: #8b9a88;
 }
 
 .foco-edit {
-  border: 1px solid var(--marca-clara);
+  border: 1px solid #7aa86f;
   border-radius: 6px;
   padding: 2px 8px;
   font: inherit;
   font-size: 0.78rem;
-  color: var(--marca-oscura);
-  background: var(--blanco);
+  color: #24521f;
+  background: #fff;
   outline: none;
   min-width: 180px;
 }
@@ -1230,28 +1199,28 @@ button, input, select, textarea { font: inherit; }
 .foco-limpiar {
   border: none;
   background: none;
-  color: var(--texto-tenue);
+  color: #8b9a88;
   cursor: pointer;
   padding: 0 3px;
   border-radius: 4px;
   flex-shrink: 0;
 }
-.foco-limpiar:hover { background: var(--realce); color: var(--marca-oscura); }
+.foco-limpiar:hover { background: #deecd8; color: #24521f; }
 
 /* Lo que fijó el usuario se distingue de lo que infirió el sistema. No es decoración:
    es la señal de que ese valor pesa más al buscar y que el modelo no lo va a pisar. */
 .foco-valor.fijado {
-  background: var(--realce);
-  border-bottom: 1px solid var(--marca-clara);
+  background: #dbead4;
+  border-bottom: 1px solid #6f9a63;
 }
 
 /* Discrepancia entre lo que fijó el usuario y lo que el sistema entendió. Ámbar y no
    rojo: no es un error, es una decisión que se está declarando. */
 .foco-discrepancia {
   font-size: 0.7rem;
-  color: var(--aviso);
-  background: var(--aviso-fondo);
-  border: 1px solid var(--aviso-borde);
+  color: #7a5a15;
+  background: #fdf6e6;
+  border: 1px solid #d9a441;
   border-radius: 999px;
   padding: 1px 8px;
   cursor: default;
@@ -1268,14 +1237,14 @@ button, input, select, textarea { font: inherit; }
   content: "";
   width: 1px;
   height: 13px;
-  background: var(--borde);
+  background: #cadec0;
   margin-right: 3px;
 }
 
 .acto-chip {
-  border: 1px solid var(--borde);
-  background: var(--fondo);
-  color: var(--marca);
+  border: 1px solid #cadec0;
+  background: #f6faf4;
+  color: #3d6b36;
   font-size: 0.68rem;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -1285,8 +1254,8 @@ button, input, select, textarea { font: inherit; }
   transition: opacity 0.12s ease, background 0.12s ease;
 }
 
-.acto-chip:hover { background: var(--realce); }
-.acto-chip.fijado { background: var(--realce); border-color: var(--marca-clara); font-weight: 600; }
+.acto-chip:hover { background: #e6f1e0; }
+.acto-chip.fijado { background: #dbead4; border-color: #6f9a63; font-weight: 600; }
 
 /* Descartado, no borrado: se atenúa pero sigue a la vista, porque saber qué venía
    siguiendo el sistema es parte de poder controlarlo. */
@@ -1308,14 +1277,14 @@ button, input, select, textarea { font: inherit; }
   margin-top: 4px;
   border: none;
   background: none;
-  color: var(--marca-media);
+  color: #4a6b45;
   font-size: 0.76rem;
   text-align: left;
   padding: 5px 8px;
   border-radius: 7px;
   cursor: pointer;
 }
-.ver-mas:hover { background: var(--realce); color: var(--marca-oscura); }
+.ver-mas:hover { background: #deecd8; color: #24521f; }
 
 /* ---- Razonamiento ----
    Qué consulta se usó realmente y qué sujeto se está siguiendo. Apagado por defecto:
@@ -1325,25 +1294,25 @@ button, input, select, textarea { font: inherit; }
   margin-left: auto;
   border: 1px solid transparent;
   background: none;
-  color: var(--texto-tenue);
+  color: #8b9a88;
   border-radius: 999px;
   padding: 3px 11px;
   font-size: 0.76rem;
   cursor: pointer;
 }
-.razonamiento-toggle:hover { background: var(--fondo-marca); color: var(--marca); }
+.razonamiento-toggle:hover { background: #eef4eb; color: #2f6b2f; }
 .razonamiento-toggle.activo {
-  background: var(--realce);
-  border-color: var(--borde-fuerte);
-  color: var(--marca-oscura);
+  background: #deecd8;
+  border-color: #a9c79c;
+  color: #24521f;
   font-weight: 600;
 }
 
 .razonamiento {
   margin-top: 12px;
   padding: 8px 10px;
-  background: var(--fondo);
-  border: 1px dashed var(--borde);
+  background: #f3f7f1;
+  border: 1px dashed #cfe0c8;
   border-radius: 8px;
   font-size: 0.76rem;
   display: flex;
@@ -1352,7 +1321,7 @@ button, input, select, textarea { font: inherit; }
 }
 .razonamiento > div { display: flex; gap: 8px; align-items: baseline; }
 .razonamiento span {
-  color: var(--texto-tenue);
+  color: #8b9a88;
   text-transform: uppercase;
   font-size: 0.64rem;
   letter-spacing: 0.05em;
@@ -1363,6 +1332,6 @@ button, input, select, textarea { font: inherit; }
 .razonamiento code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.74rem;
-  color: var(--texto);
+  color: #3a463a;
   word-break: break-word;
 }

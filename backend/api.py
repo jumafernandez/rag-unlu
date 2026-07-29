@@ -39,7 +39,7 @@ from pydantic import BaseModel, Field
 
 from fastapi import Header
 
-from . import historial, sesion
+from . import admin, historial, sesion
 from .recuperacion import Indice
 
 
@@ -218,6 +218,9 @@ class Fuente(BaseModel):
     # llega hasta el documento oficial y no se corta en nuestro índice: cualquiera puede
     # abrir el acto y comprobar que dice lo que la respuesta afirma.
     url_documento: Optional[str] = None
+    # Mismo PDF, servido por nosotros para que el navegador lo MUESTRE en vez de
+    # descargarlo. Ver el endpoint /pdf.
+    url_ver: Optional[str] = None
     # Fecha del acto según el propio documento. La tabla del portal muestra la de
     # autorización, que es posterior y a veces de otro día: tenerlas separadas evita que el
     # asistente informe una fecha que no coincide con la que la persona lee en el PDF.
@@ -411,7 +414,7 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
                     'conversación no gira alrededor de ninguno.\n'
                     '- "tipo": "persona" | "carrera" | "departamento" | "organo" | "acto" | null.\n'
                     'Si la entidad actual sigue vigente, repetila; si la conversación cambió '
-                    'de sujeto, devolvé la nueva.\n'
+                    'de sujeto, devolvé la nueva.\n' + CRITERIO_ENTIDAD_UNICA + '\n'
                     'Si la entidad viene FIJADA POR EL USUARIO, es una corrección suya: te está '
                     'diciendo que interpretaste mal de qué se habla. Reescribí la pregunta sobre '
                     'esa entidad. La única excepción es que la última pregunta sea claramente '
@@ -439,8 +442,7 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
             if nueva != estado['entidad']:
                 # Cambió el sujeto: vuelve a ser una inferencia del sistema.
                 estado['entidad_origen'] = 'sistema'
-            estado['entidad'] = nueva
-            estado['tipo'] = (datos.get('tipo') or None)
+            estado.update(entidad_valida(nueva, datos.get('tipo') or None))
         return (datos.get('consulta') or pregunta), estado
     except Exception:
         # Ante cualquier falla se busca con la pregunta original y se conserva el estado.
@@ -449,6 +451,63 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
 
 # Identificadores de acto tal como aparecen # Identificadores de acto tal como aparecen en las citas: "DISPCD-CB 528/2025".
 RE_ACTO_CITADO = re.compile(r'\b([A-ZÑ][A-ZÑ0-9-]{2,})\s+(\d{1,6}\s*/\s*\d{2,4})\b')
+
+
+# El estado sigue UNA entidad. Ante una consulta sobre varias cosas conviene no seguir
+# ninguna: un foco inventado es peor que un foco vacío, porque pesa en los turnos siguientes
+# sin que nadie lo haya pedido.
+CRITERIO_ENTIDAD_UNICA = (
+    'Devolvé null en "entidad" si la consulta es sobre un CONJUNTO y no sobre uno solo: "¿qué diplomaturas se crearon?", "¿qué resoluciones hay sobre licencias?", "actos del Departamento en 2025". Aunque la respuesta mencione varios, el sujeto de la consulta no es ninguno de ellos en particular. Elegir el primero que apareció sería inventar un foco que la persona no pidió, y ese foco después pesa en las búsquedas siguientes.\\nDevolvé una entidad solo cuando la consulta gira alrededor de UNA sola, nombrada o inequívoca por el contexto.'
+)
+
+
+TIPOS_ENTIDAD = ('persona', 'carrera', 'departamento', 'organo', 'acto')
+
+
+def entidad_valida(entidad, tipo):
+    """La entidad vale solo si su tipo es uno de los que el estado sabe seguir.
+
+    Regla en el código y no en la instrucción: pidiéndolo por prompt, ante "¿qué
+    resoluciones hay sobre licencias del personal docente?" devolvía "licencias del personal
+    docente" con tipo nulo. Eso es un TEMA, y un tema no es un sujeto que convenga seguir
+    entre turnos: el tema ya viaja en la consulta, mientras que el sujeto es lo que la
+    repregunta omite. Sin tipo válido, no hay entidad.
+    """
+    if entidad and tipo in TIPOS_ENTIDAD:
+        return {'entidad': entidad, 'tipo': tipo}
+    return {'entidad': None, 'tipo': None}
+
+
+def detectar_entidad(pregunta: str, respuesta: str) -> dict:
+    """Sujeto de la conversación a partir del primer intercambio.
+
+    Existe porque la entidad salía de `reescribir_y_enfocar`, que solo corre cuando hay
+    historial ---su trabajo es resolver referencias---. Con lo cual en el primer turno la
+    barra de contexto mostraba los actos detectados pero el sujeto en "sin definir", aunque
+    la pregunta lo nombrara con toda claridad. Detectarlo no necesita historial.
+
+    Se llama DESPUÉS de generar, en el mismo lugar donde se suman los actos citados: para
+    ese momento la respuesta ya está en pantalla, así que el usuario no espera por esto.
+    """
+    from openai import OpenAI
+    try:
+        r = OpenAI().chat.completions.create(
+            model=MODELO_GEN, temperature=0, response_format={'type': 'json_object'},
+            messages=[
+                {'role': 'system', 'content':
+                    'Devolvé un JSON con el sujeto concreto sobre el que gira este intercambio '
+                    'de una consulta de normativa universitaria:\n'
+                    '- "entidad": nombre de persona, carrera, departamento, órgano o acto, tal '
+                    'como se lo nombra. null si la consulta es general y no gira alrededor de '
+                    'ninguno.\n'
+                    '- "tipo": "persona" | "carrera" | "departamento" | "organo" | "acto" | null.\n'
+                    + CRITERIO_ENTIDAD_UNICA},
+                {'role': 'user', 'content': f'PREGUNTA: {pregunta}\n\nRESPUESTA: {respuesta[:1500]}'},
+            ])
+        d = json.loads(r.choices[0].message.content or '{}')
+        return entidad_valida(d.get('entidad') or None, d.get('tipo') or None)
+    except Exception:
+        return {'entidad': None, 'tipo': None}
 
 
 def actos_en_juego(historial, pregunta='') -> set:
@@ -675,6 +734,9 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     # y la respuesta que el usuario está leyendo todavía no es historial.
     if respuesta:
         estado = fusionar_actos(estado, actos_en_juego(None, respuesta))
+        # Primer turno: la entidad todavía no está porque la reescritura no corrió.
+        if not estado.get('entidad') and c.usar_foco and os.environ.get('OPENAI_API_KEY'):
+            estado.update(detectar_entidad(c.pregunta, respuesta))
 
     # Si alguna fuente tiene metadata de baja confianza, se avisa: el usuario tiene que
     # saber cuándo el dato de fecha o número no está verificado contra el sistema origen.
@@ -762,6 +824,7 @@ def _fuente_de(ix, i, puntaje, detalle) -> 'Fuente':
         date_issued=c.get('date_issued'), estado=c.get('estado'),
         metadata_confianza=c.get('metadata_confianza'),
         url_documento=c.get('url_documento') or None,
+        url_ver=(f"/pdf/{c['id_archivo']}" if c.get('id_archivo') else None),
         fecha_acto=c.get('fecha_acto') or None,
         puntaje=round(puntaje, 5), ranking=detalle,
     )
@@ -772,6 +835,19 @@ def usuario_de(autorizacion: Optional[str]) -> Optional[str]:
     if not autorizacion or not autorizacion.lower().startswith('bearer '):
         return None
     return sesion.leer_sesion(autorizacion[7:])
+
+
+def exigir_admin(autorizacion: Optional[str]) -> str:
+    """Sub del administrador, o 403. Toda ruta de /admin pasa por acá.
+
+    Se comprueba en el servidor y no en la interfaz: esconder el botón no es una medida de
+    seguridad. Un panel que puede cambiar el modelo de generación o lanzar el pipeline tiene
+    que verificar quién pide, no confiar en quién dice ser.
+    """
+    uid = exigir_usuario(autorizacion)
+    if not admin.es_admin_por_sub(uid):
+        raise HTTPException(403, 'requiere permisos de administración')
+    return uid
 
 
 def exigir_usuario(autorizacion: Optional[str]) -> str:
@@ -937,6 +1013,8 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
         if respuesta:
             nuevo = fusionar_actos(dict(estado, actos=list(estado.get('actos') or [])),
                                    actos_en_juego(None, respuesta))
+            if not nuevo.get('entidad') and c.usar_foco and os.environ.get('OPENAI_API_KEY'):
+                nuevo.update(detectar_entidad(c.pregunta, respuesta))
             if nuevo != estado:
                 estado = nuevo
                 yield _sse('estado', {'estado': estado})
@@ -981,6 +1059,124 @@ def documento(documento: str):
         'secciones': [{'seccion': p['seccion'], 'tipo': p['tipo_seccion'],
                        'cita': p['cita'], 'texto': p['texto']} for p in partes],
     }
+
+
+@app.get('/pdf/{id_archivo}')
+def pdf_en_linea(id_archivo: str):
+    """Sirve el PDF del acto para que se VEA en el navegador, no que se descargue.
+
+    El portal lo entrega con `Content-Disposition: attachment`, y ante esa cabecera el
+    navegador guarda el archivo en lugar de mostrarlo. No se puede cambiar del lado del
+    portal, así que se reenvía acá con la cabecera correcta.
+
+    Solo acepta identificadores que existan en el índice, y la URL de origen sale de lo que
+    tenemos guardado: si aceptara una URL como parámetro sería un proxy abierto, y cualquiera
+    podría usar este servidor para pedir lo que quisiera a donde quisiera.
+    """
+    import urllib.request
+    from fastapi.responses import Response
+
+    if not re.fullmatch(r'[0-9a-fA-F-]{36}', id_archivo or ''):
+        raise HTTPException(400, 'identificador inválido')
+
+    url = indice().url_de_archivo(id_archivo)
+    if not url:
+        raise HTTPException(404, 'el documento no está en el índice')
+
+    try:
+        pedido = urllib.request.Request(url, headers={'User-Agent': 'rag-unlu/1.0'})
+        with urllib.request.urlopen(pedido, timeout=60) as r:
+            datos = r.read()
+    except Exception:
+        raise HTTPException(502, 'el portal no entregó el documento')
+    if not datos.startswith(b'%PDF'):
+        raise HTTPException(502, 'el portal no devolvió un PDF')
+
+    return Response(
+        content=datos, media_type='application/pdf',
+        headers={'Content-Disposition': f'inline; filename="{id_archivo}.pdf"',
+                 # Es normativa publicada y no cambia: se puede cachear con tranquilidad.
+                 'Cache-Control': 'public, max-age=86400'})
+
+
+# ---------------------------------------------------------------------------
+# Panel de administración
+#
+# Solo lectura y ajustes. Las operaciones del pipeline no se ejecutan desde acá: viven en
+# scripts y el panel las lanzará a través del registro de corridas, para que todo lo que se
+# puede hacer por la interfaz se pueda hacer y explicar desde una terminal.
+# ---------------------------------------------------------------------------
+
+
+class Tema(BaseModel):
+    colores: dict
+
+
+class CorreoAdmin(BaseModel):
+    correo: str = Field(..., max_length=200)
+
+
+@app.get('/admin/soy')
+def admin_soy(authorization: Optional[str] = Header(None)):
+    """Si el usuario actual es administrador. La interfaz usa esto para mostrar la entrada."""
+    uid = usuario_de(authorization)
+    return {'admin': bool(uid) and admin.es_admin_por_sub(uid)}
+
+
+@app.get('/admin/estado')
+def admin_estado(authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    try:
+        ix = indice()
+    except Exception:
+        ix = None
+    return admin.estado(ix, RUTA_INDICE)
+
+
+@app.get('/admin/documentos')
+def admin_documentos(authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    return {'secciones': admin.documentos_por_seccion(indice())}
+
+
+@app.get('/admin/tema')
+def admin_tema_leer():
+    """Sin autenticación a propósito: la interfaz necesita los colores para pintarse antes
+    de que nadie inicie sesión, y son públicos por naturaleza."""
+    return {'tema': admin.leer_tema(), 'por_omision': admin.TEMA_POR_OMISION}
+
+
+@app.put('/admin/tema')
+def admin_tema_guardar(t: Tema, authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    try:
+        return {'tema': admin.guardar_tema(t.colores, admin.correo_de(uid) or uid)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get('/admin/admins')
+def admin_lista(authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    return {'admins': admin.listar_admins()}
+
+
+@app.post('/admin/admins')
+def admin_agregar(c: CorreoAdmin, authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    try:
+        admin.agregar_admin(c.correo, admin.correo_de(uid) or uid)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {'admins': admin.listar_admins()}
+
+
+@app.delete('/admin/admins/{correo}')
+def admin_quitar(correo: str, authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    if not admin.quitar_admin(correo):
+        raise HTTPException(400, 'no se puede quitar: no existe o viene del entorno')
+    return {'admins': admin.listar_admins()}
 
 
 # ---------------------------------------------------------------------------

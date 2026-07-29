@@ -168,6 +168,11 @@ class AlmacenSQL(Indice):
                           'ORDER BY date_issued LIMIT 1 OFFSET ?', (int(n * 0.99),)).fetchone()
         return docs, (fila[0] if fila else None)
 
+    def url_de_archivo(self, id_archivo):
+        fila = self._bd().execute(
+            'SELECT url_documento FROM chunk WHERE id_archivo=? LIMIT 1', (id_archivo,)).fetchone()
+        return fila['url_documento'] if fila else None
+
     def fragmentos_de_documento(self, documento):
         return [dict(f) for f in self._bd().execute(
             f"SELECT {', '.join(CAMPOS)} FROM chunk WHERE documento=? ORDER BY i", (documento,))]

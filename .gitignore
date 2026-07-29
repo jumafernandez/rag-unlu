@@ -56,3 +56,6 @@ scrapers/catalogo_*.csv
 scrapers/Descargas/
 data/
 indice/
+scrapers/traza.jsonl
+datos/chatdigesto.sqlite
+/datos

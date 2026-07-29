@@ -182,7 +182,7 @@ export default function App() {
           titulo: f.titulo,
           confianza: f.metadata_confianza,
           pdf: f.source_pdf,
-          url: f.url_documento,
+          url: f.url_ver || f.url_documento,
           partes: []
         });
       }

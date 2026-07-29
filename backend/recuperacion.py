@@ -174,6 +174,15 @@ class Indice(Busqueda):
     def puntuar_lexico(self, texto, permitidos=None):
         return self.bm25.puntuar(tokenizar(texto), permitidos)
 
+    def fragmentos_de_documento(self, documento):
+        return [c for c in self.chunks if c['documento'] == documento]
+
+    def url_de_archivo(self, id_archivo):
+        for c in self.chunks:
+            if c.get('id_archivo') == id_archivo:
+                return c.get('url_documento')
+        return None
+
     def documentos_y_fechas(self):
         """(documentos distintos, fecha de cobertura). Ver la nota en _alcance()."""
         docs, fechas = set(), []
@@ -439,7 +448,7 @@ class Indice(Busqueda):
 
         encabezados, cuerpos = [], []
         for i, _, _ in resultados:
-            c = self.chunks[i]
+            c = self.chunk(i)
             enc = f"[{c['cita']}]"
             if c.get('titulo'):
                 enc += f"\n{c['titulo']}"
