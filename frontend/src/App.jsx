@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./styles.css";
 import Login from "./Login";
 import Markdown from "./Markdown";
+import Admin, { aplicarTema } from "./Admin";
 import { INSTITUCION, TEXTOS } from "./config";
 import {
   consultarEnFlujo, leerSesion, cerrarSesion, listarConversaciones, adoptarConversacion,
-  leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje, salud
+  leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje, salud,
+  adminSoy, leerTema
 } from "./api";
 
 function PencilIcon() {
@@ -20,6 +22,15 @@ function SearchIcon() {
   return (
     <svg viewBox="0 0 24 24" className="icon" aria-hidden="true">
       <path d="M10.5 4a6.5 6.5 0 1 0 4.03 11.6l4.43 4.43 1.41-1.41-4.43-4.43A6.5 6.5 0 0 0 10.5 4zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z" fill="currentColor"/>
+    </svg>
+  );
+}
+
+function TuercaIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="icon" aria-hidden="true">
+      <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="currentColor"/>
+      <path d="M19.4 13c.04-.32.06-.66.06-1s-.02-.68-.07-1l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.3 7.3 0 0 0-1.73-1l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.49.42l-.36 2.54c-.63.26-1.2.6-1.73 1l-2.39-.96a.5.5 0 0 0-.6.22L2.4 8.78a.5.5 0 0 0 .11.64L4.55 11c-.05.32-.08.66-.08 1s.03.68.08 1l-2.04 1.58a.5.5 0 0 0-.11.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.53.4 1.1.74 1.73 1l.36 2.54c.04.24.25.42.5.42h3.84a.5.5 0 0 0 .49-.42l.36-2.54a7.3 7.3 0 0 0 1.73-1l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64L19.4 13z" fill="none" stroke="currentColor" strokeWidth="1.4"/>
     </svg>
   );
 }
@@ -114,6 +125,18 @@ export default function App() {
   // quien consulta un digesto eso decide si una respuesta vacía significa "no existe" o
   // "todavía no está cargado".
   useEffect(() => { salud().then(setAlcance).catch(() => setAlcance(null)); }, []);
+
+  // Los colores guardados se aplican al arrancar, antes de cualquier sesión: son parte de
+  // la identidad visual de la institución, no una preferencia de usuario.
+  useEffect(() => { leerTema().then((r) => aplicarTema(r.tema)).catch(() => {}); }, []);
+
+  // La entrada al panel aparece solo para administradores. Es comodidad, no seguridad: el
+  // permiso lo verifica el servidor en cada ruta de /admin.
+  const [soyAdmin, setSoyAdmin] = useState(false);
+  useEffect(() => {
+    if (!sesion) { setSoyAdmin(false); return; }
+    adminSoy().then((r) => setSoyAdmin(!!r.admin)).catch(() => setSoyAdmin(false));
+  }, [sesion]);
 
   // La conversación se mantiene pegada abajo mientras el usuario esté mirando el final.
   // Si subió a leer algo —muy común mientras la respuesta se está escribiendo— no se lo
@@ -493,6 +516,15 @@ export default function App() {
             <em className="proximamente">Próximamente</em>
           </button>
 
+          {soyAdmin && (
+            <button className={`sidebar-action ${view === "admin" ? "activa" : ""}`}
+                    onClick={() => setView(view === "admin" ? "chat" : "admin")}
+                    title="Estado del sistema y configuración">
+              <TuercaIcon />
+              <span>Administración</span>
+            </button>
+          )}
+
           <div className="search-box">
             <SearchIcon />
             <input
@@ -626,6 +658,8 @@ export default function App() {
       </aside>
 
       <main className="main-panel">
+        {view === "admin" && <Admin alSalir={() => setView("chat")} />}
+
         {view === "chat" && (
           <div className="chat-page">
             {/* El scroll vive acá y no en la página: así el campo de escritura queda

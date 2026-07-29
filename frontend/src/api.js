@@ -128,3 +128,19 @@ export const borrarConversacion = (id) => pedir(`/conversaciones/${id}`, { metho
 export const valorarMensaje = (id, util) =>
   pedir(`/mensajes/${id}/valoracion`, { method: "POST", body: JSON.stringify({ util }) });
 export const salud = () => pedir("/salud");
+
+// ---------------------------------------------------------------- panel
+export const adminSoy = () => pedir("/admin/soy");
+export const adminEstado = () => pedir("/admin/estado");
+export const adminDocumentos = () => pedir("/admin/documentos");
+export const adminAdmins = () => pedir("/admin/admins");
+export const adminAgregarAdmin = (correo) =>
+  pedir("/admin/admins", { method: "POST", body: JSON.stringify({ correo }) });
+export const adminQuitarAdmin = (correo) =>
+  pedir(`/admin/admins/${encodeURIComponent(correo)}`, { method: "DELETE" });
+
+/** El tema se lee sin sesión: la interfaz necesita los colores para pintarse antes de que
+ *  nadie inicie sesión, y son públicos por naturaleza. Guardarlos sí requiere ser admin. */
+export const leerTema = () => fetch(`${BASE}/admin/tema`).then((r) => r.json());
+export const guardarTema = (colores) =>
+  pedir("/admin/tema", { method: "PUT", body: JSON.stringify({ colores }) });

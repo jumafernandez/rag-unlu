@@ -1366,3 +1366,246 @@ button, input, select, textarea { font: inherit; }
   color: var(--texto);
   word-break: break-word;
 }
+
+/* ---- Panel de administración ----
+   Usa los mismos roles de color que el resto: si alguien cambia la identidad visual desde
+   Apariencia, el panel se repinta con ella. Sería raro que la herramienta para elegir los
+   colores fuera la única pantalla que no los respeta. */
+
+.admin {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 20px 40px;
+  overflow-y: auto;
+}
+
+.admin-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.admin-cabecera h2 {
+  margin: 0 0 4px;
+  font-size: 1.9rem;
+  color: var(--marca-oscura);
+}
+.admin-cabecera p { margin: 0; color: var(--texto-suave); }
+.admin-volver { width: auto; min-height: 40px; padding: 8px 14px; }
+
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 22px 0 18px;
+  border-bottom: 1px solid var(--borde);
+}
+.admin-tab {
+  border: none;
+  background: none;
+  color: var(--texto-suave);
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.admin-tab:hover { color: var(--marca-oscura); }
+.admin-tab.activa {
+  color: var(--marca-oscura);
+  font-weight: 700;
+  border-bottom-color: var(--marca);
+}
+
+.admin-error {
+  background: var(--peligro-fondo);
+  border: 1px solid var(--peligro);
+  color: var(--peligro);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+.admin-cargando { color: var(--texto-suave); }
+.admin-nota {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 16px;
+  max-width: 70ch;
+}
+.admin-subtitulo {
+  margin: 28px 0 10px;
+  font-size: 1.05rem;
+  color: var(--marca-oscura);
+}
+
+/* ---- tarjetas de estado ---- */
+.admin-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+.admin-tarjeta {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.admin-tarjeta-titulo {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-tenue);
+}
+.admin-tarjeta-valor {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--marca-oscura);
+  margin: 4px 0 2px;
+  font-variant-numeric: tabular-nums;
+}
+.admin-tarjeta-pie { font-size: 0.84rem; color: var(--texto-suave); }
+
+/* ---- tablas ---- */
+.admin-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  overflow: hidden;
+  font-size: 0.92rem;
+}
+.admin-tabla th, .admin-tabla td {
+  text-align: left;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--fondo-marca);
+}
+.admin-tabla thead th {
+  background: var(--fondo-marca);
+  color: var(--marca-oscura);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.admin-tabla tbody tr:last-child td { border-bottom: none; }
+.admin-tabla tbody th {
+  color: var(--texto-suave);
+  font-weight: 400;
+  width: 40%;
+}
+.admin-tabla td { font-variant-numeric: tabular-nums; }
+
+.admin-barra-celda { width: 34%; }
+.admin-barra {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--marca-clara);
+  min-width: 2px;
+}
+
+/* ---- apariencia ---- */
+.admin-colores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+.admin-color {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.admin-color label {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--texto-suave);
+  margin-bottom: 8px;
+}
+.admin-color-fila { display: flex; align-items: center; gap: 10px; }
+.admin-color-fila input[type="color"] {
+  width: 42px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+}
+.admin-color-muestra {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  flex-shrink: 0;
+}
+/* El código va monoespaciado y con el valor RGB debajo: el hexadecimal identifica y el RGB
+   se lee. Ver uno solo obliga a traducir mentalmente. */
+.admin-color-codigo {
+  font-size: 0.92rem;
+  color: var(--texto);
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+}
+.admin-color-codigo em {
+  display: block;
+  font-style: normal;
+  font-size: 0.78rem;
+  color: var(--texto-tenue);
+}
+.admin-color-reset {
+  margin-left: auto;
+  border: 1px solid var(--borde);
+  background: var(--blanco);
+  color: var(--texto-suave);
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.admin-color-reset:hover { background: var(--fondo-marca); color: var(--marca-oscura); }
+
+.admin-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+.admin-guardar { width: auto; min-height: 42px; padding: 10px 18px; }
+.admin-acciones .sidebar-action { width: auto; min-height: 42px; padding: 10px 16px; }
+.admin-guardar:disabled { opacity: 0.5; cursor: default; }
+
+.admin-entrada {
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 260px;
+  background: var(--blanco);
+  color: var(--texto);
+}
+.admin-quitar {
+  border: 1px solid var(--borde);
+  background: var(--blanco);
+  color: var(--peligro);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.admin-quitar:hover { background: var(--peligro-fondo); }
+
+.sidebar-action.activa {
+  border-color: var(--marca-clara);
+  background: var(--realce);
+  color: var(--marca-oscura);
+}
+
+@media (max-width: 700px) {
+  .admin { padding: 20px 14px 32px; }
+  .admin-tabla { font-size: 0.86rem; }
+  .admin-tabla th, .admin-tabla td { padding: 8px 10px; }
+}
