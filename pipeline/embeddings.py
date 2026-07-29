@@ -38,6 +38,11 @@ def elegir_dispositivo(preferido=None):
         return 'xpu'
     if torch.cuda.is_available():
         return 'cuda'
+    # GPU integrada de los Mac con chip Apple. Se contempla para poder incorporar tandas
+    # chicas desde el escritorio sin depender de la cola del clúster: para unos pocos
+    # miles de documentos, esperar el turno cuesta más que calcular.
+    if getattr(torch.backends, 'mps', None) is not None and torch.backends.mps.is_available():
+        return 'mps'
     return 'cpu'
 
 

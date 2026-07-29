@@ -1,0 +1,27 @@
+# Dependencias del backend.
+#
+# Existe porque el entorno se reconstruyó a mano una vez y quedó sin google-auth: el inicio
+# de sesión fallaba en silencio ---el popup de Google funcionaba y la sesión no se creaba---
+# y encontrar la causa llevó más que instalar el paquete. Un entorno se arma desde acá.
+#
+#     python3 -m venv .venv
+#     ./.venv/bin/python -m pip install -r requirements.txt
+
+fastapi
+uvicorn[standard]
+pydantic
+
+# Recuperación
+numpy
+sentence-transformers      # modelo de embeddings (BGE-m3); arrastra torch
+faiss-cpu                  # índice de vectores
+
+# Generación
+openai
+
+# Inicio de sesión con Google: valida el id_token contra las claves públicas de Google.
+# `requests` no es opcional: google.auth.transport.requests lo necesita para ir a buscar
+# esas claves, y sin él la validación falla con un ImportError que llega al usuario como
+# "no se pudo validar la credencial", sin decir qué pasó.
+google-auth
+requests

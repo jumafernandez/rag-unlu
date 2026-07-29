@@ -628,8 +628,26 @@ button, input, select, textarea { font: inherit; }
   line-height: 1.45;
 }
 
-.fuente-pie { margin-top: 6px; font-size: 0.78rem; color: #7d8c7a; }
+.fuente-pie {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: #7d8c7a;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+}
 .fuente-confianza { color: #a06a1f; }
+
+/* Enlace al PDF publicado en el portal. Discreto pero presente en cada acto: es el final
+   de la cadena de trazabilidad y lo que permite comprobar la respuesta contra la fuente. */
+.fuente-pdf {
+  color: #2f6b2f;
+  text-decoration: none;
+  border-bottom: 1px dotted #7aa86f;
+}
+.fuente-pdf:hover { border-bottom-style: solid; }
+.fuente-pdf::before { content: "↗ "; }
 
 .aviso-metadata {
   margin-top: 10px;

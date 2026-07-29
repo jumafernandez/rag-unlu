@@ -182,6 +182,7 @@ export default function App() {
           titulo: f.titulo,
           confianza: f.metadata_confianza,
           pdf: f.source_pdf,
+          url: f.url_documento,
           partes: []
         });
       }
@@ -769,11 +770,23 @@ export default function App() {
                                           </div>
                                         ))}
 
-                                        {g.confianza && g.confianza !== "alta" && (
+                                        {(g.url || (g.confianza && g.confianza !== "alta")) && (
                                           <div className="fuente-pie">
-                                            <span className="fuente-confianza">
-                                              metadata sin verificar contra el sistema origen
-                                            </span>
+                                            {/* El enlace al documento publicado cierra la
+                                                cadena: de la afirmación al fragmento, y del
+                                                fragmento al PDF oficial. */}
+                                            {g.url && (
+                                              <a className="fuente-pdf" href={g.url}
+                                                 target="_blank" rel="noreferrer"
+                                                 title="Abrir el PDF publicado en el portal de la UNLu">
+                                                Ver el documento oficial
+                                              </a>
+                                            )}
+                                            {g.confianza && g.confianza !== "alta" && (
+                                              <span className="fuente-confianza">
+                                                metadata sin verificar contra el sistema origen
+                                              </span>
+                                            )}
                                           </div>
                                         )}
                                       </li>

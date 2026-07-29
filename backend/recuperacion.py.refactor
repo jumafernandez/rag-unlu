@@ -171,20 +171,6 @@ class Indice(Busqueda):
     def chunk(self, i):
         return self.chunks[i]
 
-    def puntuar_lexico(self, texto, permitidos=None):
-        return self.bm25.puntuar(tokenizar(texto), permitidos)
-
-    def documentos_y_fechas(self):
-        """(documentos distintos, fecha de cobertura). Ver la nota en _alcance()."""
-        docs, fechas = set(), []
-        for c in self.chunks:
-            docs.add(c.get('documento'))
-            f = c.get('date_issued')
-            if isinstance(f, str) and len(f) == 10:
-                fechas.append(f)
-        fechas.sort()
-        return len(docs), (fechas[int(len(fechas) * 0.99)] if fechas else None)
-
     def vecinos(self, consulta_densa, k, permitidos=None):
         """[(indice, similitud)] por producto interno sobre la matriz completa."""
         q = np.asarray(consulta_densa, dtype=np.float32)
@@ -337,7 +323,7 @@ class Indice(Busqueda):
         sims = {i: s for i, s in cercanos}
 
         # --- léxica ---
-        puntajes_bm = self.puntuar_lexico(texto_consulta, permitidos) if texto_consulta else {}
+        puntajes_bm = self.bm25.puntuar(tokenizar(texto_consulta), permitidos) if texto_consulta else {}
         orden_lexico = [i for i, _ in sorted(puntajes_bm.items(), key=lambda x: -x[1])[:candidatos]]
 
         # --- fusión RRF ---

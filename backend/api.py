@@ -121,13 +121,26 @@ _candado = threading.Lock()
 
 
 def indice() -> Indice:
+    """El almacén de fragmentos.
+
+    Si están los artefactos de `pipeline/construir_indice.py` ---la tabla SQLite y el
+    índice FAISS--- se usa ese camino: devuelve los mismos documentos que la carga en
+    memoria y ocupa bastante menos. Si no están, se cae al comportamiento anterior, que
+    solo necesita chunks.jsonl y densos.npy.
+    """
     global _indice
     if _indice is None:
         with _candado:
             if _indice is None:          # revisar de nuevo: otra petición pudo cargarlo
                 if not os.path.isdir(RUTA_INDICE):
                     raise HTTPException(503, f'no está el índice en {RUTA_INDICE}')
-                _indice = Indice(RUTA_INDICE)
+                artefactos = all(os.path.exists(os.path.join(RUTA_INDICE, x))
+                                 for x in ('chunks.sqlite', 'vectores.faiss'))
+                if artefactos and os.environ.get('RAG_ALMACEN', 'sql') != 'memoria':
+                    from .almacen import AlmacenSQL
+                    _indice = AlmacenSQL(RUTA_INDICE)
+                else:
+                    _indice = Indice(RUTA_INDICE)
     return _indice
 
 
@@ -201,6 +214,14 @@ class Fuente(BaseModel):
     date_issued: Optional[str] = None
     estado: Optional[str] = None
     metadata_confianza: Optional[str] = None
+    # Enlace permanente al PDF publicado en el portal. Con esto la cadena de trazabilidad
+    # llega hasta el documento oficial y no se corta en nuestro índice: cualquiera puede
+    # abrir el acto y comprobar que dice lo que la respuesta afirma.
+    url_documento: Optional[str] = None
+    # Fecha del acto según el propio documento. La tabla del portal muestra la de
+    # autorización, que es posterior y a veces de otro día: tenerlas separadas evita que el
+    # asistente informe una fecha que no coincide con la que la persona lee en el PDF.
+    fecha_acto: Optional[str] = None
     puntaje: float
     ranking: dict
 
@@ -592,14 +613,13 @@ _ALCANCE = {}
 def _alcance(ix):
     """Documentos distintos y fecha del acto más reciente. Se calcula una sola vez."""
     if not _ALCANCE:
-        docs, fechas = set(), []
-        for c in ix.chunks:
-            docs.add(c.get('documento'))
-            f = c.get('date_issued')
-            if isinstance(f, str) and len(f) == 10:
-                fechas.append(f)
-        _ALCANCE['documentos'] = len(docs)
-        _ALCANCE['normativa_hasta'] = max(fechas) if fechas else None
+        docs, fechas = ix.documentos_y_fechas()
+        _ALCANCE['documentos'] = docs
+        # Percentil 99, no el máximo. El máximo lo fija un puñado de actos con fecha
+        # atípica: con el corpus recolectado hasta el 10 de abril, el máximo decía 6 de
+        # julio, y la interfaz anunciaba una actualización que no existía. Informar de
+        # menos es preferible a informar de más sobre la propia cobertura.
+        _ALCANCE['normativa_hasta'] = fechas
         try:
             import datetime
             marca = os.path.getmtime(os.path.join(RUTA_INDICE, 'densos.npy'))
@@ -633,18 +653,9 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
                            peso_entidad=peso_de(estado.get('entidad_origen')),
                            entidad=estado.get('entidad') if c.usar_foco else None)
 
-    fuentes = [
-        Fuente(
-            cita=ix.chunks[i]['cita'], texto=ix.chunks[i]['texto'],
-            documento=ix.chunks[i]['documento'], titulo=ix.chunks[i].get('titulo'),
-            source_pdf=ix.chunks[i].get('source_pdf'),
-            seccion=ix.chunks[i].get('seccion'), date_issued=ix.chunks[i].get('date_issued'),
-            estado=ix.chunks[i].get('estado'),
-            metadata_confianza=ix.chunks[i].get('metadata_confianza'),
-            puntaje=round(s, 5), ranking=d,
-        )
-        for i, s, d in resultados
-    ]
+    # Se arma con la misma función que el camino en flujo. Antes estaba duplicado acá, y
+    # agregar un campo a la fuente lo dejaba funcionando en un endpoint y no en el otro.
+    fuentes = [_fuente_de(ix, i, s, d) for i, s, d in resultados]
 
     respuesta = advertencia = None
     if not fuentes:
@@ -743,13 +754,15 @@ def _sse(evento: str, datos: dict) -> str:
 
 
 def _fuente_de(ix, i, puntaje, detalle) -> 'Fuente':
-    c = ix.chunks[i]
+    c = ix.chunk(i)
     return Fuente(
         cita=c['cita'], texto=c['texto'], documento=c['documento'],
         titulo=c.get('titulo'),
         source_pdf=c.get('source_pdf'), seccion=c.get('seccion'),
         date_issued=c.get('date_issued'), estado=c.get('estado'),
         metadata_confianza=c.get('metadata_confianza'),
+        url_documento=c.get('url_documento') or None,
+        fecha_acto=c.get('fecha_acto') or None,
         puntaje=round(puntaje, 5), ranking=detalle,
     )
 
@@ -952,7 +965,7 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
 def documento(documento: str):
     """Todos los fragmentos de un documento, para poder auditar una cita."""
     ix = indice()
-    partes = [c for c in ix.chunks if c['documento'] == documento]
+    partes = ix.fragmentos_de_documento(documento)
     if not partes:
         raise HTTPException(404, 'documento no encontrado en el índice')
     cab = partes[0]

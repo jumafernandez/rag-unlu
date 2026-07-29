@@ -118,21 +118,7 @@ class BM25:
         return puntajes
 
 
-class Busqueda:
-    """Lógica de búsqueda, independiente de dónde estén guardados los fragmentos.
-
-    Se apoya en unas pocas operaciones que cada almacén resuelve a su manera: `chunk(i)`
-    para leer un fragmento, `vecinos()` para la señal densa, y las consultas por acto o por
-    entidad. Todo lo demás ---el filtrado por identificador, la fusión RRF, las
-    bonificaciones por estado de diálogo, el reparto del contexto--- vive una sola vez acá.
-
-    Antes esta lógica estaba pegada a la carga en memoria. Separarla permite cambiar el
-    almacenamiento sin tocar el comportamiento, que es justamente lo que hay que poder
-    comparar cuando se cambia.
-    """
-
-
-class Indice(Busqueda):
+class Indice:
     def __init__(self, ruta):
         self.ruta = ruta
         self.densos = np.load(os.path.join(ruta, 'densos.npy'))
@@ -167,41 +153,6 @@ class Indice(Busqueda):
 
     def __len__(self):
         return len(self.chunks)
-
-    def chunk(self, i):
-        return self.chunks[i]
-
-    def puntuar_lexico(self, texto, permitidos=None):
-        return self.bm25.puntuar(tokenizar(texto), permitidos)
-
-    def documentos_y_fechas(self):
-        """(documentos distintos, fecha de cobertura). Ver la nota en _alcance()."""
-        docs, fechas = set(), []
-        for c in self.chunks:
-            docs.add(c.get('documento'))
-            f = c.get('date_issued')
-            if isinstance(f, str) and len(f) == 10:
-                fechas.append(f)
-        fechas.sort()
-        return len(docs), (fechas[int(len(fechas) * 0.99)] if fechas else None)
-
-    def vecinos(self, consulta_densa, k, permitidos=None):
-        """[(indice, similitud)] por producto interno sobre la matriz completa."""
-        q = np.asarray(consulta_densa, dtype=np.float32)
-        q = q / max(1e-9, float(np.linalg.norm(q)))
-        sims = self.densos @ q
-        if permitidos is not None:
-            mascara = np.full(len(sims), -np.inf, dtype=np.float32)
-            if permitidos:
-                idx = np.fromiter(permitidos, dtype=np.int64, count=len(permitidos))
-                mascara[idx] = sims[idx]
-            sims = mascara
-        tope = min(k, len(sims))
-        if not tope:
-            return []
-        sel = np.argpartition(-sims, tope - 1)[:tope]
-        sel = sel[np.argsort(-sims[sel])]
-        return [(int(i), float(sims[i])) for i in sel if np.isfinite(sims[i])]
 
     def _filtrar(self, filtros, solo_articulos):
         permitidos = None
@@ -282,7 +233,7 @@ class Indice(Busqueda):
         un apellido común no arrastre documentos ajenos."""
         if not piezas:
             return False
-        texto = normalizar(f"{self.chunk(i).get('titulo') or ''} {self.chunk(i).get('texto') or ''}")
+        texto = normalizar(f"{self.chunks[i].get('titulo') or ''} {self.chunks[i].get('texto') or ''}")
         return sum(1 for p in piezas if p in texto) >= min(2, len(piezas))
 
     def buscar(self, consulta_densa, texto_consulta='', k=8, filtros=None,
@@ -310,7 +261,7 @@ class Indice(Busqueda):
         ids = self._identificadores(texto_consulta) if texto_consulta else set()
         codigos = self._codigos(texto_consulta) if texto_consulta else set()
         if ids:
-            exactos = {i for i, s in enumerate(self._ids_chunk) if ids & s}
+            exactos = {i for i in range(len(self.chunks)) if ids & self._ids_chunk[i]}
             # El número solo no alcanza: cada tipo de acto lleva su propia numeración, así
             # que "3/2025" existe en decenas de códigos distintos a la vez. Si la consulta
             # también nombra el código, se exige que coincida; si no, el documento pedido
@@ -326,18 +277,30 @@ class Indice(Busqueda):
         elif codigos:
             # Consulta que nombra el tipo de acto sin número ("disposiciones DSECEXT"):
             # acota a ese código y deja que las señales ordenen adentro.
-            del_codigo = {i for i, c in enumerate(self._codigos_chunk) if c in codigos}
+            del_codigo = {i for i in range(len(self.chunks)) if self._codigos_chunk[i] in codigos}
             if del_codigo:
                 permitidos = del_codigo if permitidos is None else (permitidos & del_codigo) or permitidos
 
         # --- densa ---
-        cercanos = (self.vecinos(consulta_densa, candidatos, permitidos)
-                    if consulta_densa is not None else [])
-        orden_denso = [i for i, _ in cercanos]
-        sims = {i: s for i, s in cercanos}
+        orden_denso, sims = [], None
+        if consulta_densa is not None:
+            q = np.asarray(consulta_densa, dtype=np.float32)
+            q = q / max(1e-9, float(np.linalg.norm(q)))
+            sims = self.densos @ q
+            if permitidos is not None:
+                mascara = np.full(len(sims), -np.inf, dtype=np.float32)
+                if permitidos:
+                    idx = np.fromiter(permitidos, dtype=np.int64, count=len(permitidos))
+                    mascara[idx] = sims[idx]
+                sims = mascara
+            tope = min(candidatos, len(sims))
+            if tope:
+                sel = np.argpartition(-sims, tope - 1)[:tope]
+                sel = sel[np.argsort(-sims[sel])]
+                orden_denso = [int(i) for i in sel if np.isfinite(sims[i])]
 
         # --- léxica ---
-        puntajes_bm = self.puntuar_lexico(texto_consulta, permitidos) if texto_consulta else {}
+        puntajes_bm = self.bm25.puntuar(tokenizar(texto_consulta), permitidos) if texto_consulta else {}
         orden_lexico = [i for i, _ in sorted(puntajes_bm.items(), key=lambda x: -x[1])[:candidatos]]
 
         # --- fusión RRF ---
@@ -366,8 +329,8 @@ class Indice(Busqueda):
                       for (c, n), w in pesos_actos.items() if w > 0}
             if claves:
                 for i in list(total):
-                    clave = ((self.chunk(i).get('document_code') or '').upper(),
-                             re.sub(r'\s+', '', str(self.chunk(i).get('document_number') or '')))
+                    clave = ((self.chunks[i].get('document_code') or '').upper(),
+                             re.sub(r'\s+', '', str(self.chunks[i].get('document_number') or '')))
                     w = claves.get(clave)
                     if w:
                         total[i] += w * UNIDAD
@@ -375,14 +338,14 @@ class Indice(Busqueda):
 
                 # Los actos que la búsqueda no trajo se incorporan con el puntaje que les
                 # da su peso, así compiten por posición en lugar de quedar al final.
-                presentes = {((self.chunk(i).get('document_code') or '').upper(),
-                              re.sub(r'\s+', '', str(self.chunk(i).get('document_number') or '')))
+                presentes = {((self.chunks[i].get('document_code') or '').upper(),
+                              re.sub(r'\s+', '', str(self.chunks[i].get('document_number') or '')))
                              for i in total}
                 faltantes = {a for a in claves if a not in presentes}
                 if faltantes:
                     for i in self.chunks_de_actos(faltantes, tope_por_acto=2):
-                        clave = ((self.chunk(i).get('document_code') or '').upper(),
-                                 re.sub(r'\s+', '', str(self.chunk(i).get('document_number') or '')))
+                        clave = ((self.chunks[i].get('document_code') or '').upper(),
+                                 re.sub(r'\s+', '', str(self.chunks[i].get('document_number') or '')))
                         w = claves.get(clave, 0)
                         total[i] = max(total[i], w * UNIDAD)
                         detalle[i]['continuidad'] = round(w, 2)
@@ -413,7 +376,9 @@ class Indice(Busqueda):
                         detalle[i]['foco'] = round(peso_entidad, 2)
                         detalle[i]['garantia'] = True
 
-        return [(i, s, dict(detalle[i], similitud=sims.get(i))) for i, s in mejores]
+        return [(i, s, dict(detalle[i],
+                            similitud=(float(sims[i]) if sims is not None and np.isfinite(sims[i]) else None)))
+                for i, s in mejores]
 
     def contexto(self, resultados, max_caracteres=9000):
         """Bloque de contexto para el modelo, con las citas visibles.
