@@ -41,3 +41,18 @@ resultados/
 .env
 
 frontend/.env.local
+
+# --- Datos, nunca al repositorio ---
+# Conversaciones de los usuarios: correos, nombres y lo que consultaron. El repositorio es
+# público, y una vez que algo entra al historial de git no se saca borrando el archivo.
+datos/
+
+# Catálogo y descargas: son salida de la recolección, se regeneran con el pipeline y pesan.
+# Además el catálogo se escribe mientras corre, así que versionarlo captura estados a medio
+# hacer.
+scrapers/metadatos*.csv
+scrapers/meta_*.csv
+scrapers/catalogo_*.csv
+scrapers/Descargas/
+data/
+indice/

@@ -168,11 +168,41 @@ def main():
                     meta['tipo_documento_fuente'] = fuente['tipo_documento']
                 meta['metadata_confianza'] = fuente.get('confianza')
 
+                # La IDENTIDAD del acto también sale de la fuente, no del PDF.
+                #
+                # Antes se conservaba lo que hubiera leído el parser, y eso dejaba dos
+                # errores que después no se pueden reparar: 598 fragmentos con código y
+                # número 'unknown' ---documentos donde el extractor no encontró el
+                # encabezado--- y códigos truncados, como 'CS' en lugar de 'DISPCD-CS',
+                # que vuelven indistinguibles tres actos distintos con el mismo número.
+                #
+                # El portal publica el número completo junto al documento. Tomarlo de ahí
+                # elimina las dos cosas: la identidad deja de depender de cómo salió el PDF.
+                m_num = re.match(r'\s*([A-ZÑ0-9][A-ZÑ0-9-]*)\s*:?\s*(\d+)\s*/\s*(\d{2,4})\s*$',
+                                 (fuente.get('numero') or '').strip(), re.IGNORECASE)
+                if m_num:
+                    anio = m_num.group(3)
+                    meta['document_code'] = m_num.group(1).upper()
+                    meta['document_number'] = f'{m_num.group(2)}/{anio}'
+                    if anio.isdigit():
+                        meta['year'] = int(anio if len(anio) == 4 else '20' + anio)
+
+                # Enlace al PDF publicado e identificadores del portal. Van con el fragmento
+                # desde el principio: así la trazabilidad queda armada en una sola pasada y
+                # no hay que recorrer el índice después para agregarla.
+                for destino, origen in (('url_documento', 'url_documento'),
+                                        ('id_archivo', 'id_archivo'),
+                                        ('id_documento', 'id_documento'),
+                                        ('fecha_acto', 'fecha_acto')):
+                    if fuente.get(origen):
+                        meta[destino] = fuente[origen]
+
             n_docs += 1
             base_meta = {k: meta.get(k) for k in (
                 'document_id', 'document_code', 'document_number', 'document_type',
                 'issuing_body', 'date_issued', 'year', 'titulo', 'estado',
-                'tipo_documento_fuente', 'metadata_confianza', 'source_pdf')}
+                'tipo_documento_fuente', 'metadata_confianza', 'source_pdf',
+                'url_documento', 'id_archivo', 'id_documento', 'fecha_acto')}
 
             for _, titulo, cuerpo in partir_markdown(md):
                 tipo = tipo_de_seccion(titulo)

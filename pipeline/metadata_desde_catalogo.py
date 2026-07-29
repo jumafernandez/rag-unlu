@@ -45,6 +45,11 @@ def main():
                 r.get('Numero', ''), r.get('Fecha', ''), r.get('Estado', ''),
                 (r.get('Tipo de documento', '') or '').split(',')[0],
                 r.get('Titulo', ''),
+                # Todo lo que el fragmento necesita viaja acá. Antes la URL se pegaba
+                # después, sobre el índice ya construido, y eso obligaba a mantener un
+                # script aparte que volviera a emparejar acto por acto.
+                r.get('URL', ''), r.get('id_archivo', ''), r.get('id_documento', ''),
+                r.get('Fecha acto', ''),
             ])
 
     vistos = {f[0] for f in filas}
@@ -53,7 +58,8 @@ def main():
     with open(a.salida, 'w', encoding='utf-8', newline='') as f:
         w = csv.writer(f)
         w.writerow(['archivo', 'confianza', 'via', 'numero', 'fecha', 'estado',
-                    'tipo_documento', 'titulo'])
+                    'tipo_documento', 'titulo',
+                    'url_documento', 'id_archivo', 'id_documento', 'fecha_acto'])
         w.writerows(filas)
 
     print(f'PDF en el directorio      : {len(presentes)}')

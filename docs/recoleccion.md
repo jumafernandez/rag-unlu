@@ -92,11 +92,27 @@ Ambas se conservan, en columnas separadas: `Fecha` mantiene el significado anter
 —autorización— para no alterar en silencio lo que ya consumía el pipeline, y `Fecha acto`
 agrega la del documento.
 
-## Portabilidad
-
 Nada de esto es específico de la UNLu. SUDOCU es un sistema de alcance nacional y el
 Módulo de Publicación Documental es un componente estándar suyo: los selectores que se usan
 son clases de Angular Material del propio sistema, no del portal de una institución.
+
+### Verificación pendiente sobre otra instalación
+
+La Universidad Nacional de San Luis tiene su propio módulo de publicación documental sobre
+SUDOCU. Está previsto correr esta misma recolección contra ese portal una vez terminada la
+de la UNLu, con dos objetivos:
+
+- **Comprobar que el procedimiento es repetible**: que cambiando la URL y la lista de
+  carpetas se obtiene un catálogo verificado contra los totales que declara ese portal,
+  sin tocar código.
+- **Reportarlo en el trabajo**: la diferencia entre afirmar que el sistema es adaptable y
+  mostrar que se adaptó es la que un revisor puede comprobar.
+
+Conviene acordarlo previamente con quien corresponda en esa universidad: aunque el portal
+es público y la recolección es de solo lectura, sigue siendo tráfico sobre un sistema
+institucional ajeno.
+
+## Portabilidad
 
 La superficie de adaptación son dos valores en `scrapers/conf.py`:
 
