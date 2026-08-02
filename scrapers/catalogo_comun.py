@@ -71,7 +71,8 @@ def fila_a_registro(d, seccion):
         'id_documento': id_documento or '',
         'URL': url_documento(id_archivo, id_documento) if id_archivo and id_documento else '',
         'Seccion': seccion,
-        # UNLu lo llama 'tipo'; UNSL, 'codigo_tipo_documento'. Mismo dato, otra clave.
+        # El código del acto viene con clave distinta según la instalación: UNLu lo
+        # llama 'tipo', UNSL 'codigo_tipo_documento'. Mismo dato; se prueban en orden.
         'Codigo': nro.get('tipo') or nro.get('codigo_tipo_documento') or '',
         'Nro': nro.get('nro') or '',
         'Anio': nro.get('anio') or '',

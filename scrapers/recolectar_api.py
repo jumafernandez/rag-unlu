@@ -211,9 +211,8 @@ def main():
                    help='respuestas vacías seguidas antes de dar por terminada una carpeta')
     a = p.parse_args()
 
-    # Siempre se pregunta al portal: también con --carpeta, porque el nombre de la
-    # sección sale de acá y el mapa estático es de la UNLu (con otra instalación
-    # etiquetaría cualquier cosa).
+    # Siempre se pregunta al portal, también con --carpeta: el nombre de la sección
+    # sale de acá, y el mapa estático es solo el respaldo si el pedido falla.
     carpetas = carpetas_del_portal()
     ids = a.carpeta or (sorted(carpetas) if a.todas else None)
     if not ids:
