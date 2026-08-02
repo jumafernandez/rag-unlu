@@ -1373,11 +1373,20 @@ button, input, select, textarea { font: inherit; }
    colores fuera la única pantalla que no los respeta. */
 
 .admin {
+  /* Hijo flexible del panel principal, con su propio scroll: sin flex y min-height el
+     contenido no se ajusta a la altura disponible y desborda. */
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.admin-interior {
   width: 100%;
   max-width: 1040px;
   margin: 0 auto;
   padding: 32px 20px 40px;
-  overflow-y: auto;
 }
 
 .admin-cabecera {
@@ -1605,7 +1614,167 @@ button, input, select, textarea { font: inherit; }
 }
 
 @media (max-width: 700px) {
-  .admin { padding: 20px 14px 32px; }
+  .admin-interior { padding: 20px 14px 32px; }
   .admin-tabla { font-size: 0.86rem; }
   .admin-tabla th, .admin-tabla td { padding: 8px 10px; }
 }
+
+/* Alternar entre agrupaciones. Sección del portal y tipo de acto responden preguntas
+   distintas: la primera es cómo la Universidad organiza sus documentos, la segunda cuántos
+   actos de cada organismo hay. */
+.admin-alternar { display: flex; gap: 6px; margin-bottom: 14px; }
+.admin-alternar button {
+  border: 1px solid var(--borde);
+  background: var(--blanco);
+  color: var(--texto-suave);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+.admin-alternar button.activa {
+  background: var(--realce);
+  border-color: var(--marca-clara);
+  color: var(--marca-oscura);
+  font-weight: 700;
+}
+
+/* ---- Personalización ---- */
+.admin-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+}
+.admin-campo label {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--texto-suave);
+  margin-bottom: 6px;
+}
+.admin-campo .admin-entrada { width: 100%; min-width: 0; }
+
+.admin-logo {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.admin-logo-muestra {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  padding: 6px;
+}
+.admin-logo-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+.admin-subir { cursor: pointer; display: inline-flex; align-items: center; }
+.admin-nota-chica { font-size: 0.82rem; margin-top: 10px; }
+.admin-sugerencias { width: 100%; resize: vertical; font: inherit; }
+
+/* ---- Corridas ---- */
+.corrida-operaciones { display: grid; gap: 12px; }
+.corrida-operacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+}
+.corrida-operacion p { margin: 4px 0 0; font-size: 0.86rem; color: var(--texto-suave); }
+.corrida-operacion button { white-space: nowrap; }
+.admin-tabla-envoltura { overflow-x: auto; }
+.corrida-estado { font-size: 0.82rem; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
+.corrida-estado.ok { background: var(--realce); color: var(--marca-oscura); }
+.corrida-estado.en_curso { background: var(--fondo-marca); color: var(--marca-oscura); }
+.corrida-estado.error { background: #fdecea; color: #a4302a; }
+.corrida-estado.cancelada, .corrida-estado.interrumpida { background: var(--fondo); color: var(--texto-suave); }
+.corrida-log {
+  margin-top: 16px;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.corrida-log-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--fondo-marca);
+}
+.corrida-log-cabecera span { display: flex; gap: 8px; }
+.corrida-log pre {
+  margin: 0;
+  padding: 14px;
+  max-height: 420px;
+  overflow: auto;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  background: var(--blanco);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.admin-dato { margin: 0; font-size: 0.9rem; color: var(--texto-suave); }
+.admin-prueba { margin-top: 12px; padding: 10px 14px; border-radius: 10px; font-size: 0.9rem; }
+.admin-prueba.ok { background: var(--realce); color: var(--marca-oscura); }
+.admin-prueba.error { background: #fdecea; color: #a4302a; }
+
+/* ---- Ajustes personales (tuerquita del usuario) ---- */
+.sesion-ajustes {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--texto-suave);
+  display: inline-flex;
+  border-radius: 8px;
+}
+.sesion-ajustes:hover { background: var(--realce); color: var(--marca-oscura); }
+.ajustes-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 30, 18, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+.ajustes-caja {
+  background: var(--blanco);
+  border-radius: 18px;
+  padding: 22px 24px;
+  width: min(480px, calc(100vw - 40px));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+}
+.ajustes-caja h3 { margin: 0 0 14px; color: var(--marca-oscura); }
+.ajustes-caja label { font-weight: 600; font-size: 0.92rem; }
+.ajustes-nota { font-size: 0.84rem; color: var(--texto-suave); margin: 4px 0 10px; }
+.ajustes-caja textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+}
+.ajustes-estado { font-size: 0.84rem; color: var(--marca-oscura); margin: 8px 0 0; }
+.ajustes-acciones { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* ---- Uso ---- */
+.uso-titulo { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uso-conversacion { max-height: 440px; overflow: auto; padding: 14px; background: var(--blanco); }
+.uso-mensaje { margin-bottom: 14px; }
+.uso-mensaje-meta { font-size: 0.76rem; color: var(--texto-suave); margin-bottom: 3px; }
+.uso-mensaje-texto {
+  font-size: 0.86rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--fondo);
+}
+.uso-mensaje.user .uso-mensaje-texto { background: var(--fondo-marca); }

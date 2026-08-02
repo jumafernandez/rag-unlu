@@ -129,20 +129,33 @@ def conciliar(c, dirs_descarga, ruta_indice):
             c.execute('UPDATE acto SET descargado_en=? WHERE id_archivo=?', (ahora, fila['id_archivo']))
             marcados += 1
 
-    # --- indexados: los que ya tienen fragmentos en el índice ---
-    en_indice = set()
+    # --- indexados: los que ya tienen fragmentos en el índice. Se empareja por
+    # id_archivo Y por nombre de documento: hay fragmentos viejos sin id (los actos sin
+    # código del portal, indexados antes de que la identidad viajara con el chunk) y sin
+    # el segundo criterio quedaban como pendientes eternos, la tanda los reprocesaba y la
+    # fusión ---con razón--- se negaba a duplicarlos. ---
+    en_indice, nombres_en_indice = set(), set()
     if ruta_indice and os.path.exists(ruta_indice):
         with open(ruta_indice, encoding='utf-8') as f:
             for linea in f:
-                ia = json.loads(linea).get('id_archivo')
-                if ia:
-                    en_indice.add(ia)
+                ch = json.loads(linea)
+                if ch.get('id_archivo'):
+                    en_indice.add(ch['id_archivo'])
+                if ch.get('documento'):
+                    nombres_en_indice.add(ch['documento'])
     indexados = 0
-    if en_indice:
-        for ia in en_indice:
-            cur = c.execute('UPDATE acto SET indexado_en=?, descargado_en=COALESCE(descargado_en,?) '
-                            'WHERE id_archivo=? AND indexado_en IS NULL', (ahora, ahora, ia))
-            indexados += cur.rowcount
+    for ia in en_indice:
+        cur = c.execute('UPDATE acto SET indexado_en=?, descargado_en=COALESCE(descargado_en,?) '
+                        'WHERE id_archivo=? AND indexado_en IS NULL', (ahora, ahora, ia))
+        indexados += cur.rowcount
+    if nombres_en_indice:
+        for fila in c.execute('SELECT id_archivo, archivo FROM acto '
+                              'WHERE indexado_en IS NULL AND archivo IS NOT NULL').fetchall():
+            base = (fila['archivo'] or '').rsplit('.', 1)[0]
+            if base and base in nombres_en_indice:
+                c.execute('UPDATE acto SET indexado_en=?, descargado_en=COALESCE(descargado_en,?) '
+                          'WHERE id_archivo=?', (ahora, ahora, fila['id_archivo']))
+                indexados += 1
     c.commit()
     return marcados, indexados
 

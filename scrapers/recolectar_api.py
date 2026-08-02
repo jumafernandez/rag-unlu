@@ -35,6 +35,8 @@ from catalogo_comun import API, COLUMNAS, fila_a_registro, nombre_archivo
 
 # Carpetas públicas del portal de la UNLu, leídas del scope de la portada. Para otra
 # universidad se releen de la suya: son ids internos de esa instalación.
+# Respaldo por si el endpoint de carpetas no responde. La fuente primaria es el propio
+# portal: `carpetas_del_portal()` las descubre en un pedido, con esto como plan B.
 CARPETAS = {
     6: 'RESOLUCIONES RECTOR',
     9: 'RESOLUCIONES ASAMBLEA UNIVERSITARIA',
@@ -51,6 +53,29 @@ CARPETAS = {
 
 # El servidor ignora valores mayores: pedir 100 devuelve cero documentos, no cien.
 TOPE = 15
+
+
+def carpetas_del_portal():
+    """Las carpetas públicas, preguntadas al portal en vez de codificadas a mano.
+
+    El endpoint es el mismo que usa la portada para dibujarse. Esto es lo que vuelve al
+    recolector portable de verdad: en otra universidad las carpetas son otras y tienen
+    otros ids, y nadie tiene que ir a hurgar el scope de Angular para averiguarlos.
+    Si el pedido falla se usa el mapa estático de arriba: peor es no recolectar.
+    """
+    url = f'{API}/mpd/contenedores/?id_area=0'
+    try:
+        pedido = urllib.request.Request(url, headers={'User-Agent': 'rag-unlu/1.0'})
+        with urllib.request.urlopen(pedido, timeout=60) as r:
+            carpetas = json.load(r).get('folders', [])
+        publicas = {c['id']: c.get('contenedor', f"carpeta {c['id']}")
+                    for c in carpetas if c.get('publico') and not c.get('eliminado')}
+        if publicas:
+            return publicas
+    except Exception as e:
+        print(f'(no se pudo pedir la lista de carpetas: {e}; se usa el mapa estático)',
+              flush=True)
+    return dict(CARPETAS)
 
 
 def registrar(traza, dato):
@@ -95,12 +120,21 @@ def recolectar(cid, nombre, salida, maximo=None, tope_vacias=6, traza=None):
                           'devueltos': len(docs), 'segundos': round(time.time() - t_ini, 2),
                           'ids': [x.get('documento') for x in docs]})
         if not docs:
-            # Una respuesta vacía NO significa que se acabó el listado. El servidor
-            # responde en falso de manera intermitente: la misma consulta que devuelve
-            # quince documentos, repetida un minuto después, devuelve cero. Es la misma
-            # falla que hace que la pantalla del portal muestre "No se encontraron
-            # documentos" en carpetas que sí tienen contenido. Se reintenta el mismo
-            # tramo varias veces antes de darlo por terminado.
+            # Pasado el total declarado, una respuesta vacía ES el fin del listado, no
+            # intermitencia. Sin este corte, cada carpeta cuyo total viene inflado
+            # ---el portal repite filas entre páginas y las cuenta--- terminaba
+            # quemando toda la paciencia persiguiendo un documento que no existe:
+            # en la carpeta 26 se midieron 1808 filas con 1807 ids distintos.
+            if total_portal and offset >= total_portal:
+                print(f'  fin del listado en offset {offset} (total declarado '
+                      f'{total_portal}; el portal repite filas entre páginas)', flush=True)
+                break
+            # Antes del total, una respuesta vacía NO significa que se acabó el listado.
+            # El servidor responde en falso de manera intermitente: la misma consulta que
+            # devuelve quince documentos, repetida un minuto después, devuelve cero. Es la
+            # misma falla que hace que la pantalla del portal muestre "No se encontraron
+            # documentos" en carpetas que sí tienen contenido. Se reintenta el mismo tramo
+            # varias veces antes de darlo por terminado.
             vacias += 1
             registrar(traza, {'carpeta': cid, 'offset': offset, 'evento': 'vacia',
                               'consecutivas': vacias})
@@ -177,7 +211,8 @@ def main():
                    help='respuestas vacías seguidas antes de dar por terminada una carpeta')
     a = p.parse_args()
 
-    ids = a.carpeta or (sorted(CARPETAS) if a.todas else None)
+    carpetas = carpetas_del_portal() if a.todas else dict(CARPETAS)
+    ids = a.carpeta or (sorted(carpetas) if a.todas else None)
     if not ids:
         sys.exit('indicá --carpeta ID o --todas')
 
@@ -186,7 +221,7 @@ def main():
         with open(a.salida, encoding='utf-8-sig') as f:
             hechas = {r['Seccion'] for r in csv.DictReader(f)}
         antes = len(ids)
-        ids = [i for i in ids if CARPETAS.get(i) not in hechas]
+        ids = [i for i in ids if carpetas.get(i) not in hechas]
         if len(ids) < antes:
             print(f'ya estaban: {sorted(hechas)}', flush=True)
         if not ids:
@@ -196,13 +231,13 @@ def main():
     t0, total, resumen = time.time(), 0, []
     for cid in ids:
         try:
-            regs, tp = recolectar(cid, CARPETAS.get(cid, f'carpeta {cid}'),
+            regs, tp = recolectar(cid, carpetas.get(cid, f'carpeta {cid}'),
                                   a.salida, a.maximo, a.paciencia, traza)
             total += len(regs)
-            resumen.append((CARPETAS.get(cid, str(cid)), len(regs), tp))
+            resumen.append((carpetas.get(cid, str(cid)), len(regs), tp))
         except Exception as e:
             print(f'  ERROR en la carpeta {cid}: {type(e).__name__}: {e}', flush=True)
-            resumen.append((CARPETAS.get(cid, str(cid)), None, None))
+            resumen.append((carpetas.get(cid, str(cid)), None, None))
 
     print(f'\n=== resumen: {total} documentos en {time.time() - t0:.0f}s -> {a.salida} ===')
     incompletas = 0

@@ -73,6 +73,11 @@ Opcional. Sin cuenta funciona igual, pero no guarda nada.
 Si entrás con Google, te quedan las conversaciones anteriores: podés **renombrarlas**
 (doble clic en el título) y **borrarlas**. Cada persona ve solo las suyas. 🔒
 
+Con sesión también aparece una **tuerquita al lado de tu nombre** ⚙️: ahí podés pedir el
+**tono** con el que querés que te responda ("explicámelo simple", "tratame de usted",
+"con ejemplos"). Cambia cómo te escribe, nunca el contenido: las citas a la normativa
+siguen siendo las mismas.
+
 ---
 
 ## ⚠️ Tres cosas importantes

@@ -52,6 +52,11 @@ def claves(codigo, numero, anio):
     return [(f, n, a) for f in formas]
 
 
+# Un nombre como 'DISPCD-CB_61' es media identidad de acto, no una carpeta: código con
+# guiones y un número. Las carpetas son palabras separadas por guiones bajos.
+RE_IDENTIDAD = re.compile(r'^[A-ZÑ0-9]+(-[A-ZÑ0-9]+)*_\d+$')
+
+
 def norm_titulo(t):
     return re.sub(r'\s+', ' ', (t or '')).strip().upper()
 
@@ -158,7 +163,23 @@ def main():
                     ch['fecha_acto'] = fila['Fecha acto']
                 if fila.get('Archivo'):
                     ch['archivo_portal'] = fila['Archivo']
+                if fila.get('Seccion'):
+                    ch['seccion_portal'] = norm_seccion(fila['Seccion'])
                 cuenta['con_url'] += 1 if ch['url_documento'] else 0
+
+            # Para los documentos de la recolección original, la carpeta de la que salieron
+            # está en el propio nombre del archivo: 'DEPARTAMENTO_DE_CIENCIAS_BASICAS_1779'.
+            # Es la fuente correcta para ellos. Lo que no vale es aplicar la misma regla a
+            # los nombres nuevos, derivados de la identidad del acto ---'DISPCD-CB_61_2026'
+            # sin el año no es una carpeta---, y para esos manda el catálogo.
+            if not ch.get('seccion_portal'):
+                doc = ch.get('documento') or ''
+                prefijo = re.sub(r'_\d+$', '', doc)
+                if prefijo and prefijo == prefijo.upper() and not RE_IDENTIDAD.match(prefijo):
+                    ch['seccion_portal'] = prefijo
+                    cuenta['seccion_por_nombre'] += 1
+            elif ch.get('seccion_portal'):
+                cuenta['seccion_por_catalogo'] += 1
 
             if fh:
                 fh.write(json.dumps(ch, ensure_ascii=False) + '\n')
@@ -170,6 +191,8 @@ def main():
     print(f"  con acto correspondiente    : {cuenta['con_correspondencia']}")
     print(f"  sin correspondencia         : {cuenta['sin_correspondencia']}")
     print(f"  con URL al PDF oficial      : {cuenta['con_url']}")
+    print(f"  sección desde el catálogo   : {cuenta['seccion_por_catalogo']}")
+    print(f"  sección desde el nombre     : {cuenta['seccion_por_nombre']}")
     if cuenta['por_titulo']:
         print(f"  (de esos, por título único  : {cuenta['por_titulo']})")
     print()

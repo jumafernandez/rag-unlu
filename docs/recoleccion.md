@@ -114,12 +114,35 @@ institucional ajeno.
 
 ## Portabilidad
 
-La superficie de adaptación son dos valores en `scrapers/conf.py`:
+La superficie de adaptación es UN valor en `scrapers/conf.py`:
 
 ```python
 PORTAL_URL = os.environ.get("SUDOCU_PORTAL_URL", "...")
-SECCIONES  = [...]
 ```
+
+Las carpetas ya no se configuran: el recolector se las pregunta al portal
+(`carpetas_del_portal()`, el mismo endpoint con el que la portada se dibuja), con un mapa
+estático como respaldo si ese pedido falla.
+
+Antes de comprometerse con otra universidad, la sonda hace las tres comprobaciones de las
+que depende el pipeline —carpetas públicas, campos del listado con su criterio de
+completitud, y PDF accesible por URL permanente— en tres pedidos de solo lectura:
+
+```bash
+python probar_portal.py --portal https://<portal>/sudocu/mpd/
+```
+
+Contra el portal de la UNLu responde `VEREDICTO: compatible`. Queda pendiente correrla
+contra el MPD de la UNSL cuando tengamos su URL.
+
+## El total del portal puede venir inflado
+
+El criterio de completitud compara lo recolectado contra el `total` que el portal declara
+en cada documento. Ese total puede contar de más: el portal a veces repite una fila entre
+dos páginas y la cuenta dos veces (en la carpeta del Departamento de Tecnología: 1808
+filas declaradas, 1807 actos distintos). Por eso una carpeta que termina "a uno" del
+total, con el listado ya agotado, no está incompleta: está completa y el total miente.
+La traza JSONL permite verificarlo: los ids vienen registrados página por página.
 
 ## Lo que queda anotado
 

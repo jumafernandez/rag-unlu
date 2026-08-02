@@ -46,16 +46,19 @@ CREATE TABLE IF NOT EXISTS chunk (
     metadata_confianza TEXT,
     source_pdf    TEXT,
     url_documento TEXT,
+    seccion_portal TEXT,
     id_archivo    TEXT,
     id_documento  TEXT
 );
 CREATE INDEX IF NOT EXISTS chunk_documento ON chunk (documento);
+CREATE INDEX IF NOT EXISTS chunk_seccion   ON chunk (seccion_portal);
 CREATE INDEX IF NOT EXISTS chunk_identidad ON chunk (document_code, document_number);
 """
 
 COLUMNAS = ['chunk_id', 'documento', 'seccion', 'tipo_seccion', 'cita', 'titulo', 'texto',
             'document_code', 'document_number', 'date_issued', 'fecha_acto', 'estado',
-            'metadata_confianza', 'source_pdf', 'url_documento', 'id_archivo', 'id_documento']
+            'metadata_confianza', 'source_pdf', 'url_documento', 'id_archivo', 'id_documento',
+            'seccion_portal']
 
 
 FTS = """
@@ -100,13 +103,15 @@ def construir_fts(ruta_bd):
 
 
 def construir_sqlite(ruta_jsonl, ruta_bd):
-    if os.path.exists(ruta_bd):
-        os.remove(ruta_bd)
-    for extra in ('-wal', '-shm'):
-        if os.path.exists(ruta_bd + extra):
-            os.remove(ruta_bd + extra)
+    # Se construye con un nombre temporal y se renombra al final. `os.replace` es atómico:
+    # la API que esté sirviendo el archivo viejo sigue con su inodo hasta que recarga, y
+    # nunca ve una base a medio escribir.
+    temporal = ruta_bd + '.construyendo'
+    for basura in (temporal, temporal + '-wal', temporal + '-shm'):
+        if os.path.exists(basura):
+            os.remove(basura)
 
-    c = sqlite3.connect(ruta_bd)
+    c = sqlite3.connect(temporal)
     c.executescript(ESQUEMA)
     # Construcción de una sola vez: no hace falta pagar durabilidad por fila.
     c.execute('PRAGMA synchronous = OFF')
@@ -127,6 +132,10 @@ def construir_sqlite(ruta_jsonl, ruta_bd):
     c.commit()
     c.execute('PRAGMA journal_mode = WAL')
     c.close()
+    for extra in ('-wal', '-shm'):
+        if os.path.exists(ruta_bd + extra):
+            os.remove(ruta_bd + extra)
+    os.replace(temporal, ruta_bd)
     return n
 
 
@@ -151,7 +160,8 @@ def construir_faiss(ruta_npy, ruta_indice, tipo='plano'):
         indice.nprobe = max(1, listas // 20)
 
     indice.add(densos)
-    faiss.write_index(indice, ruta_indice)
+    faiss.write_index(indice, ruta_indice + '.construyendo')
+    os.replace(ruta_indice + '.construyendo', ruta_indice)
     return n, dim, tipo
 
 

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.6.9)  28 JUL 2026 18:50
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.6.9)  30 JUL 2026 13:07
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -516,27 +516,27 @@ al/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{/usr/local/texlive/202
 6/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}] [2] [3] [4] [5] [6{/usr/local/texli
 ve/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/local/texlive/2026/te
 xmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}{/usr/local/texlive/2026/texmf-dist/f
-onts/enc/dvips/lm/lm-mathsy.enc}]
+onts/enc/dvips/lm/lm-mathsy.enc}] [7]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 405.
+(Font)              <9> on input line 435.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 405.
+(Font)              <6> on input line 435.
 
-Overfull \hbox (23.50128pt too wide) in paragraph at lines 405--414
+Overfull \hbox (23.50128pt too wide) in paragraph at lines 435--444
  [][] 
  []
 
 
-Overfull \hbox (100.8722pt too wide) in paragraph at lines 432--447
+Overfull \hbox (101.72264pt too wide) in paragraph at lines 462--473
  [][] 
  []
 
-[7]
-Overfull \hbox (9.62pt too wide) in paragraph at lines 478--487
+[8]
+Overfull \hbox (159.50433pt too wide) in paragraph at lines 516--530
  [][] 
  []
 
-[8] (./main.bbl [9]) [10] (./main.aux
+[9] [10] (./main.bbl) [11] (./main.aux
 LaTeX Info: Redefining \. on input line 8.
 LaTeX Info: Redefining \% on input line 8.
 )
@@ -546,13 +546,13 @@ L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 5875 strings out of 467525
- 88904 string characters out of 5418983
- 520287 words of memory out of 5000000
- 34644 multiletter control sequences out of 15000+600000
+ 5877 strings out of 467525
+ 88935 string characters out of 5418983
+ 519350 words of memory out of 5000000
+ 34646 multiletter control sequences out of 15000+600000
  681899 words of font info for 79 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 57i,9n,65p,268b,365s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 57i,9n,65p,360b,365s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></usr/lo
 cal/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/local/texliv
 e/2026/texmf-dist/fonts/type1/public/lm/lmbx9.pfb></usr/local/texlive/2026/texm
@@ -568,10 +568,10 @@ onts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1
 lmsy9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local
 /texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on main.pdf (10 pages, 298557 bytes).
+Output written on main.pdf (11 pages, 304529 bytes).
 PDF statistics:
- 118 PDF objects out of 1000 (max. 8388607)
- 82 compressed objects within 1 object stream
+ 121 PDF objects out of 1000 (max. 8388607)
+ 84 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  21 words of extra memory for PDF output out of 10000 (max. 10000000)
 

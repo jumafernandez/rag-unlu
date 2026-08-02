@@ -50,6 +50,11 @@ def main():
                 # script aparte que volviera a emparejar acto por acto.
                 r.get('URL', ''), r.get('id_archivo', ''), r.get('id_documento', ''),
                 r.get('Fecha acto', ''),
+                # La carpeta del portal, como dato. Deducirla del nombre del archivo
+                # funcionaba con la convención posicional vieja y dejó de funcionar con la
+                # nueva: 'DISPCD-CB_61_2026' sin el año no es una sección, es media
+                # identidad de acto.
+                r.get('Seccion', ''),
             ])
 
     vistos = {f[0] for f in filas}
@@ -59,7 +64,8 @@ def main():
         w = csv.writer(f)
         w.writerow(['archivo', 'confianza', 'via', 'numero', 'fecha', 'estado',
                     'tipo_documento', 'titulo',
-                    'url_documento', 'id_archivo', 'id_documento', 'fecha_acto'])
+                    'url_documento', 'id_archivo', 'id_documento', 'fecha_acto',
+                    'seccion_portal'])
         w.writerows(filas)
 
     print(f'PDF en el directorio      : {len(presentes)}')

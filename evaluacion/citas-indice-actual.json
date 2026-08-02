@@ -1,0 +1,615 @@
+{
+ "resumen": {
+  "respuestas": 60,
+  "con_citas": 58,
+  "actos_citados": 132,
+  "actos_sueltos": 5,
+  "respuestas_con_cita_suelta": 3,
+  "consultas_con_persona": 24,
+  "atribucion_correcta": 23
+ },
+ "detalle": [
+  {
+   "consulta": "¿Qué asignaturas se reconocen por equivalencia para la carrera de Contador Público en la Universidad Nacional de José C. Paz?",
+   "tipo": "tematica",
+   "actos_citados": 8,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Contador Público"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿Hasta cuándo se extiende el plazo para inscribirse en los proyectos de investigación sobre sustentabilidad agropecuaria?",
+   "tipo": "tematica",
+   "actos_citados": 0,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Quiénes son las autoridades del Observatorio Malvinas y cuál es su estructura?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Observatorio Malvinas"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Licencia extraordinaria para docente en jornadas de mastozoología en Santa Cruz",
+   "tipo": "tematica",
+   "actos_citados": 5,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Santa Cruz"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿Quién fue la persona seleccionada para el cargo de Jefe de Trabajos Prácticos en la División Química?",
+   "tipo": "tematica",
+   "actos_citados": 3,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Trabajos Prácticos"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Inscripción de José María D'Angelo como candidato a Doctor en Ciencias Sociales y Humanas en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "José María"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Disposicion DGR 3/2025",
+   "tipo": "identificador",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Cuál es la nueva fecha límite para presentar el informe final del proyecto sobre la expansión urbana en la región metropolitana de Buenos Aires?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Buenos Aires"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Autorización de pago para la adquisición de insumos y servicios de mantenimiento en la Universidad",
+   "tipo": "tematica",
+   "actos_citados": 5,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Quiénes son los responsables del curso de posgrado sobre tecnologías de la información geográfica aplicadas a la gestión municipal en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Información sobre la licencia docente de Clara María Minaverry para actividades académicas en Noruega en enero de 2026",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Clara María Minaverry"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Baja por cesantía de un profesor adjunto por abandono de servicios en la UNLu",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "texto de la Disposicion CS 37/2026",
+   "tipo": "identificador",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPPCD-CB 207/2024?",
+   "tipo": "identificador",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Servicios personales para el taller de handball en Luján durante julio a diciembre de 2026",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Qué gastos se autorizaron para la compra de materiales para los talleres deportivos en la universidad?",
+   "tipo": "tematica",
+   "actos_citados": 3,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Qué información hay sobre la designación de una persona para un seminario sobre la infancia en la Universidad Nacional de Luján en 2024?",
+   "tipo": "tematica",
+   "actos_citados": 4,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Información sobre la aprobación y aval de informes finales para proyectos de extensión en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "actos_citados": 7,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la contratación de una enfermera en la Delegación San Fernando en 2025?",
+   "tipo": "tematica",
+   "actos_citados": 4,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Delegación San Fernando"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿Qué establece la Resolucion RR 14/2025?",
+   "tipo": "identificador",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Información sobre la inscripción al doctorado en Ciencias Aplicadas de María Eugenia Beily",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "María Eugenia Beily"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "programa del seminario sobre sujetos, culturas y pedagogías para la maestría en educación popular de adultos",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "baja de docente Jésica Benholtz en Ciencias Básicas por renuncia",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Jésica Benholtz"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿De qué trata la Unknown?",
+   "tipo": "identificador",
+   "actos_citados": 0,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Renuncia de docente en la División Cultura Corporal y su Enseñanza",
+   "tipo": "tematica",
+   "actos_citados": 7,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "designación de ayudante de primera en computación en la sede Chivilcoy",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Cuándo se llevará a cabo el concurso cerrado interno para el cargo de Jefe de División de Liquidaciones de Haberes en la Universidad Nacional de las Artes?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "designación de Elda Yolanda Monterroso como personal de gabinete en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Elda Yolanda Monterroso"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Cómo se conforma la Comisión Revisora Permanente del Estatuto en la Asamblea Universitaria de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Comisión Revisora Permanente",
+    "Asamblea Universitaria"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Funciones de los asistentes en las unidades políticas del Rectorado de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Quién fue designada para brindar apoyo administrativo en la carrera de Especialización en Educación y Políticas Públicas para la Primera Infancia en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Políticas Públicas",
+    "Primera Infancia"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿Quiénes son los docentes designados como tutor y asesora temática del trabajo final de graduación de Brisa Sánchez en la Licenciatura en Trabajo Social?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Brisa Sánchez",
+    "Trabajo Social"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DSECBUAE 7/2026?",
+   "tipo": "identificador",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Disposicion DISPDD-E 177/2024",
+   "tipo": "identificador",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Cómo se preservan los registros de evaluación socioeconómica de los estudiantes que solicitan becas?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Descuento de haberes para el cargo de Ayudante de Primera en diciembre de 2025 por liquidación indebida",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPDD-CB 10/2026?",
+   "tipo": "identificador",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "asesor técnico en producción de forraje en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Reintegro de gastos para actividades de la Asociación Civil de Microbiología General",
+   "tipo": "tematica",
+   "actos_citados": 6,
+   "actos_sueltos": 2,
+   "sueltos": [
+    "DGAEF 1187 2024",
+    "DGAEF 1363 2024"
+   ],
+   "nombres": [
+    "Asociación Civil",
+    "Microbiología General"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿Qué información hay sobre el programa de extensión 'La UNLu en el Barrio' y quiénes son sus integrantes?",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "baja de docente en Ciencias Sociales María Dolores Martínez",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPPCD-E 37/2026?",
+   "tipo": "identificador",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "Disposicion DISPDD-T 68/2026",
+   "tipo": "identificador",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DSECEXT 27/2025?",
+   "tipo": "identificador",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Cuál es la designación de la docente María Luciana Maidana en la asignatura de Enfermería Materno Infantil para el período 2025-2026?",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 1,
+   "sueltos": [
+    "DISPPCD-T 115 2025"
+   ],
+   "nombres": [
+    "María Luciana Maidana",
+    "Enfermería Materno Infantil"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Error en el número de documento de identidad de la estudiante Gómez Ivana Elizabeth en la disposición del Departamento de Tecnología",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Gómez Ivana Elizabeth"
+   ],
+   "atribucion_ok": false
+  },
+  {
+   "consulta": "¿Qué dependencias se consultan al recibir las bajas de personal en la Dirección General de Sistemas?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Qué información hay sobre la licencia extraordinaria de la docente Lucía Morresi en la División Biología?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Lucía Morresi"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "modificación de la situación de revista de un docente en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "actos_citados": 7,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "designación de Jefe de Trabajos Prácticos en Biología para un docente con doctorado",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Trabajos Prácticos"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPCD-CB 348/2025?",
+   "tipo": "identificador",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "designación de tribunal evaluador para trabajo final de graduación en licenciatura en trabajo social",
+   "tipo": "tematica",
+   "actos_citados": 6,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Quién fue aprobado para el cargo de Profesor Adjunto en la División Tecnología Agropecuaria?",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Profesor Adjunto"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿Qué información hay sobre el taller de realización audiovisual para el programa Jóvenes y Memoria en Luján?",
+   "tipo": "tematica",
+   "actos_citados": 3,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Quién fue designado como consultor en la carrera de especialización en producción avícola y cuál es su periodo de prestación de servicios?",
+   "tipo": "tematica",
+   "actos_citados": 3,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  },
+  {
+   "consulta": "¿Quiénes son los miembros de la Comisión de Recepción Definitiva para la contratación de repuestos para reparación de PCs en el Departamento de Servicios Sociales?",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Recepción Definitiva"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "¿Cuándo se designa a Virginia Elizabeth Simón como Ayudante de Segunda en la asignatura Termodinámica?",
+   "tipo": "tematica",
+   "actos_citados": 3,
+   "actos_sueltos": 2,
+   "sueltos": [
+    "DISPPCD-T 121 2025",
+    "DISPPCD-T 126 2026"
+   ],
+   "nombres": [
+    "Virginia Elizabeth Simón"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "designación del Secretario de Bienestar y Asuntos Estudiantiles en enero de 2026",
+   "tipo": "tematica",
+   "actos_citados": 1,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Asuntos Estudiantiles"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "Quiero saber quiénes son los miembros del tribunal evaluador del trabajo final de aplicación de Guillermo Andrés Schulz en Ingeniería Agronómica.",
+   "tipo": "tematica",
+   "actos_citados": 3,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [
+    "Guillermo Andrés Schulz",
+    "Ingeniería Agronómica"
+   ],
+   "atribucion_ok": true
+  },
+  {
+   "consulta": "designación de ayudante de segunda en biología ad honorem",
+   "tipo": "tematica",
+   "actos_citados": 2,
+   "actos_sueltos": 0,
+   "sueltos": [],
+   "nombres": [],
+   "atribucion_ok": null
+  }
+ ]
+}

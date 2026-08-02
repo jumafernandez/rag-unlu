@@ -65,8 +65,10 @@ recuperaci\'on. La contribuci\'on central es que ese peso lo determina la
 mientras que lo que el usuario fija ---visible y editable en la interfaz--- pesa
 m\'as y deja de ser sobrescrito. Evaluamos recuperaci\'on, ablaci\'on de cada
 mecanismo y validaci\'on con evaluadores del dominio. El sistema est\'a desplegado
-y su adaptaci\'on a otras universidades con portal SUDOCU se reduce a dos valores
-de configuraci\'on.
+y su adaptaci\'on a otras universidades con portal SUDOCU se reduce a un valor de
+configuraci\'on: las carpetas del portal se descubren autom\'aticamente, y una
+sonda de tres pedidos de solo lectura verifica la compatibilidad antes de
+comprometerse.
 
 \keywords{Recuperaci\'on aumentada por generaci\'on, Estado de di\'alogo,
 Documentos normativos, Metadatos estructurados, Sistemas desplegados.}
@@ -137,8 +139,9 @@ que explicitar ese l\'imite es parte del dise\~no, no una omisi\'on.
 
 \item Portabilidad verificable: SUDOCU es un sistema de alcance nacional y el
 m\'odulo de publicaci\'on documental es un componente est\'andar suyo. La
-superficie de adaptaci\'on a otra universidad se reduce a dos valores de
-configuraci\'on.
+superficie de adaptaci\'on a otra universidad es la URL del portal ---las carpetas
+se descubren autom\'aticamente--- y una sonda de tres pedidos de solo lectura
+responde, antes de comprometerse, si esa instalaci\'on es compatible.
 \end{enumerate}
 
 El resto del art\'iculo se organiza as\'i. La Secci\'on~\ref{sec:relacionado}
@@ -348,30 +351,57 @@ resolver la discrepancia en silencio.
 \label{sec:evaluacion}
 
 \subsection{Evaluaci\'on autom\'atica de la recuperaci\'on}
+\label{sec:autoeval}
 
-No existe un conjunto anotado de consultas sobre este corpus. Construimos dos
-conjuntos con verdad de referencia:
+No existe un conjunto anotado de consultas sobre este corpus. Construimos tres
+conjuntos con verdad de referencia, por muestreo estratificado de fragmentos por
+secci\'on del portal y tipo de acto ---sin estratificar, el conjunto queda dominado
+por las secciones grandes y no informa sobre las dem\'as---:
 
 \textbf{Consultas por identificador} (\pend[: n]). Se toma un documento y se
-pregunta por su c\'odigo y n\'umero. El documento correcto se conoce de antemano,
-de modo que las m\'etricas son deterministas y no intervienen juicios.
+pregunta por su c\'odigo y n\'umero, con plantillas fijas y sin intervenci\'on de
+ning\'un modelo. El documento correcto se conoce de antemano, de modo que las
+m\'etricas son deterministas y no intervienen juicios.
 
-\textbf{Consultas por contenido} (\pend[: n]). Se genera, a partir de un documento,
-una pregunta cuya respuesta sea ese documento. Es la construcci\'on habitual
-cuando no hay anotaci\'on disponible, y su limitaci\'on debe declararse: mide la
-recuperaci\'on contra un sustituto de la necesidad de informaci\'on, no contra la
-necesidad real. Por eso la validaci\'on con evaluadores del dominio
-(Secci\'on~\ref{sec:humana}) no es complementaria sino necesaria: mide otra cosa.
+\textbf{Consultas por contenido} (\pend[: n]). Se genera con un modelo de lenguaje,
+a partir de un fragmento, la consulta que har\'ia quien necesita esa informaci\'on
+sin tener el documento delante, con dos restricciones: no nombrar el n\'umero del
+acto y no copiar frases textuales. Cada par pasa por un control de calidad
+autom\'atico ---un segundo pase que decide, con el fragmento y la consulta a la
+vista, si el primero responde a la segunda--- y lo que no pasa se descarta y se
+reporta (\pend[: \% descartado]). Es la construcci\'on habitual cuando no hay
+anotaci\'on disponible, y su limitaci\'on debe declararse: mide la recuperaci\'on
+contra un sustituto de la necesidad de informaci\'on, no contra la necesidad real.
+Por eso la validaci\'on con evaluadores del dominio (Secci\'on~\ref{sec:humana})
+no es complementaria sino necesaria: mide otra cosa.
 
-Reportamos Recall@$k$, MRR@10 y nDCG@10.
+\textbf{Consultas conversacionales} (\pend[: n]). Dos turnos generados desde un
+mismo fragmento: el primero establece el tema y el segundo es una repregunta que
+no se sostiene sola (``\emph{¿y de qu\'e a\~no es?}''). Son el banco de prueba de
+los mecanismos de estado de la Secci\'on~\ref{sec:procedencia}.
+
+La relevancia se decide a nivel \emph{acto}: recuperar cualquier fragmento del
+acto del que sali\'o la consulta cuenta como acierto, porque el sistema cita y
+enlaza actos completos. Reportamos Recall@$k$, MRR@10 y nDCG@10.
 
 \subsection{Ablaci\'on}
 
-Ablamos un mecanismo por vez sobre la configuraci\'on completa, en lugar de
-recorrer la grilla combinatoria: l\'exico, reescritura de la repregunta, ranura de
-entidad, ranura de actos e historial en la generaci\'on. Adicionalmente comparamos
-el estado \emph{inferido} contra el estado \emph{corregido}, que es la comparaci\'on
-que sostiene el aporte sobre procedencia.
+Sobre las consultas simples ablamos las se\~nales de recuperaci\'on: denso solo,
+l\'exico solo y la fusi\'on h\'ibrida con anclaje de identificadores. Sobre las
+conversacionales ablamos un mecanismo de estado por vez a partir de la
+configuraci\'on completa ---reescritura de la repregunta, ranura de entidad,
+ranura de actos---, m\'as las dos condiciones extremas: el segundo turno sin
+ning\'un estado, y el estado con la entidad \emph{corregida}, en la que la ranura
+pesa como fijada por el usuario. Esta \'ultima simula la correcci\'on humana bajo
+el supuesto de que la inferencia era correcta; donde no lo era, el peso doble
+castiga, y ese costo tambi\'en se reporta. Es la comparaci\'on que sostiene el
+aporte sobre procedencia.
+
+\paragraph{Reranking.} Medimos adem\'as si un \emph{cross-encoder} aporta sobre el
+orden del h\'ibrido: el sistema recupera su top-50 y un reranker de la misma familia
+que el codificador denso (BGE-reranker-v2-m3) lo reordena, sin poder traer documentos
+nuevos. Eso a\'isla la pregunta relevante ---¿el orden es el cuello de botella?---
+de la cobertura, que se mide aparte.
 
 \subsection{Fidelidad de las citas}
 
@@ -425,8 +455,8 @@ marcadores.}
 
 \begin{table}[H]
 \centering
-\caption{Recuperaci\'on por tipo de consulta y ablaci\'on de cada mecanismo.
-Configuraci\'on completa y variantes con un mecanismo desactivado.}
+\caption{Recuperaci\'on por tipo de consulta: cada se\~nal sola y la fusi\'on
+h\'ibrida con anclaje de identificadores.}
 \label{tab:ablacion}
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{lrrrrrr}
@@ -435,56 +465,93 @@ Configuraci\'on completa y variantes con un mecanismo desactivado.}
 \cmidrule(lr){2-4}\cmidrule(l){5-7}
 Configuraci\'on & R@5 & MRR@10 & nDCG@10 & R@5 & MRR@10 & nDCG@10 \\
 \midrule
-Completa           & \pend & \pend & \pend & \pend & \pend & \pend \\
-\midrule
-$-$ l\'exico       & \pend & \pend & \pend & \pend & \pend & \pend \\
-$-$ reescritura    & \pend & \pend & \pend & \pend & \pend & \pend \\
-$-$ ranura entidad & \pend & \pend & \pend & \pend & \pend & \pend \\
-$-$ ranura actos   & \pend & \pend & \pend & \pend & \pend & \pend \\
-$-$ historial      & \pend & \pend & \pend & \pend & \pend & \pend \\
+Denso solo         & \pend & \pend & \pend & \pend & \pend & \pend \\
+L\'exico solo      & \pend & \pend & \pend & \pend & \pend & \pend \\
+H\'ibrido (sistema) & \pend & \pend & \pend & \pend & \pend & \pend \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+El reranking no aporta: reordenar el top-50 del h\'ibrido con el cross-encoder
+deja las m\'etricas iguales o peores (R@1 global \pend\ contra \pend\ del h\'ibrido),
+y en las consultas por identificador las \emph{empeora}, porque el reranker punt\'ua
+por contenido y desconoce el anclaje exacto que esas consultas necesitan. A cambio
+multiplica el costo por consulta. La fusi\'on RRF con anclaje de identificadores ya
+resuelve el ordenamiento en este dominio, y el resultado ---negativo--- evita cargar
+al sistema desplegado con un componente que no paga su latencia.
+
 \subsection{Procedencia del estado}
 
-La Tabla~\ref{tab:procedencia} contrasta las tres condiciones que aislan el aporte
-central: sin estado, con estado inferido por el sistema y con estado corregido por
-el usuario. La diferencia entre las dos \'ultimas cuantifica cu\'anto aporta que la
-correcci\'on humana pese m\'as que la inferencia.
+La Tabla~\ref{tab:procedencia} a\'isla cada mecanismo de estado sobre las consultas
+conversacionales, separadas en dos poblaciones: las tem\'aticas, donde el primer
+turno establece un tema, y las ancladas en un acto, donde el primer turno lo nombra
+por su n\'umero y el segundo es puramente el\'iptico
+(``\emph{¿y de qu\'e fecha es?}'').
+
+Tres lecturas se sostienen sobre esa tabla. Primera: sin ning\'un mecanismo, la
+repregunta el\'iptica es irrecuperable ---en las ancladas en un acto no se
+recupera nada, porque el turno no contiene ni el tema ni el n\'umero---. Segunda:
+la \emph{reescritura} de la consulta con el historial es el mecanismo dominante en
+di\'alogos de dos turnos: al reponer el sujeto omitido, la consulta reescrita
+vuelve a ser autocontenida, y sobre ella el anclaje de identificadores y la
+recuperaci\'on h\'ibrida hacen el resto. Tercera: cuando la reescritura ya repuso
+el sujeto, las ranuras no mueven las m\'etricas de este conjunto; su papel
+observable es el de \emph{seguro}, no el de motor. La ranura de actos sostiene la
+continuidad cuando la conversaci\'on sigue sobre normativa ya citada, y la
+garant\'ia de entidad interviene en el caso exacto en que la recuperaci\'on se fue
+de tema, que es el mecanismo detr\'as de la verificaci\'on de atribuci\'on de la
+Secci\'on~\ref{sec:resultcitas}. Esta lectura es consistente con el dise\~no: en
+di\'alogos cortos con consultas reescritas autocontenidas hay poco margen para que
+un sesgo suave reordene el tope del ranking, y el valor de la procedencia se juega
+en el r\'egimen de interacci\'on ---qu\'e puede fijar quien consulta y qu\'e deja
+de ser sobrescrito--- m\'as que en el delta de recuperaci\'on de un turno.
 
 \begin{table}[H]
 \centering
-\caption{Efecto de la procedencia del estado sobre la recuperaci\'on, en consultas
-conversacionales.}
+\caption{Consultas conversacionales: ablaci\'on de los mecanismos de estado y
+efecto de la procedencia, por poblaci\'on. La configuraci\'on completa usa la
+consulta reescrita, la ranura de entidad y la de actos con pesos de inferencia.}
 \label{tab:procedencia}
-\begin{tabular}{lrrr}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrrrr}
 \toprule
-Condici\'on & R@5 & MRR@10 & Fragmentos que mencionan la entidad \\
+ & \multicolumn{3}{c}{Tem\'aticas} & \multicolumn{3}{c}{Ancladas en un acto} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+Condici\'on & R@5 & MRR@10 & nDCG@10 & R@5 & MRR@10 & nDCG@10 \\
 \midrule
-Sin estado                & \pend & \pend & \pend \\
-Estado inferido           & \pend & \pend & \pend \\
-Estado corregido          & \pend & \pend & \pend \\
+Sin estado (turno 2 solo)   & \pend & \pend & \pend & \pend & \pend & \pend \\
+$-$ reescritura             & \pend & \pend & \pend & \pend & \pend & \pend \\
+$-$ ranura entidad          & \pend & \pend & \pend & \pend & \pend & \pend \\
+$-$ ranura actos            & \pend & \pend & \pend & \pend & \pend & \pend \\
+Completa (estado inferido)  & \pend & \pend & \pend & \pend & \pend & \pend \\
+Estado corregido (peso usuario) & \pend & \pend & \pend & \pend & \pend & \pend \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Fidelidad de las citas}
+\label{sec:resultcitas}
 
 \begin{table}[H]
 \centering
-\caption{Verificaci\'on autom\'atica de citas y atribuci\'on.}
+\caption{Verificaci\'on autom\'atica de citas y atribuci\'on sobre respuestas
+generadas por el sistema completo.}
 \label{tab:citas}
 \begin{tabular}{lrr}
 \toprule
-Verificaci\'on & Con estado & Sin estado \\
+Verificaci\'on & Cantidad & \% \\
 \midrule
-Actos citados presentes en lo recuperado (\%)      & \pend & \pend \\
-Atribuci\'on a personas con el nombre en el fragmento (\%) & \pend & \pend \\
-Consultas sin respuesta posible respondidas con ``no s\'e'' (\%) & \pend & \pend \\
+Actos citados en las respuestas           & \pend & -- \\
+Anclados en lo recuperado                 & \pend & \pend \\
+Sueltos (sin fuente detr\'as)             & \pend & \pend \\
+Atribuci\'on de entidad nombrada correcta & \pend & \pend \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\nota{Queda para discutir si sumamos un conjunto de consultas sin respuesta posible
+(actos inexistentes) para medir la tasa de ``no s\'e'': el protocolo actual no lo
+incluye.}
 
 \subsection{Validaci\'on con evaluadores}
 

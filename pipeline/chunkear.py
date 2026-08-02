@@ -193,7 +193,8 @@ def main():
                 for destino, origen in (('url_documento', 'url_documento'),
                                         ('id_archivo', 'id_archivo'),
                                         ('id_documento', 'id_documento'),
-                                        ('fecha_acto', 'fecha_acto')):
+                                        ('fecha_acto', 'fecha_acto'),
+                                        ('seccion_portal', 'seccion_portal')):
                     if fuente.get(origen):
                         meta[destino] = fuente[origen]
 
@@ -202,7 +203,8 @@ def main():
                 'document_id', 'document_code', 'document_number', 'document_type',
                 'issuing_body', 'date_issued', 'year', 'titulo', 'estado',
                 'tipo_documento_fuente', 'metadata_confianza', 'source_pdf',
-                'url_documento', 'id_archivo', 'id_documento', 'fecha_acto')}
+                'url_documento', 'id_archivo', 'id_documento', 'fecha_acto',
+                'seccion_portal')}
 
             for _, titulo, cuerpo in partir_markdown(md):
                 tipo = tipo_de_seccion(titulo)

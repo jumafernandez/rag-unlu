@@ -58,6 +58,53 @@ TEMA_POR_OMISION = {
     'realce': '#deecd8',
 }
 
+# Todo lo que ata la aplicación a una institución concreta. Estaba fijo en el build del
+# front, así que otra universidad tenía que recompilar para poner su nombre: acá pasa a ser
+# configuración, con los valores de la UNLu como punto de partida.
+INSTITUCION_POR_OMISION = {
+    'nombre': 'Universidad Nacional de Luján',
+    'sigla': 'UNLu',
+    'producto': 'ChatDigesto',
+    'descripcion': 'Consulta de normativa institucional de acceso público',
+    # Cómo llama la institución a su cuerpo normativo. La UNLu dice "Digesto"; otras dicen
+    # "Boletín Oficial" o directamente "normativa". Aparece en el título de la pestaña, en
+    # el campo de escritura y en la pantalla inicial.
+    'denominacion': 'Digesto',
+    # El aviso al pie remite acá para verificar: es la fuente que da fe, y el asistente
+    # solo ayuda a encontrar. Cada universidad tiene la suya.
+    'digesto_oficial': 'http://digesto.unlu.edu.ar/',
+    # Portal de publicación documental de SUDOCU. Es de donde sale el corpus, así que
+    # también es lo que hay que cambiar para apuntar a otra instalación.
+    'portal_sudocu': 'https://portal.unlu.edu.ar/sudocu/mpd/#!/mpd/portada',
+    # Texto del aviso al pie de cada respuesta. Si contiene "fuentes oficiales", esas dos
+    # palabras se vuelven el enlace al digesto oficial; si no, el enlace se agrega al final.
+    'aviso': 'Las respuestas pueden contener errores. Verificá siempre la información en '
+             'las fuentes oficiales.',
+}
+
+LARGOS = {'nombre': 160, 'sigla': 24, 'producto': 60, 'descripcion': 200,
+          'denominacion': 40, 'digesto_oficial': 300, 'portal_sudocu': 300, 'aviso': 300}
+
+# Sugerencias de la pantalla inicial. Son la primera impresión del sistema y eran lo más
+# UNLu de toda la interfaz: nombraban paritarias y programas propios. Cada institución
+# escribe las suyas desde el panel.
+SUGERENCIAS_POR_OMISION = [
+    'Normativa sobre concursos docentes',
+    'Normativa sobre becas y viajes curriculares',
+    'Acuerdos de la Paritaria Particular del Sector Nodocente',
+    'Reglamentos académicos',
+    'Planes de Estudios y Carreras',
+]
+SUGERENCIAS_MAX = 8
+SUGERENCIA_LARGO = 120
+
+# El logo subido vive junto a los datos y no en el árbol del front: no se versiona, y una
+# reconstrucción de la interfaz no lo borra.
+DIR_MARCA = os.environ.get('RAG_MARCA', 'datos/marca')
+LOGO_MAX_BYTES = 2 * 1024 * 1024
+# Firmas de archivo, no la extensión del nombre: el nombre lo elige quien sube.
+FIRMAS_IMAGEN = {b'\x89PNG\r\n\x1a\n': 'png', b'\xff\xd8\xff': 'jpeg', b'GIF8': 'gif'}
+
 
 def _bd():
     c = historial._bd()
@@ -171,6 +218,139 @@ def guardar_tema(colores, por):
     return leer_tema()
 
 
+def generacion_por_omision():
+    """Valores de arranque del LLM de generación.
+
+    El entorno sigue valiendo como punto de partida ---RAG_MODELO_GEN ya existía y los
+    despliegues lo usan--- pero lo guardado desde el panel manda sobre él. La CLAVE no
+    entra acá: una credencial no es un ajuste, vive en el entorno y el panel a lo sumo
+    informa si está o no.
+    """
+    return {
+        'modelo': os.environ.get('RAG_MODELO_GEN', 'gpt-4o-mini'),
+        # Vacío = api.openai.com. Cualquier endpoint compatible sirve: un vLLM en un
+        # servidor de la Universidad, un Ollama local, otro proveedor.
+        'base_url': os.environ.get('RAG_LLM_BASE', ''),
+        # 0 a propósito: en normativa se busca reproducibilidad, no creatividad.
+        'temperatura': 0.0,
+    }
+
+
+def leer_generacion():
+    omision = generacion_por_omision()
+    guardado = leer_ajuste('generacion', {}) or {}
+    return {**omision, **{k: v for k, v in guardado.items() if k in omision}}
+
+
+def guardar_generacion(valores, por):
+    valores = valores or {}
+    limpio = {}
+    if 'modelo' in valores:
+        modelo = str(valores['modelo']).strip()[:120]
+        if not modelo:
+            raise ValueError('modelo no puede quedar vacío')
+        limpio['modelo'] = modelo
+    if 'base_url' in valores:
+        base = str(valores['base_url']).strip()[:300]
+        if base and not base.startswith(('http://', 'https://')):
+            raise ValueError('base_url: la dirección debe empezar con http:// o https://')
+        limpio['base_url'] = base
+    if 'temperatura' in valores:
+        try:
+            temperatura = float(valores['temperatura'])
+        except (TypeError, ValueError):
+            raise ValueError('temperatura: se espera un número')
+        if not 0 <= temperatura <= 2:
+            raise ValueError('temperatura: entre 0 y 2')
+        limpio['temperatura'] = temperatura
+    guardar_ajuste('generacion', {**(leer_ajuste('generacion', {}) or {}), **limpio}, por)
+    return leer_generacion()
+
+
+def leer_institucion():
+    guardado = leer_ajuste('institucion', {}) or {}
+    datos = {**INSTITUCION_POR_OMISION,
+             **{k: v for k, v in guardado.items() if k in INSTITUCION_POR_OMISION}}
+    datos['logo'] = ruta_logo() is not None
+    datos['sugerencias'] = leer_ajuste('sugerencias', SUGERENCIAS_POR_OMISION)
+    return datos
+
+
+def guardar_institucion(valores, por):
+    valores = valores or {}
+    limpio = {}
+    for k, largo in LARGOS.items():
+        v = valores.get(k)
+        if v is None:
+            continue
+        v = str(v).strip()[:largo]
+        if k in ('digesto_oficial', 'portal_sudocu') and v and not v.startswith(('http://', 'https://')):
+            raise ValueError(f'{k}: la dirección debe empezar con http:// o https://')
+        if k in ('nombre', 'sigla', 'producto', 'denominacion') and not v:
+            raise ValueError(f'{k} no puede quedar vacío')
+        limpio[k] = v
+    guardar_ajuste('institucion', limpio, por)
+
+    # Las sugerencias van en un ajuste aparte: son una lista y no un texto, y borrarlas
+    # todas es válido (la pantalla inicial queda sin chips, nada más).
+    if 'sugerencias' in valores:
+        crudas = valores['sugerencias']
+        if not isinstance(crudas, list):
+            raise ValueError('sugerencias: se espera una lista de textos')
+        sugerencias = [str(s).strip()[:SUGERENCIA_LARGO] for s in crudas]
+        sugerencias = [s for s in sugerencias if s][:SUGERENCIAS_MAX]
+        guardar_ajuste('sugerencias', sugerencias, por)
+
+    return leer_institucion()
+
+
+def ruta_logo():
+    """Ruta del logo subido, o None si no hay ninguno y corresponde usar el del build."""
+    for ext in ('png', 'jpeg', 'gif'):
+        ruta = os.path.join(DIR_MARCA, f'logo.{ext}')
+        if os.path.exists(ruta):
+            return ruta
+    return None
+
+
+def guardar_logo(datos: bytes, por: str):
+    """Guarda el logo validando que sea una imagen de verdad.
+
+    Se comprueba la FIRMA del archivo y no su extensión: el nombre lo elige quien sube, y
+    aceptar cualquier cosa que se llame .png en un directorio que después se sirve por HTTP
+    es la forma clásica de terminar publicando algo que no era una imagen.
+    """
+    if len(datos) > LOGO_MAX_BYTES:
+        raise ValueError(f'el archivo supera {LOGO_MAX_BYTES // 1024 // 1024} MB')
+    tipo = next((t for firma, t in FIRMAS_IMAGEN.items() if datos.startswith(firma)), None)
+    if not tipo:
+        raise ValueError('el archivo no es una imagen PNG, JPEG ni GIF')
+
+    os.makedirs(DIR_MARCA, exist_ok=True)
+    # Se borra cualquier logo anterior: si quedaran dos con distinta extensión, cuál se sirve
+    # dependería del orden en que se busca.
+    for ext in ('png', 'jpeg', 'gif'):
+        anterior = os.path.join(DIR_MARCA, f'logo.{ext}')
+        if os.path.exists(anterior):
+            os.remove(anterior)
+    with open(os.path.join(DIR_MARCA, f'logo.{tipo}'), 'wb') as f:
+        f.write(datos)
+    guardar_ajuste('logo_cambiado', int(time.time()), por)
+    return tipo
+
+
+def quitar_logo(por):
+    borrado = False
+    for ext in ('png', 'jpeg', 'gif'):
+        ruta = os.path.join(DIR_MARCA, f'logo.{ext}')
+        if os.path.exists(ruta):
+            os.remove(ruta)
+            borrado = True
+    if borrado:
+        guardar_ajuste('logo_cambiado', int(time.time()), por)
+    return borrado
+
+
 # ----------------------------------------------------------------- estado
 def estado(ix=None, ruta_indice='indice'):
     """Lo que el panel muestra como monitor. Solo lectura, sin efectos."""
@@ -204,7 +384,9 @@ def estado(ix=None, ruta_indice='indice'):
         pass
 
     # --- generación ---
-    datos['generacion'] = {'modelo': os.environ.get('RAG_MODELO_GEN', 'gpt-4o-mini'),
+    g = leer_generacion()
+    datos['generacion'] = {'modelo': g['modelo'],
+                           'base_url': g['base_url'] or None,
                            'clave_configurada': bool(os.environ.get('OPENAI_API_KEY'))}
 
     # --- uso ---
@@ -222,32 +404,104 @@ def estado(ix=None, ruta_indice='indice'):
     return datos
 
 
-def documentos_por_seccion(ix, limite=40):
-    """Recuento por sección, para la pantalla de documentos.
+def documentos_por_seccion(ix, limite=60):
+    """Recuento por sección del portal y por tipo de acto.
 
-    Sale del propio índice y no del catálogo a propósito: lo que interesa mostrar es qué
-    está efectivamente indexado ---lo que el asistente puede responder--- y no lo que
-    alguna vez se recolectó.
+    La sección se toma del campo `seccion_portal`, que el pipeline guarda con cada
+    fragmento. NO se deduce del nombre del archivo: eso funcionaba mientras el corpus tenía
+    una sola convención de nombres, y con la nueva ---derivada de la identidad del acto---
+    dejaba a cada documento como su propia sección inventada.
+
+    Los fragmentos anteriores a ese cambio todavía no lo tienen, así que se informan aparte
+    en lugar de repartirlos con una heurística: un recuento que agrupa por conjetura miente
+    con más autoridad que uno que declara lo que no sabe.
+
+    El tipo de acto siempre está disponible ---sale de la identidad--- y responde una
+    pregunta más propia del dominio: cuántas disposiciones de cada organismo hay.
     """
     import collections
-    import re
-    cuenta = collections.Counter()
-    frags = collections.Counter()
+
+    por_seccion = collections.Counter()
+    frag_seccion = collections.Counter()
+    por_tipo = collections.Counter()
+    frag_tipo = collections.Counter()
     vistos = set()
+    sin_seccion = set()
+
+    def contar(documento, seccion, codigo):
+        nuevo_doc = documento not in vistos
+        if nuevo_doc:
+            vistos.add(documento)
+        if seccion:
+            frag_seccion[seccion] += 1
+            if nuevo_doc:
+                por_seccion[seccion] += 1
+        elif nuevo_doc:
+            sin_seccion.add(documento)
+        cod = (codigo or '').strip().upper() or '(sin identificar)'
+        frag_tipo[cod] += 1
+        if nuevo_doc:
+            por_tipo[cod] += 1
+
     if hasattr(ix, '_bd'):
-        filas = ix._bd().execute('SELECT documento, document_code FROM chunk')
-        for f in filas:
-            seccion = re.sub(r'_\d+$', '', f['documento'] or '') or '(sin sección)'
-            frags[seccion] += 1
-            if f['documento'] not in vistos:
-                vistos.add(f['documento'])
-                cuenta[seccion] += 1
+        for f in ix._bd().execute('SELECT documento, seccion_portal, document_code FROM chunk'):
+            contar(f['documento'], f['seccion_portal'], f['document_code'])
     else:
         for c in ix.chunks:
-            seccion = re.sub(r'_\d+$', '', c.get('documento') or '') or '(sin sección)'
-            frags[seccion] += 1
-            if c.get('documento') not in vistos:
-                vistos.add(c.get('documento'))
-                cuenta[seccion] += 1
-    return [{'seccion': s, 'documentos': n, 'fragmentos': frags[s]}
-            for s, n in cuenta.most_common(limite)]
+            contar(c.get('documento'), c.get('seccion_portal'), c.get('document_code'))
+
+    return {
+        'secciones': [{'seccion': s, 'documentos': n, 'fragmentos': frag_seccion[s]}
+                      for s, n in por_seccion.most_common(limite)],
+        'tipos': [{'tipo': t, 'documentos': n, 'fragmentos': frag_tipo[t]}
+                  for t, n in por_tipo.most_common(limite)],
+        'sin_seccion': len(sin_seccion),
+        'documentos': len(vistos),
+    }
+
+
+# ----------------------------------------------------------------- uso
+def uso_reciente(limite=60):
+    """Las conversaciones más recientes de todos los usuarios, para el panel.
+
+    Existe porque quien administra necesita saber qué se le pregunta al sistema y si las
+    respuestas sirven: es la única realimentación real que hay. El acceso es de
+    administradores y queda claro en la guía; no es un canal oculto.
+    """
+    with historial._candado:
+        filas = _bd().execute(
+            'SELECT c.id, c.titulo, c.actualizada, u.correo, u.nombre, '
+            '       COUNT(m.id) AS mensajes, '
+            '       SUM(CASE WHEN m.util = 1 THEN 1 ELSE 0 END) AS utiles, '
+            '       SUM(CASE WHEN m.util = 0 THEN 1 ELSE 0 END) AS no_utiles '
+            'FROM conversacion c '
+            'JOIN usuario u ON u.id = c.usuario_id '
+            'LEFT JOIN mensaje m ON m.conversacion_id = c.id '
+            'GROUP BY c.id ORDER BY c.actualizada DESC LIMIT ?', (limite,)).fetchall()
+    return [dict(f) for f in filas]
+
+
+def uso_resumen():
+    with historial._candado:
+        bd = _bd()
+        total, utiles, no_utiles = bd.execute(
+            'SELECT COUNT(*), SUM(CASE WHEN util=1 THEN 1 ELSE 0 END), '
+            'SUM(CASE WHEN util=0 THEN 1 ELSE 0 END) '
+            "FROM mensaje WHERE rol='assistant'").fetchone()
+    return {'respuestas': total or 0, 'utiles': utiles or 0, 'no_utiles': no_utiles or 0}
+
+
+def uso_conversacion(conversacion_id):
+    """Una conversación completa, sin filtrar por dueño: es la vista del administrador."""
+    with historial._candado:
+        bd = _bd()
+        conv = bd.execute(
+            'SELECT c.id, c.titulo, c.creada, u.correo, u.nombre '
+            'FROM conversacion c JOIN usuario u ON u.id = c.usuario_id '
+            'WHERE c.id=?', (conversacion_id,)).fetchone()
+        if not conv:
+            return None
+        mensajes = bd.execute(
+            'SELECT rol, texto, momento, util FROM mensaje '
+            'WHERE conversacion_id=? ORDER BY id', (conversacion_id,)).fetchall()
+    return {**dict(conv), 'mensajes': [dict(m) for m in mensajes]}

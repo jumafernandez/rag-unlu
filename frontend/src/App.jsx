@@ -3,11 +3,11 @@ import "./styles.css";
 import Login from "./Login";
 import Markdown from "./Markdown";
 import Admin, { aplicarTema } from "./Admin";
-import { INSTITUCION, TEXTOS } from "./config";
+import { INSTITUCION, LOGO_POR_OMISION, textos } from "./config";
 import {
   consultarEnFlujo, leerSesion, cerrarSesion, listarConversaciones, adoptarConversacion,
   leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje, salud,
-  adminSoy, leerTema
+  adminSoy, leerTema, leerInstitucion, URL_LOGO, leerPreferencias, guardarPreferencias
 } from "./api";
 
 function PencilIcon() {
@@ -129,6 +129,41 @@ export default function App() {
   // Los colores guardados se aplican al arrancar, antes de cualquier sesión: son parte de
   // la identidad visual de la institución, no una preferencia de usuario.
   useEffect(() => { leerTema().then((r) => aplicarTema(r.tema)).catch(() => {}); }, []);
+
+  // La institución (nombre, logo, enlaces) vive en el servidor, no en el build: el panel
+  // la edita y la aplicación se entera sin recompilar.
+  const [inst, setInst] = useState(INSTITUCION);
+  useEffect(() => {
+    leerInstitucion().then((r) => setInst({ ...INSTITUCION, ...r.institucion })).catch(() => {});
+  }, []);
+  const rotulos = useMemo(() => textos(inst), [inst]);
+
+  // Ajustes personales (la tuerquita de cada usuario). El tono se guarda en el servidor
+  // y se aplica a la redacción de las respuestas; el contenido no cambia.
+  const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
+  const [tono, setTono] = useState("");
+  const [tonoGuardado, setTonoGuardado] = useState("");
+  const [tonoEstado, setTonoEstado] = useState(null);
+  const abrirAjustes = () => {
+    setAjustesAbiertos(true);
+    setTonoEstado(null);
+    leerPreferencias().then((r) => { setTono(r.tono); setTonoGuardado(r.tono); })
+                      .catch(() => {});
+  };
+  const guardarAjustes = async () => {
+    try {
+      const r = await guardarPreferencias(tono);
+      setTonoGuardado(r.tono); setTono(r.tono);
+      setTonoEstado("Guardado. Vale para tus próximas consultas.");
+    } catch (e) { setTonoEstado(`No se pudo guardar: ${e.message}`); }
+  };
+  useEffect(() => { document.title = rotulos.tituloPagina; }, [rotulos]);
+  useEffect(() => {
+    // El favicon sigue al logo cargado: si hay uno propio, la pestaña también lo muestra.
+    if (!inst.logo) return;
+    const enlace = document.querySelector('link[rel="icon"]');
+    if (enlace) enlace.href = `${URL_LOGO}?v=favicon`;
+  }, [inst.logo]);
 
   // La entrada al panel aparece solo para administradores. Es comodidad, no seguridad: el
   // permiso lo verifica el servidor en cada ruta de /admin.
@@ -497,10 +532,11 @@ export default function App() {
       <aside className={`sidebar ${panelAbierto ? "abierto" : ""}`}>
         <div className="sidebar-top">
           <div className="sidebar-brand">
-            <img src={INSTITUCION.logo} className="logo" alt={`Logo ${INSTITUCION.sigla}`} />
+            <img src={inst.logo ? URL_LOGO : LOGO_POR_OMISION} className="logo"
+                 alt={`Logo ${inst.sigla}`} />
             <div>
-              <h1>{INSTITUCION.producto}</h1>
-              <p>Consulta de normativa institucional de acceso público</p>
+              <h1>{inst.producto}</h1>
+              <p>{inst.descripcion}</p>
             </div>
           </div>
 
@@ -613,6 +649,10 @@ export default function App() {
             {sesion ? (
               <div className="sesion-activa">
                 <span className="sesion-nombre" title={sesion.correo}>{sesion.nombre || sesion.correo}</span>
+                <button className="sesion-ajustes" title="Ajustes personales"
+                        onClick={abrirAjustes}>
+                  <TuercaIcon />
+                </button>
                 <button className="sesion-salir" onClick={() => { cerrarSesion(); setSesion(null); setHistory([]); setConvId(null); }}>
                   Salir
                 </button>
@@ -657,6 +697,34 @@ export default function App() {
         </div>
       </aside>
 
+      {ajustesAbiertos && (
+        <div className="ajustes-fondo" onClick={() => setAjustesAbiertos(false)}>
+          <div className="ajustes-caja" onClick={(e) => e.stopPropagation()}>
+            <h3>Ajustes personales</h3>
+            <label htmlFor="tono-usuario">Tono de las respuestas</label>
+            <p className="ajustes-nota">
+              Cómo querés que te escriba: más formal, más llano, con ejemplos… Cambia la
+              redacción, no el contenido: las citas a la normativa siguen igual.
+            </p>
+            <textarea id="tono-usuario" rows={3} maxLength={400}
+                      placeholder="Por ejemplo: «explicámelo simple, sin jerga administrativa»"
+                      value={tono}
+                      onChange={(e) => setTono(e.target.value)} />
+            {tonoEstado && <p className="ajustes-estado">{tonoEstado}</p>}
+            <div className="ajustes-acciones">
+              <button className="sidebar-action" onClick={() => setAjustesAbiertos(false)}>
+                Cerrar
+              </button>
+              <button className="sidebar-action primary-side"
+                      disabled={tono === tonoGuardado}
+                      onClick={guardarAjustes}>
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="main-panel">
         {view === "admin" && <Admin alSalir={() => setView("chat")} />}
 
@@ -671,24 +739,15 @@ export default function App() {
                 <section className="empty-state">
                   <div className="empty-card">
                     <h2>¿En qué puedo ayudarte?</h2>
-                    <p>Consultá normativa, resoluciones o disposiciones del Digesto.</p>
+                    <p>Consultá normativa, resoluciones o disposiciones del {inst.denominacion}.</p>
 
                     <div className="suggestions">
-                      <button className="suggestion-chip" onClick={() => handleSuggestion("Normativa sobre concursos docentes")}>
-                        Normativa sobre concursos docentes
-                      </button>
-                      <button className="suggestion-chip" onClick={() => handleSuggestion("Normativa sobre becas y viajes curriculares")}>
-                        Normativa sobre becas y viajes curriculares
-                      </button>
-                      <button className="suggestion-chip" onClick={() => handleSuggestion("Acuerdos de la Paritaria Particular del Sector Nodocente")}>
-                        Acuerdos de la Paritaria Particular del Sector Nodocente
-                      </button>
-                      <button className="suggestion-chip" onClick={() => handleSuggestion("Reglamentos académicos")}>
-                        Reglamentos académicos
-                      </button>
-                      <button className="suggestion-chip" onClick={() => handleSuggestion("Planes de Estudios y Carreras")}>
-                        Planes de Estudios y Carreras
-                      </button>
+                      {(inst.sugerencias || []).map((s) => (
+                        <button key={s} className="suggestion-chip"
+                                onClick={() => handleSuggestion(s)}>
+                          {s}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </section>
@@ -922,7 +981,7 @@ export default function App() {
                       sendMessage();
                     }
                   }}
-                  placeholder={TEXTOS.placeholder}
+                  placeholder={rotulos.placeholder}
                   rows={1}
                 />
                 <button onClick={sendMessage}>Enviar</button>
@@ -969,10 +1028,24 @@ export default function App() {
               </div>
 
               <div className="notice">
-                Las respuestas pueden contener errores. Verificá siempre la información en las{" "}
-                <a href={INSTITUCION.digestoOficial} target="_blank" rel="noreferrer">
-                  fuentes oficiales
-                </a>.
+                {(() => {
+                  const aviso = inst.aviso || "";
+                  const marca = "fuentes oficiales";
+                  const enlace = (
+                    <a href={inst.digesto_oficial} target="_blank" rel="noreferrer">
+                      {marca}
+                    </a>
+                  );
+                  const donde = aviso.toLowerCase().indexOf(marca);
+                  if (donde === -1) return <>{aviso} {enlace}.</>;
+                  return (
+                    <>
+                      {aviso.slice(0, donde)}
+                      {enlace}
+                      {aviso.slice(donde + marca.length)}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>

@@ -59,6 +59,12 @@ def main():
     p.add_argument('--log', default='descargas.jsonl')
     p.add_argument('--desde', help='solo actos con Fecha posterior a esta (dd/mm/aaaa)')
     p.add_argument('--limite', type=int, help='cortar después de N descargas (para probar)')
+    p.add_argument('--saltar-indexados', action='store_true',
+                   help='no bajar actos que el catálogo ya marca como indexados. El PDF '
+                        'de un acto indexado ya fue procesado, y el visor en línea lo '
+                        'sirve desde el portal: volver a bajarlo es puro tráfico. Sin '
+                        'esto, un acto viejo cuyo archivo en disco tiene nombre '
+                        'posicional se re-bajaría con su nombre nuevo.')
     a = p.parse_args()
 
     corte = datetime.strptime(a.desde, '%d/%m/%Y') if a.desde else None
@@ -73,6 +79,23 @@ def main():
             except ValueError:
                 return False
         filas = [r for r in filas if posterior(r)]
+
+    if a.saltar_indexados:
+        import sqlite3
+        ruta_cat = os.environ.get('RAG_CATALOGO', 'datos/catalogo.sqlite')
+        if not os.path.exists(ruta_cat):
+            ruta_cat = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                    'datos', 'catalogo.sqlite')
+        indexados = set()
+        if os.path.exists(ruta_cat):
+            c = sqlite3.connect(ruta_cat)
+            indexados = {f[0] for f in c.execute(
+                'SELECT id_archivo FROM acto WHERE indexado_en IS NOT NULL')}
+            c.close()
+        antes = len(filas)
+        filas = [r for r in filas if r.get('id_archivo') not in indexados]
+        print(f'ya indexados según el catálogo: {antes - len(filas)} (no se bajan)',
+              flush=True)
 
     print(f'candidatos: {len(filas)}', flush=True)
 

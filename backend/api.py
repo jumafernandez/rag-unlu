@@ -19,7 +19,7 @@ Variables:
     RAG_INDICE      ruta al índice (default: indice/)
     RAG_MODELO_EMB  modelo de embeddings (default: BAAI/bge-m3)
     OPENAI_API_KEY  para la generación
-    RAG_MODELO_GEN  modelo de generación (default: gpt-4o-mini)
+    RAG_MODELO_GEN  modelo de generación de arranque (el panel puede cambiarlo)
 """
 
 import contextlib
@@ -29,6 +29,8 @@ import pathlib
 import re
 import threading
 import unicodedata
+import secrets
+import sys
 import time
 from typing import List, Optional
 
@@ -37,9 +39,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from fastapi import Header
+from fastapi import File, Header, UploadFile
 
-from . import admin, historial, sesion
+from . import admin, corridas, historial, sesion
 from .recuperacion import Indice
 
 
@@ -66,7 +68,23 @@ _cargar_env()
 
 RUTA_INDICE = os.environ.get('RAG_INDICE', 'indice')
 MODELO_EMB = os.environ.get('RAG_MODELO_EMB', 'BAAI/bge-m3')
-MODELO_GEN = os.environ.get('RAG_MODELO_GEN', 'gpt-4o-mini')
+def config_gen():
+    """Configuración del LLM de generación. Se lee en cada uso: el panel la puede cambiar
+    en caliente y no tiene sentido exigir un reinicio para algo que es un ajuste."""
+    return admin.leer_generacion()
+
+
+def cliente_llm():
+    """Única fábrica del cliente. Cambiar de proveedor o de endpoint es cambiar acá.
+
+    Con base_url propio y sin clave en el entorno se manda una clave de relleno: los
+    servidores compatibles (vLLM, Ollama) no la validan pero el cliente exige una.
+    """
+    from openai import OpenAI
+    g = config_gen()
+    base = g.get('base_url') or None
+    clave = os.environ.get('OPENAI_API_KEY') or ('sin-clave' if base else None)
+    return OpenAI(base_url=base, api_key=clave), g
 
 @contextlib.asynccontextmanager
 async def ciclo_de_vida(_app):
@@ -82,6 +100,12 @@ async def ciclo_de_vida(_app):
         print(f'índice cargado: {len(ix)} chunks en {time.time() - t0:.0f}s', flush=True)
     except Exception as e:
         print(f'AVISO: no se pudo cargar el índice ({e}). /salud lo va a reportar.', flush=True)
+    # Corridas que quedaron 'en_curso' de un proceso anterior: se marcan interrumpidas.
+    corridas.al_arrancar()
+    # Clave para que los procesos del pipeline puedan pedir la recarga del índice sin un
+    # token de administrador. Si no viene del .env se genera acá: los subprocesos la
+    # heredan, y desde afuera nadie la conoce.
+    os.environ.setdefault('RAG_CLAVE_INTERNA', secrets.token_hex(16))
     try:
         t1 = time.time()
         codificador()
@@ -248,9 +272,9 @@ class Respuesta(BaseModel):
 # La instrucción distingue TRES situaciones. Antes trataba todo como consulta normativa, y
 # entonces a un "hola" respondía "el contexto no proporciona información", que suena a error
 # del sistema. La regla que no se afloja en ningún caso es la última: no inventar normativa.
-INSTRUCCION = """Sos el asistente de consulta del Digesto de la Universidad Nacional de Luján.
+INSTRUCCION_BASE = """Sos el asistente de consulta del {denominacion} de la {nombre}.
 Ayudás a encontrar y entender disposiciones, resoluciones y demás actos administrativos de
-la Universidad.
+la institución.
 
 Según lo que te escriban, actuás distinto:
 
@@ -315,6 +339,16 @@ actual de algo, respondé con lo que dicen los actos que tenés y su fecha, y ac
 puede haber normativa posterior que no estés viendo.
 
 Escribí en español rioplatense, claro y directo. Sin preámbulos ni fórmulas de relleno."""
+
+
+def instruccion():
+    """El prompt del sistema, con la identidad que se configuró en Personalización.
+
+    Se arma en cada uso: cambiar el nombre de la institución o la denominación del cuerpo
+    normativo desde el panel alcanza, sin reiniciar ni recompilar.
+    """
+    inst = admin.leer_institucion()
+    return INSTRUCCION_BASE.format(denominacion=inst['denominacion'], nombre=inst['nombre'])
 
 
 # Señales de que una pregunta se apoya en lo dicho antes y no se sostiene sola.
@@ -382,8 +416,6 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
 
     Devuelve (consulta_para_buscar, estado).
     """
-    from openai import OpenAI
-
     estado = normalizar_estado(estado_previo)
     fijada = estado['entidad_origen'] == 'usuario' and estado['entidad']
 
@@ -399,8 +431,9 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
             previo += ' [FIJADA POR EL USUARIO: es una corrección, no la cambies]'
 
     try:
-        r = OpenAI().chat.completions.create(
-            model=MODELO_GEN,
+        llm, g = cliente_llm()
+        r = llm.chat.completions.create(
+            model=g['modelo'],
             temperature=0,
             response_format={'type': 'json_object'},
             messages=[
@@ -489,10 +522,10 @@ def detectar_entidad(pregunta: str, respuesta: str) -> dict:
     Se llama DESPUÉS de generar, en el mismo lugar donde se suman los actos citados: para
     ese momento la respuesta ya está en pantalla, así que el usuario no espera por esto.
     """
-    from openai import OpenAI
     try:
-        r = OpenAI().chat.completions.create(
-            model=MODELO_GEN, temperature=0, response_format={'type': 'json_object'},
+        llm, g = cliente_llm()
+        r = llm.chat.completions.create(
+            model=g['modelo'], temperature=0, response_format={'type': 'json_object'},
             messages=[
                 {'role': 'system', 'content':
                     'Devolvé un JSON con el sujeto concreto sobre el que gira este intercambio '
@@ -608,8 +641,17 @@ def pesos_de_actos(estado: dict) -> dict:
     return salida
 
 
-def _mensajes(pregunta: str, contexto: str, historial=None):
-    mensajes = [{'role': 'system', 'content': INSTRUCCION}]
+def _mensajes(pregunta: str, contexto: str, historial=None, tono=None):
+    sistema = instruccion()
+    if tono:
+        # El tono es del usuario y afecta la FORMA, nunca el contenido: va después de las
+        # reglas y con esa aclaración explícita, para que no pueda usarse para pedirle al
+        # modelo que se salte las citas o invente normativa.
+        sistema += ('\n\nQuien consulta pidió este tono para las respuestas: '
+                    f'{tono}\n'
+                    'Aplicalo solo a la forma de escribir. Las reglas de arriba —citar, '
+                    'no inventar, no afirmar vigencia— valen igual con cualquier tono.')
+    mensajes = [{'role': 'system', 'content': sistema}]
     for t in (historial or [])[-6:]:
         mensajes.append({'role': 'assistant' if t.rol != 'user' else 'user',
                          'content': t.texto[:2000]})
@@ -618,31 +660,28 @@ def _mensajes(pregunta: str, contexto: str, historial=None):
     return mensajes
 
 
-def generar(pregunta: str, contexto: str, historial=None) -> str:
-    """Única puerta a la generación: cambiar de proveedor se hace acá."""
-    from openai import OpenAI
-    cliente = OpenAI()
-    r = cliente.chat.completions.create(
-        model=MODELO_GEN,
-        temperature=0,          # normativa: se busca reproducibilidad, no creatividad
-        messages=_mensajes(pregunta, contexto, historial),
+def generar(pregunta: str, contexto: str, historial=None, tono=None) -> str:
+    llm, g = cliente_llm()
+    r = llm.chat.completions.create(
+        model=g['modelo'],
+        temperature=g['temperatura'],
+        messages=_mensajes(pregunta, contexto, historial, tono),
     )
     return r.choices[0].message.content
 
 
-def generar_en_partes(pregunta: str, contexto: str, historial=None):
+def generar_en_partes(pregunta: str, contexto: str, historial=None, tono=None):
     """Igual que `generar`, pero devolviendo el texto a medida que llega.
 
     La respuesta tarda lo mismo; lo que cambia es que se empieza a leer enseguida en vez
     de mirar un cartel de espera. Es la diferencia entre sentir que el sistema piensa y
     sentir que se colgó.
     """
-    from openai import OpenAI
-    cliente = OpenAI()
-    flujo = cliente.chat.completions.create(
-        model=MODELO_GEN,
-        temperature=0,
-        messages=_mensajes(pregunta, contexto, historial),
+    llm, g = cliente_llm()
+    flujo = llm.chat.completions.create(
+        model=g['modelo'],
+        temperature=g['temperatura'],
+        messages=_mensajes(pregunta, contexto, historial, tono),
         stream=True,
     )
     for parte in flujo:
@@ -661,7 +700,14 @@ def salud():
     """
     try:
         ix = indice()
-        return {'estado': 'ok', 'chunks': len(ix), **ix.info, **_alcance(ix)}
+        # De indice.json se toma solo lo que describe a los vectores (modelo, dimensión,
+        # ventana): eso sigue siendo cierto para el índice servido. La cantidad de chunks
+        # sale del índice VIVO ---indice.json queda desactualizado con cada fusión y llegó
+        # a informar 140.902 mientras se servían 166.965--- y el dispositivo o la duración
+        # de aquella corrida de embeddings no describen a este servidor.
+        de_json = {k: ix.info.get(k) for k in ('modelo', 'dimension', 'max_tokens')
+                   if ix.info.get(k) is not None}
+        return {'estado': 'ok', 'chunks': len(ix), **de_json, **_alcance(ix)}
     except HTTPException as e:
         return {'estado': 'sin_indice', 'detalle': e.detail}
 
@@ -725,7 +771,8 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
         else:
             try:
                 respuesta = generar(c.pregunta, ix.contexto(resultados),
-                                    c.historial if c.usar_historial_generacion else None)
+                                    c.historial if c.usar_historial_generacion else None,
+                                    tono=historial.leer_preferencia(usuario, 'tono'))
             except Exception as e:
                 advertencia = f'Falló la generación ({type(e).__name__}). Se devuelven las fuentes.'
 
@@ -766,7 +813,7 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
         consulta_efectiva=consulta_busqueda, estado=estado,
         conversacion_id=conversacion_id, mensaje_id=mensaje_id,
         pregunta=c.pregunta, respuesta=respuesta, fuentes=fuentes,
-        modelo_generacion=MODELO_GEN if respuesta else None,
+        modelo_generacion=config_gen()['modelo'] if respuesta else None,
         modelo_embeddings=MODELO_EMB,
         segundos=round(time.time() - t0, 3), advertencia=advertencia,
     )
@@ -999,7 +1046,8 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
             try:
                 for parte in generar_en_partes(
                         c.pregunta, ix.contexto(resultados),
-                        c.historial if c.usar_historial_generacion else None):
+                        c.historial if c.usar_historial_generacion else None,
+                        tono=historial.leer_preferencia(usuario, 'tono')):
                     partes.append(parte)
                     yield _sse('texto', {'t': parte})
             except Exception as e:
@@ -1112,6 +1160,10 @@ class Tema(BaseModel):
     colores: dict
 
 
+class Institucion(BaseModel):
+    valores: dict
+
+
 class CorreoAdmin(BaseModel):
     correo: str = Field(..., max_length=200)
 
@@ -1136,7 +1188,7 @@ def admin_estado(authorization: Optional[str] = Header(None)):
 @app.get('/admin/documentos')
 def admin_documentos(authorization: Optional[str] = Header(None)):
     exigir_admin(authorization)
-    return {'secciones': admin.documentos_por_seccion(indice())}
+    return admin.documentos_por_seccion(indice())
 
 
 @app.get('/admin/tema')
@@ -1153,6 +1205,129 @@ def admin_tema_guardar(t: Tema, authorization: Optional[str] = Header(None)):
         return {'tema': admin.guardar_tema(t.colores, admin.correo_de(uid) or uid)}
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+class Preferencias(BaseModel):
+    tono: Optional[str] = Field(None, max_length=400)
+
+
+@app.get('/preferencias')
+def preferencias_leer(authorization: Optional[str] = Header(None)):
+    uid = exigir_usuario(authorization)
+    return {'tono': historial.leer_preferencia(uid, 'tono') or ''}
+
+
+@app.put('/preferencias')
+def preferencias_guardar(pref: Preferencias, authorization: Optional[str] = Header(None)):
+    """El tono con el que el usuario quiere que se le responda. Afecta la redacción,
+    nunca el contenido: las reglas de citado y de no inventar valen para todos."""
+    uid = exigir_usuario(authorization)
+    tono = (pref.tono or '').strip()[:400]
+    historial.guardar_preferencia(uid, 'tono', tono or None)
+    return {'tono': tono}
+
+
+class Generacion(BaseModel):
+    valores: dict
+
+
+@app.get('/admin/generacion')
+def generacion_leer(authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    return {'generacion': admin.leer_generacion(),
+            'por_omision': admin.generacion_por_omision(),
+            # Solo SI hay clave, nunca la clave: una credencial no pasa por el panel.
+            'clave_configurada': bool(os.environ.get('OPENAI_API_KEY'))}
+
+
+@app.put('/admin/generacion')
+def generacion_guardar(g: Generacion, authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    try:
+        return {'generacion': admin.guardar_generacion(g.valores, admin.correo_de(uid) or uid)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post('/admin/generacion/probar')
+def generacion_probar(authorization: Optional[str] = Header(None)):
+    """Una vuelta completa contra el LLM configurado, para saber si camina ANTES de que
+    lo descubra un usuario con una consulta real."""
+    exigir_admin(authorization)
+    t0 = time.time()
+    try:
+        llm, g = cliente_llm()
+        r = llm.chat.completions.create(
+            model=g['modelo'], temperature=0,
+            messages=[{'role': 'user',
+                       'content': 'Respondé exactamente: funcionando'}])
+        return {'ok': True, 'respuesta': (r.choices[0].message.content or '')[:100],
+                'modelo': g['modelo'], 'segundos': round(time.time() - t0, 2)}
+    except Exception as e:
+        return {'ok': False, 'error': f'{type(e).__name__}: {str(e)[:300]}',
+                'segundos': round(time.time() - t0, 2)}
+
+
+@app.get('/admin/institucion')
+def institucion_leer():
+    """Sin autenticación, igual que el tema: la interfaz necesita el nombre y el logo para
+    pintarse antes de que nadie inicie sesión, y son datos públicos."""
+    return {'institucion': admin.leer_institucion(),
+            'por_omision': admin.INSTITUCION_POR_OMISION}
+
+
+@app.put('/admin/institucion')
+def institucion_guardar(i: Institucion, authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    try:
+        return {'institucion': admin.guardar_institucion(i.valores, admin.correo_de(uid) or uid)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.get('/marca/logo')
+def marca_logo():
+    """Logo subido desde el panel. Si no hay ninguno, 404 y la interfaz usa el del build."""
+    from fastapi.responses import FileResponse
+    ruta = admin.ruta_logo()
+    if not ruta:
+        raise HTTPException(404, 'sin logo propio')
+    # Sin caché: el logo se cambia desde el panel y hay que ver el cambio al recargar.
+    return FileResponse(ruta, headers={'Cache-Control': 'no-cache'})
+
+
+@app.post('/admin/logo')
+async def admin_logo_subir(archivo: UploadFile = File(...),
+                           authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    datos = await archivo.read()
+    try:
+        tipo = admin.guardar_logo(datos, admin.correo_de(uid) or uid)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {'tipo': tipo, 'institucion': admin.leer_institucion()}
+
+
+@app.delete('/admin/logo')
+def admin_logo_quitar(authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    admin.quitar_logo(admin.correo_de(uid) or uid)
+    return {'institucion': admin.leer_institucion()}
+
+
+@app.get('/admin/uso')
+def admin_uso(authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    return {'resumen': admin.uso_resumen(), 'conversaciones': admin.uso_reciente()}
+
+
+@app.get('/admin/uso/conversaciones/{cid}')
+def admin_uso_conversacion(cid: int, authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    conv = admin.uso_conversacion(cid)
+    if not conv:
+        raise HTTPException(404, 'no existe esa conversación')
+    return conv
 
 
 @app.get('/admin/admins')
@@ -1177,6 +1352,143 @@ def admin_quitar(correo: str, authorization: Optional[str] = Header(None)):
     if not admin.quitar_admin(correo):
         raise HTTPException(400, 'no se puede quitar: no existe o viene del entorno')
     return {'admins': admin.listar_admins()}
+
+
+# ----------------------------------------------------------------- corridas
+# Operaciones que el panel puede lanzar. Cada una es EL MISMO script que se corre a mano
+# desde una terminal: el panel arma la línea de comandos, nada más. `sys.executable` es el
+# Python del entorno virtual que sirve la API, así que las corridas usan las mismas
+# dependencias que el resto del sistema.
+OPERACIONES = {
+    'catalogo': {
+        'titulo': '1 · Catálogo',
+        'descripcion': 'Recorre las carpetas públicas del portal SUDOCU y arma la lista '
+                       'de actos, con la identidad y el enlace permanente de cada uno. '
+                       'No descarga documentos.',
+        'comando': [sys.executable, 'scrapers/recolectar_api.py', '--todas',
+                    '--salida', 'scrapers/metadatos_nuevo.csv',
+                    '--traza', 'scrapers/traza.jsonl',
+                    '--paciencia', '25'],
+    },
+    'descarga': {
+        'titulo': '2 · Descarga de documentos',
+        'descripcion': 'Baja los PDF del catálogo que todavía no están en disco. Lo ya '
+                       'descargado no se vuelve a pedir.',
+        'comando': [sys.executable, 'scrapers/bajar_pdfs.py',
+                    '--metadatos', 'scrapers/metadatos_nuevo.csv',
+                    '--destino', 'data/portal-incremental',
+                    '--log', 'data/descargas.jsonl',
+                    '--saltar-indexados'],
+    },
+    'vectorizacion': {
+        'titulo': '3 · Vectorización',
+        'descripcion': 'Extrae el texto de los documentos descargados que aún no están '
+                       'en el índice, los parte por artículo y calcula sus vectores. Es '
+                       'el paso pesado.',
+        'comando': [sys.executable, '-m', 'pipeline.actualizar',
+                    '--sin-recolectar', '--sin-descargar', '--sin-indexar'],
+        'entorno': {'OMP_NUM_THREADS': '1'},
+    },
+    'indexacion': {
+        'titulo': '4 · Indexación',
+        'descripcion': 'Reconstruye los artefactos de búsqueda con lo ya vectorizado y '
+                       'recarga el índice en el momento, sin cortar el servicio.',
+        'comando': [sys.executable, '-m', 'pipeline.actualizar', '--solo-indexar'],
+        'entorno': {'OMP_NUM_THREADS': '1'},
+    },
+    'actualizacion': {
+        'titulo': 'Actualización completa (1 → 4)',
+        'descripcion': 'Los cuatro pasos seguidos: catálogo, descarga, vectorización e '
+                       'indexación. Es la rutina que se programa para correr sola.',
+        'comando': [sys.executable, '-m', 'pipeline.actualizar'],
+        'entorno': {'OMP_NUM_THREADS': '1'},
+    },
+}
+
+_RAIZ = str(pathlib.Path(__file__).resolve().parent.parent)
+
+
+class LanzarCorrida(BaseModel):
+    operacion: str
+
+
+@app.get('/admin/corridas')
+def corridas_listar(authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    return {'corridas': corridas.listar(),
+            'en_curso': corridas.en_curso(),
+            'operaciones': [{'clave': k, 'titulo': v['titulo'],
+                             'descripcion': v['descripcion']}
+                            for k, v in OPERACIONES.items()]}
+
+
+@app.get('/admin/corridas/{cid}')
+def corridas_leer(cid: int, lineas: int = 200,
+                  authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    corrida = corridas.leer(cid, colas_log=min(lineas, 1000))
+    if not corrida:
+        raise HTTPException(404, 'no existe esa corrida')
+    corrida.pop('log', None)   # la ruta local no le sirve al navegador
+    return corrida
+
+
+@app.post('/admin/corridas')
+def corridas_lanzar(pedido: LanzarCorrida, authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    op = OPERACIONES.get(pedido.operacion)
+    if not op:
+        raise HTTPException(400, f'operación desconocida: {pedido.operacion}')
+    try:
+        cid = corridas.lanzar(pedido.operacion, op['comando'],
+                              {'comando': ' '.join(op['comando'])},
+                              admin.correo_de(uid) or uid,
+                              cwd=_RAIZ, entorno=op.get('entorno'))
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    return {'id': cid}
+
+
+@app.post('/admin/indice/recargar')
+def indice_recargar(authorization: Optional[str] = Header(None),
+                    x_clave_interna: Optional[str] = Header(None)):
+    """Vuelve a abrir el índice desde los artefactos en disco.
+
+    Es la otra mitad del swap atómico: `construir_indice` deja los archivos nuevos con
+    `os.replace`, y esta ruta hace que el proceso en marcha los adopte sin reiniciar. La
+    referencia global se cambia recién cuando el índice nuevo terminó de abrirse: si algo
+    falla, se sigue sirviendo el anterior.
+    """
+    global _indice
+    # Dos formas válidas de pedirla: un administrador desde el panel, o un proceso del
+    # pipeline con la clave interna (la hereda por ser subproceso de esta API).
+    clave = os.environ.get('RAG_CLAVE_INTERNA')
+    if not (clave and x_clave_interna == clave):
+        exigir_admin(authorization)
+    anterior = _indice
+    try:
+        artefactos = all(os.path.exists(os.path.join(RUTA_INDICE, x))
+                         for x in ('chunks.sqlite', 'vectores.faiss'))
+        if artefactos and os.environ.get('RAG_ALMACEN', 'sql') != 'memoria':
+            from .almacen import AlmacenSQL
+            nuevo = AlmacenSQL(RUTA_INDICE)
+        else:
+            nuevo = Indice(RUTA_INDICE)
+    except Exception as e:
+        raise HTTPException(500, f'el índice nuevo no se pudo abrir: {e}')
+    with _candado:
+        _indice = nuevo
+        _ALCANCE.clear()
+    return {'fragmentos': len(nuevo), 'almacen': type(nuevo).__name__,
+            'anterior': len(anterior) if anterior else None}
+
+
+@app.post('/admin/corridas/{cid}/cancelar')
+def corridas_cancelar(cid: int, authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    if not corridas.cancelar(cid, admin.correo_de(uid) or uid):
+        raise HTTPException(400, 'esa corrida no está en curso')
+    return {'ok': True}
 
 
 # ---------------------------------------------------------------------------

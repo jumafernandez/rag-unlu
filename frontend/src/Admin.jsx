@@ -13,14 +13,30 @@
 import { useEffect, useState } from "react";
 import {
   adminEstado, adminDocumentos, adminAdmins, adminAgregarAdmin, adminQuitarAdmin,
-  leerTema, guardarTema
+  leerTema, guardarTema, leerInstitucion, guardarInstitucion, subirLogo, quitarLogo, URL_LOGO,
+  adminCorridas, adminCorrida, adminLanzarCorrida, adminCancelarCorrida, adminRecargarIndice,
+  adminGeneracion, adminGuardarGeneracion, adminProbarGeneracion, adminUso, adminUsoConversacion
 } from "./api";
 
 const SECCIONES = [
   ["estado", "Estado"],
+  ["corridas", "Ejecuciones"],
   ["docs", "Documentos"],
-  ["template", "Apariencia"],
+  ["template", "Personalización"],
+  ["llm", "Generación"],
+  ["uso", "Uso"],
   ["admins", "Administradores"],
+];
+
+const CAMPOS_INSTITUCION = [
+  ["nombre", "Nombre de la Universidad", "text"],
+  ["sigla", "Sigla", "text"],
+  ["producto", "Nombre del asistente", "text"],
+  ["descripcion", "Bajada del panel lateral", "text"],
+  ["denominacion", "Denominación del cuerpo normativo (Digesto, Boletín Oficial…)", "text"],
+  ["aviso", "Aviso al pie de cada respuesta", "text"],
+  ["digesto_oficial", "Fuente oficial (enlace del aviso al pie)", "url"],
+  ["portal_sudocu", "Portal SUDOCU de publicación documental", "url"],
 ];
 
 const NOMBRES_COLOR = {
@@ -60,7 +76,11 @@ export default function Admin({ alSalir }) {
   const [error, setError] = useState(null);
 
   return (
+    // El scroll vive en .admin, a todo el ancho, y el contenido se centra adentro. Si el
+    // ancho máximo y el scroll estuvieran en el mismo elemento, la barra quedaría metida
+    // dentro de la columna de texto en vez de al borde de la ventana.
     <div className="admin">
+     <div className="admin-interior">
       <div className="admin-cabecera">
         <div>
           <h2>Administración</h2>
@@ -84,10 +104,146 @@ export default function Admin({ alSalir }) {
       {error && <div className="admin-error">{error}</div>}
 
       {seccion === "estado" && <Estado alFallar={setError} />}
+      {seccion === "corridas" && <Corridas alFallar={setError} />}
       {seccion === "docs" && <Documentos alFallar={setError} />}
       {seccion === "template" && <Apariencia alFallar={setError} />}
+      {seccion === "llm" && <Generacion alFallar={setError} />}
+      {seccion === "uso" && <Uso alFallar={setError} />}
       {seccion === "admins" && <Administradores alFallar={setError} />}
+     </div>
     </div>
+  );
+}
+
+const ESTADOS_CORRIDA = {
+  en_curso: "En curso",
+  ok: "Terminó bien",
+  error: "Falló",
+  cancelada: "Cancelada",
+  interrumpida: "Interrumpida",
+  terminada: "Terminó (código desconocido: la API se reinició en el medio)",
+};
+
+function duracion(inicio, fin) {
+  if (!inicio) return "—";
+  const seg = (fin || Math.floor(Date.now() / 1000)) - inicio;
+  if (seg < 90) return `${seg}s`;
+  if (seg < 5400) return `${Math.round(seg / 60)} min`;
+  return `${(seg / 3600).toFixed(1)} h`;
+}
+
+function Corridas({ alFallar }) {
+  const [datos, setDatos] = useState(null);
+  const [abierta, setAbierta] = useState(null);      // id de la corrida cuyo log se mira
+  const [detalle, setDetalle] = useState(null);
+  const [lanzando, setLanzando] = useState(false);
+
+  const refrescar = () => adminCorridas().then(setDatos).catch((e) => alFallar(e.message));
+  useEffect(() => { refrescar(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mientras haya una corrida en curso, la lista y el log abierto se refrescan solos.
+  useEffect(() => {
+    if (!datos?.en_curso && !(detalle && detalle.estado === "en_curso")) return;
+    const timer = setInterval(() => {
+      refrescar();
+      if (abierta != null) adminCorrida(abierta).then(setDetalle).catch(() => {});
+    }, 3000);
+    return () => clearInterval(timer);
+  });   // sin dependencias a propósito: se rearma en cada render y usa el estado fresco
+
+  const abrir = (id) => {
+    setAbierta(id);
+    setDetalle(null);
+    adminCorrida(id).then(setDetalle).catch((e) => alFallar(e.message));
+  };
+
+  const lanzar = async (clave) => {
+    setLanzando(true);
+    try {
+      const r = await adminLanzarCorrida(clave);
+      await refrescar();
+      abrir(r.id);
+    } catch (e) { alFallar(e.message); }
+    setLanzando(false);
+  };
+
+  if (!datos) return <p className="admin-cargando">Cargando…</p>;
+  const hayActiva = !!datos.en_curso;
+
+  return (
+    <>
+      <p className="admin-nota">
+        Los pasos del pipeline, en orden: el catálogo dice qué actos existen, la descarga
+        trae sus PDF, la vectorización los procesa y calcula sus vectores, y la indexación
+        deja todo listo para servir. Cada paso es el mismo script que se corre desde una
+        terminal; el panel lo lanza y guarda su registro. Corre uno a la vez.
+      </p>
+
+      <div className="corrida-operaciones">
+        {datos.operaciones.map((op) => (
+          <div className="corrida-operacion" key={op.clave}>
+            <div>
+              <strong>{op.titulo}</strong>
+              <p>{op.descripcion}</p>
+            </div>
+            <button className="sidebar-action primary-side admin-guardar"
+                    disabled={hayActiva || lanzando}
+                    onClick={() => lanzar(op.clave)}>
+              {hayActiva ? "Hay una en curso" : "Ejecutar"}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="admin-subtitulo">Registro</h3>
+      {datos.corridas.length === 0 && (
+        <p className="admin-nota">Todavía no se ejecutó ningún paso.</p>
+      )}
+      {datos.corridas.length > 0 && (
+        <div className="admin-tabla-envoltura">
+          <table className="admin-tabla">
+            <thead>
+              <tr><th>#</th><th>Paso</th><th>Estado</th><th>Inicio</th>
+                  <th>Duración</th><th>Ejecutado por</th><th></th></tr>
+            </thead>
+            <tbody>
+              {datos.corridas.map((c) => (
+                <tr key={c.id} className={abierta === c.id ? "fila-activa" : ""}>
+                  <td>{c.id}</td>
+                  <td>{c.operacion}</td>
+                  <td><span className={`corrida-estado ${c.estado}`}>
+                    {ESTADOS_CORRIDA[c.estado] || c.estado}</span></td>
+                  <td>{fecha(c.inicio)}</td>
+                  <td>{duracion(c.inicio, c.fin)}</td>
+                  <td>{c.por}</td>
+                  <td><button className="history-accion" onClick={() => abrir(c.id)}>
+                    ver log</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {abierta != null && (
+        <div className="corrida-log">
+          <div className="corrida-log-cabecera">
+            <strong>Log de la ejecución #{abierta}</strong>
+            <span>
+              {detalle?.estado === "en_curso" && (
+                <button className="history-accion"
+                        onClick={() => adminCancelarCorrida(abierta)
+                          .then(refrescar).catch((e) => alFallar(e.message))}>
+                  Cancelar ejecución
+                </button>
+              )}
+              <button className="history-accion" onClick={() => setAbierta(null)}>cerrar</button>
+            </span>
+          </div>
+          <pre>{detalle ? (detalle.log_cola || []).join("\n") || "(log vacío)" : "Cargando…"}</pre>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -159,31 +315,50 @@ function Tarjeta({ titulo, valor, pie }) {
 }
 
 function Documentos({ alFallar }) {
-  const [secciones, setSecciones] = useState(null);
+  const [d, setD] = useState(null);
+  const [vista, setVista] = useState("secciones");
   useEffect(() => {
-    adminDocumentos().then((r) => setSecciones(r.secciones)).catch((e) => alFallar(e.message));
+    adminDocumentos().then(setD).catch((e) => alFallar(e.message));
   }, [alFallar]);
-  if (!secciones) return <p className="admin-cargando">Cargando…</p>;
+  if (!d) return <p className="admin-cargando">Cargando…</p>;
 
-  const totalDocs = secciones.reduce((a, s) => a + s.documentos, 0);
-  const maximo = Math.max(...secciones.map((s) => s.documentos), 1);
+  const filas = vista === "secciones"
+    ? d.secciones.map((s) => ({ clave: s.seccion, etiqueta: s.seccion.replaceAll("_", " "),
+                                docs: s.documentos, frags: s.fragmentos }))
+    : d.tipos.map((s) => ({ clave: s.tipo, etiqueta: s.tipo,
+                            docs: s.documentos, frags: s.fragmentos }));
+  const maximo = Math.max(...filas.map((f) => f.docs), 1);
+
   return (
     <>
       <p className="admin-nota">
         Lo que está efectivamente indexado, que es lo que el asistente puede responder — no
-        lo que alguna vez se recolectó. {totalDocs.toLocaleString("es-AR")} documentos.
+        lo que alguna vez se recolectó. {d.documentos.toLocaleString("es-AR")} documentos.
+        {d.sin_seccion > 0 && ` ${d.sin_seccion.toLocaleString("es-AR")} sin sección asignada.`}
       </p>
+
+      <div className="admin-alternar">
+        <button className={vista === "secciones" ? "activa" : ""}
+                onClick={() => setVista("secciones")}>Por sección del portal</button>
+        <button className={vista === "tipos" ? "activa" : ""}
+                onClick={() => setVista("tipos")}>Por tipo de acto</button>
+      </div>
+
       <table className="admin-tabla">
-        <thead><tr><th>Sección</th><th>Documentos</th><th>Fragmentos</th><th></th></tr></thead>
+        <thead>
+          <tr>
+            <th>{vista === "secciones" ? "Sección" : "Tipo de acto"}</th>
+            <th>Documentos</th><th>Fragmentos</th><th></th>
+          </tr>
+        </thead>
         <tbody>
-          {secciones.map((s) => (
-            <tr key={s.seccion}>
-              <td>{s.seccion.replaceAll("_", " ")}</td>
-              <td>{s.documentos.toLocaleString("es-AR")}</td>
-              <td>{s.fragmentos.toLocaleString("es-AR")}</td>
+          {filas.map((f) => (
+            <tr key={f.clave}>
+              <td>{f.etiqueta}</td>
+              <td>{f.docs.toLocaleString("es-AR")}</td>
+              <td>{f.frags.toLocaleString("es-AR")}</td>
               <td className="admin-barra-celda">
-                <span className="admin-barra"
-                      style={{ width: `${(s.documentos / maximo) * 100}%` }} />
+                <span className="admin-barra" style={{ width: `${(f.docs / maximo) * 100}%` }} />
               </td>
             </tr>
           ))}
@@ -199,9 +374,17 @@ function Apariencia({ alFallar }) {
   const [guardado, setGuardado] = useState(null);
   const [guardando, setGuardando] = useState(false);
 
+  const [inst, setInst] = useState(null);
+  const [instGuardada, setInstGuardada] = useState(null);
+  const [hayLogo, setHayLogo] = useState(false);
+  const [versionLogo, setVersionLogo] = useState(0);
+
   useEffect(() => {
     leerTema().then((r) => { setTema(r.tema); setOmision(r.por_omision); setGuardado(r.tema); })
               .catch((e) => alFallar(e.message));
+    leerInstitucion().then((r) => {
+      setInst(r.institucion); setInstGuardada(r.institucion); setHayLogo(!!r.institucion.logo);
+    }).catch((e) => alFallar(e.message));
   }, [alFallar]);
 
   // La vista previa se aplica en el momento a las variables reales, así el cambio se ve en
@@ -209,13 +392,97 @@ function Apariencia({ alFallar }) {
   useEffect(() => { if (tema) aplicarTema(tema); }, [tema]);
   useEffect(() => () => { if (guardado) aplicarTema(guardado); }, [guardado]);
 
-  if (!tema) return <p className="admin-cargando">Cargando…</p>;
+  if (!tema || !inst) return <p className="admin-cargando">Cargando…</p>;
 
   const cambiar = (clave, valor) => setTema((t) => ({ ...t, [clave]: valor }));
-  const sinGuardar = JSON.stringify(tema) !== JSON.stringify(guardado);
+  const cambiarInst = (clave, valor) => setInst((i) => ({ ...i, [clave]: valor }));
+  const temaCambio = JSON.stringify(tema) !== JSON.stringify(guardado);
+  const instCambio = JSON.stringify(inst) !== JSON.stringify(instGuardada);
+  const sinGuardar = temaCambio || instCambio;
+
+  const guardarTodo = async () => {
+    setGuardando(true);
+    try {
+      if (instCambio) {
+        const r = await guardarInstitucion(inst);
+        setInst(r.institucion); setInstGuardada(r.institucion);
+      }
+      if (temaCambio) {
+        const r = await guardarTema(tema);
+        setGuardado(r.tema);
+      }
+    } catch (e) { alFallar(e.message); }
+    setGuardando(false);
+  };
 
   return (
     <>
+      <p className="admin-nota">
+        Todo lo que ata la aplicación a una institución. Estaba fijo en el código, así que
+        otra universidad tenía que recompilar para poner su nombre.
+      </p>
+
+      <h3 className="admin-subtitulo">Identidad</h3>
+      <div className="admin-campos">
+        {CAMPOS_INSTITUCION.map(([clave, etiqueta, tipo]) => (
+          <div className="admin-campo" key={clave}>
+            <label htmlFor={`i-${clave}`}>{etiqueta}</label>
+            <input id={`i-${clave}`} type={tipo} className="admin-entrada"
+                   value={inst[clave] || ""}
+                   onChange={(e) => cambiarInst(clave, e.target.value)} />
+          </div>
+        ))}
+      </div>
+
+      <p className="admin-nota admin-nota-chica">
+        Si el aviso contiene «fuentes oficiales», esas palabras enlazan a la fuente
+        oficial; si no, el enlace se agrega al final.
+      </p>
+
+      <h3 className="admin-subtitulo">Sugerencias de la pantalla inicial</h3>
+      <p className="admin-nota">
+        Los botones que se ofrecen antes de la primera consulta. Una por línea, hasta 8.
+      </p>
+      <textarea className="admin-entrada admin-sugerencias" rows={6}
+                value={(inst.sugerencias || []).join("\n")}
+                onChange={(e) => cambiarInst("sugerencias", e.target.value.split("\n"))} />
+
+      <h3 className="admin-subtitulo">Logo</h3>
+      <p className="admin-nota">
+        PNG, JPEG o GIF, hasta 2 MB. Se valida la firma del archivo y no su extensión. Sin
+        logo propio se usa el que viene con la aplicación.
+      </p>
+      <div className="admin-logo">
+        <img src={hayLogo ? `${URL_LOGO}?v=${versionLogo}` : "/logo-unlu-96.png"}
+             alt="Logo actual" className="admin-logo-muestra" />
+        <div className="admin-logo-acciones">
+          <label className="sidebar-action admin-guardar admin-subir">
+            Elegir archivo
+            <input type="file" accept="image/png,image/jpeg,image/gif" hidden
+                   onChange={async (e) => {
+                     const f = e.target.files?.[0];
+                     if (!f) return;
+                     try {
+                       await subirLogo(f);
+                       setHayLogo(true); setVersionLogo(Date.now());
+                     } catch (err) { alFallar(err.message); }
+                     e.target.value = "";
+                   }} />
+          </label>
+          {hayLogo && (
+            <button className="sidebar-action"
+                    onClick={async () => {
+                      try { await quitarLogo(); setHayLogo(false); setVersionLogo(Date.now()); }
+                      catch (e) { alFallar(e.message); }
+                    }}>Volver al original</button>
+          )}
+        </div>
+      </div>
+      <p className="admin-nota admin-nota-chica">
+        El logo se guarda y se quita en el momento; no espera al botón de guardar.
+      </p>
+
+      <h3 className="admin-subtitulo">Colores</h3>
       <p className="admin-nota">
         Cuatro colores definen la identidad visual: el resto de la interfaz deriva de ellos.
         Los cambios se ven al instante en toda la aplicación; recién se conservan al guardar.
@@ -245,23 +512,198 @@ function Apariencia({ alFallar }) {
 
       <div className="admin-acciones">
         <button className="sidebar-action primary-side admin-guardar"
-                disabled={!sinGuardar || guardando}
-                onClick={async () => {
-                  setGuardando(true);
-                  try {
-                    const r = await guardarTema(tema);
-                    setGuardado(r.tema);
-                  } catch (e) { alFallar(e.message); }
-                  setGuardando(false);
-                }}>
+                disabled={!sinGuardar || guardando} onClick={guardarTodo}>
           {guardando ? "Guardando…" : sinGuardar ? "Guardar" : "Sin cambios"}
         </button>
         {sinGuardar && (
-          <button className="sidebar-action" onClick={() => setTema(guardado)}>
+          <button className="sidebar-action"
+                  onClick={() => { setTema(guardado); setInst(instGuardada); }}>
             Descartar
           </button>
         )}
       </div>
+    </>
+  );
+}
+
+function Generacion({ alFallar }) {
+  const [datos, setDatos] = useState(null);
+  const [valores, setValores] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [prueba, setPrueba] = useState(null);
+  const [probando, setProbando] = useState(false);
+
+  useEffect(() => {
+    adminGeneracion().then((r) => { setDatos(r); setValores(r.generacion); })
+                     .catch((e) => alFallar(e.message));
+  }, [alFallar]);
+
+  if (!valores) return <p className="admin-cargando">Cargando…</p>;
+
+  const cambio = JSON.stringify(valores) !== JSON.stringify(datos.generacion);
+
+  const guardar = async () => {
+    setGuardando(true);
+    try {
+      const r = await adminGuardarGeneracion(valores);
+      setDatos((d) => ({ ...d, generacion: r.generacion }));
+      setValores(r.generacion);
+      setPrueba(null);
+    } catch (e) { alFallar(e.message); }
+    setGuardando(false);
+  };
+
+  const probar = async () => {
+    setProbando(true);
+    setPrueba(null);
+    try { setPrueba(await adminProbarGeneracion()); }
+    catch (e) { alFallar(e.message); }
+    setProbando(false);
+  };
+
+  return (
+    <>
+      <p className="admin-nota">
+        El modelo de lenguaje que redacta las respuestas. Sirve cualquier endpoint
+        compatible con la API de OpenAI: la nube, un vLLM en un servidor propio, un Ollama.
+        La clave NO se configura acá: vive en el entorno del servidor y el panel solo
+        informa si está.
+      </p>
+
+      <div className="admin-campos">
+        <div className="admin-campo">
+          <label htmlFor="g-modelo">Modelo</label>
+          <input id="g-modelo" type="text" className="admin-entrada"
+                 value={valores.modelo}
+                 onChange={(e) => setValores((v) => ({ ...v, modelo: e.target.value }))} />
+        </div>
+        <div className="admin-campo">
+          <label htmlFor="g-base">Endpoint (vacío = OpenAI)</label>
+          <input id="g-base" type="url" className="admin-entrada"
+                 placeholder="https://servidor-propio/v1"
+                 value={valores.base_url || ""}
+                 onChange={(e) => setValores((v) => ({ ...v, base_url: e.target.value }))} />
+        </div>
+        <div className="admin-campo">
+          <label htmlFor="g-temp">Temperatura (0 = reproducible, recomendado en normativa)</label>
+          <input id="g-temp" type="number" min="0" max="2" step="0.1" className="admin-entrada"
+                 value={valores.temperatura}
+                 onChange={(e) => setValores((v) => ({ ...v, temperatura: e.target.value }))} />
+        </div>
+        <div className="admin-campo">
+          <label>Clave de API</label>
+          <p className="admin-dato">
+            {datos.clave_configurada
+              ? "Configurada en el entorno del servidor."
+              : "NO está configurada: las consultas devuelven fuentes sin respuesta redactada."}
+          </p>
+        </div>
+      </div>
+
+      <div className="admin-acciones">
+        <button className="sidebar-action primary-side admin-guardar"
+                disabled={!cambio || guardando} onClick={guardar}>
+          {guardando ? "Guardando…" : cambio ? "Guardar" : "Sin cambios"}
+        </button>
+        <button className="sidebar-action" disabled={probando || cambio} onClick={probar}
+                title={cambio ? "Guardá antes de probar: la prueba usa lo guardado" : undefined}>
+          {probando ? "Probando…" : "Probar el modelo"}
+        </button>
+        {cambio && (
+          <button className="sidebar-action" onClick={() => setValores(datos.generacion)}>
+            Descartar
+          </button>
+        )}
+      </div>
+
+      {prueba && (
+        <p className={`admin-prueba ${prueba.ok ? "ok" : "error"}`}>
+          {prueba.ok
+            ? `Respondió "${prueba.respuesta}" en ${prueba.segundos}s (${prueba.modelo}).`
+            : `Falló en ${prueba.segundos}s: ${prueba.error}`}
+        </p>
+      )}
+    </>
+  );
+}
+
+function Uso({ alFallar }) {
+  const [datos, setDatos] = useState(null);
+  const [abierta, setAbierta] = useState(null);
+  const [conv, setConv] = useState(null);
+
+  useEffect(() => { adminUso().then(setDatos).catch((e) => alFallar(e.message)); }, [alFallar]);
+  if (!datos) return <p className="admin-cargando">Cargando…</p>;
+
+  const abrir = (id) => {
+    setAbierta(id); setConv(null);
+    adminUsoConversacion(id).then(setConv).catch((e) => alFallar(e.message));
+  };
+
+  const r = datos.resumen;
+  return (
+    <>
+      <p className="admin-nota">
+        Qué se le pregunta al sistema y si las respuestas sirven. Es la única
+        realimentación real que hay: las valoraciones (👍/👎) salen de acá.
+      </p>
+
+      <div className="admin-tarjetas">
+        <Tarjeta titulo="Respuestas dadas" valor={r.respuestas.toLocaleString("es-AR")}
+                 pie="desde el primer día" />
+        <Tarjeta titulo="Valoradas útiles" valor={r.utiles.toLocaleString("es-AR")}
+                 pie="pulgar arriba" />
+        <Tarjeta titulo="Valoradas no útiles" valor={r.no_utiles.toLocaleString("es-AR")}
+                 pie="pulgar abajo" />
+      </div>
+
+      <h3 className="admin-subtitulo">Conversaciones recientes</h3>
+      <div className="admin-tabla-envoltura">
+        <table className="admin-tabla">
+          <thead>
+            <tr><th>Última actividad</th><th>Usuario</th><th>Título</th>
+                <th>Mensajes</th><th>👍</th><th>👎</th><th></th></tr>
+          </thead>
+          <tbody>
+            {datos.conversaciones.map((c) => (
+              <tr key={c.id} className={abierta === c.id ? "fila-activa" : ""}>
+                <td>{fecha(c.actualizada)}</td>
+                <td title={c.correo}>{c.nombre || c.correo}</td>
+                <td className="uso-titulo">{c.titulo}</td>
+                <td>{c.mensajes}</td>
+                <td>{c.utiles || ""}</td>
+                <td>{c.no_utiles || ""}</td>
+                <td><button className="history-accion" onClick={() => abrir(c.id)}>ver</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {abierta != null && (
+        <div className="corrida-log">
+          <div className="corrida-log-cabecera">
+            <strong>
+              {conv ? `${conv.titulo} — ${conv.nombre || conv.correo}` : "Cargando…"}
+            </strong>
+            <span>
+              <button className="history-accion" onClick={() => setAbierta(null)}>cerrar</button>
+            </span>
+          </div>
+          <div className="uso-conversacion">
+            {(conv?.mensajes || []).map((m, i) => (
+              <div key={i} className={`uso-mensaje ${m.rol}`}>
+                <div className="uso-mensaje-meta">
+                  {m.rol === "user" ? "Usuario" : "Asistente"} · {fecha(m.momento)}
+                  {m.util === 1 && " · 👍"}
+                  {m.util === 0 && " · 👎"}
+                </div>
+                <div className="uso-mensaje-texto">{m.texto}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }

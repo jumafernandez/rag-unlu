@@ -1,0 +1,1032 @@
+{
+ "resumen": {
+  "hibrido": {
+   "global": {
+    "n": 161,
+    "recall@1": 0.7018633540372671,
+    "recall@5": 0.8633540372670807,
+    "recall@8": 0.8757763975155279,
+    "mrr@10": 0.766888494528246,
+    "ndcg@10": 0.7939693086291999,
+    "sin_encontrar": 20
+   },
+   "identificador": {
+    "n": 30,
+    "recall@1": 1.0,
+    "recall@5": 1.0,
+    "recall@8": 1.0,
+    "mrr@10": 1.0,
+    "ndcg@10": 1.0,
+    "sin_encontrar": 0
+   },
+   "tematica": {
+    "n": 131,
+    "recall@1": 0.6335877862595419,
+    "recall@5": 0.8320610687022901,
+    "recall@8": 0.8473282442748091,
+    "mrr@10": 0.7135041802980734,
+    "ndcg@10": 0.7467867075519173,
+    "sin_encontrar": 20
+   }
+  },
+  "rerank": {
+   "global": {
+    "n": 161,
+    "recall@1": 0.6832298136645962,
+    "recall@5": 0.8385093167701864,
+    "recall@8": 0.8819875776397516,
+    "mrr@10": 0.7535862170955339,
+    "ndcg@10": 0.7849763879101482,
+    "sin_encontrar": 19
+   },
+   "identificador": {
+    "n": 30,
+    "recall@1": 0.9666666666666667,
+    "recall@5": 0.9666666666666667,
+    "recall@8": 1.0,
+    "mrr@10": 0.9714285714285714,
+    "ndcg@10": 0.9777777777777777,
+    "sin_encontrar": 0
+   },
+   "tematica": {
+    "n": 131,
+    "recall@1": 0.6183206106870229,
+    "recall@5": 0.8091603053435115,
+    "recall@8": 0.8549618320610687,
+    "mrr@10": 0.7036986550345329,
+    "ndcg@10": 0.7408233978641263,
+    "sin_encontrar": 19
+   }
+  }
+ },
+ "detalle": [
+  {
+   "consulta": "¿Qué establece la Disposicion CS 52/2026?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPDD-CB 10/2026?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DISPCD-CS 129/2025",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Disposicion DISPDD-E 45/2026",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPPCD-CB 207/2024?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPSECPOS 62/2024?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DSUBSEF 178/2024",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Disposicion DISSECPCII 142/2025",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPSEACAD 678/2026?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DSECBUAE 7/2026?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "texto de la Disposicion CS 37/2026",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Disposicion DISPDD-E 177/2024",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPDD-CS 41/2024?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPPCD-E 37/2026?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DGAA 560/2024",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Resolucion RR 135/2024",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DSECEXT 27/2025?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿De qué trata la Unknown?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 7
+  },
+  {
+   "consulta": "texto de la Disposicion DISPSEACAD 595/2025",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Disposicion DGR 3/2025",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué establece la Resolucion RR 14/2025?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPCD-CB 348/2025?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DGAEF 64/2026",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Disposicion DISPPCD-E 91/2025",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPCD-T 41/2025?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DGS 2/2025?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DISPSECCYT 5/2025",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Disposicion DISPDD-T 68/2026",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion CS 49/2026?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPCD-T 46/2025?",
+   "tipo": "identificador",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de Adriana Rosenfeld para servicios personales en transformación digital en Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 7
+  },
+  {
+   "consulta": "Información sobre la licencia docente de Clara María Minaverry para actividades académicas en Noruega en enero de 2026",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "baja de docente en Ciencias Sociales María Dolores Martínez",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación docente Gabriel Larretape en abril de 2025",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "¿Quiénes son los responsables del curso de posgrado sobre tecnologías de la información geográfica aplicadas a la gestión municipal en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Aval del informe final sobre el uso de sistemas externos de representación en la enseñanza de ciencias en la escuela primaria",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "¿Qué información hay sobre el concurso para el cargo de Ayudante de Primera en Tecnologías Informáticas que fue declarado desierto?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuál fue el resultado de la evaluación de la docente Mabel María Luján Muñoz para el cargo de Ayudante de Primera en la disciplina de Procesamiento y Conservación de Alimentos?",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 1
+  },
+  {
+   "consulta": "Renuncia de docente en la División Cultura Corporal y su Enseñanza",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": null
+  },
+  {
+   "consulta": "Error en el número de documento de identidad de la estudiante Gómez Ivana Elizabeth en la disposición del Departamento de Tecnología",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de Jefe de Trabajos Prácticos en Biología para un docente con doctorado",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 3
+  },
+  {
+   "consulta": "Designación de ayudante de segunda en el departamento de educación para Malena Tacuri Condo",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Baja por cesantía de un profesor adjunto por abandono de servicios en la UNLu",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuándo se llevará a cabo el concurso cerrado interno para el cargo de Jefe de División de Liquidaciones de Haberes en la Universidad Nacional de las Artes?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "tema de trabajo final de aplicación de Ivana Elizabeth Gómez en ingeniería agronómica sobre condiciones ambientales en granjas porcinas",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "alta de docente interino en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "¿Cuáles son las condiciones para presentar la garantía de cumplimiento de contrato en las órdenes de compra de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cómo se conforma la Comisión Revisora del Estatuto en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de ayudante de primera en cultura corporal y su enseñanza",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué estudiantes fueron incorporadas al equipo del proyecto de investigación sobre la memoria colectiva en la formación docente en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quiénes son los docentes designados para el tribunal evaluador del Trabajo Final de Graduación de la Licenciatura en Trabajo Social de Agustina Cartier Moulin?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quién fue designado como profesor asociado en la División de Análisis Socioeconómico y Cultural del Departamento de Ciencias Sociales?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "autorización de pago por servicio de traslado entre Luján y Manuel Alberti",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "programa del seminario sobre sujetos, culturas y pedagogías para la maestría en educación popular de adultos",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "pago anticipado a proveedor por adquisición de módulo de interfaz de confort para vehículo oficial",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "Inscripción de José María D'Angelo como candidato a Doctor en Ciencias Sociales y Humanas en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué información hay sobre la contratación de servicios personales para el seminario de Biología Molecular en la Carrera de Bioinformática en 2024?",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 2
+  },
+  {
+   "consulta": "designación del Secretario de Bienestar y Asuntos Estudiantiles en enero de 2026",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 1
+  },
+  {
+   "consulta": "baja de docente en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "¿Quién es la tutora del trabajo final de graduación de María Florencia Magalí Sequeira en la licenciatura en Trabajo Social?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuánto se autorizó para el reintegro a María Laura Risiglione por el acto de reconocimiento a profesores del Departamento de Tecnología?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "aval para informe final de acciones y proyectos de extensión en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Coordinadores designados para la evaluación de proyectos de extensión 2026",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quién fue designado como consultor en la carrera de especialización en producción avícola y cuál es su periodo de prestación de servicios?",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 1
+  },
+  {
+   "consulta": "Licencia extraordinaria para docente en jornadas de mastozoología en Santa Cruz",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 4
+  },
+  {
+   "consulta": "baja de docente Jésica Benholtz en Ciencias Básicas por renuncia",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué pasó con la inscripción de la estudiante Giuliana Benitez en el ciclo académico 2022?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Cuántas renovaciones anuales de cajas chicas se autorizan para la Dirección de Gestión de Rectorado en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quiénes fueron designados como jurados para la defensa de la tesis de doctorado de Víctor Nicolás Velazco en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Aprobación de actividades extracurriculares en la Universidad Nacional de Luján relacionadas con cultivos alternativos",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": 3
+  },
+  {
+   "consulta": "Descuento de haberes para el cargo de Ayudante de Primera en diciembre de 2025 por liquidación indebida",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de ayudantes de primera en cultura corporal y su enseñanza",
+   "tipo": "tematica",
+   "hibrido": 7,
+   "rerank": 8
+  },
+  {
+   "consulta": "Revalidación de docente en cargo de profesora adjunta en Trabajo Social",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": 2
+  },
+  {
+   "consulta": "¿Quiénes son los miembros de la Comisión de Recepción Definitiva para la contratación de repuestos para reparación de PCs en el Departamento de Servicios Sociales?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": null
+  },
+  {
+   "consulta": "prestación de servicios personales para el seminario de la carrera de maestría en gestión empresaria 2024",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "Renovación de designación de personal nodocente en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "designación de Natalia Ledesma como Jefe de Trabajos Prácticos en Psicología y Psicopedagogía",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "¿Quién dictará el seminario sobre tecnologías y teoría de la información aplicadas a museos en la Universidad Nacional de Luján en octubre y noviembre de 2025?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la contratación de una enfermera en la Delegación San Fernando en 2025?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "Reintegro de gastos por traslado del rector a Mar del Plata",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "modificación de situación de revista docente Emilio Javier De La Cueva Gutiérrez",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 2
+  },
+  {
+   "consulta": "Funciones de los asistentes en el Rectorado de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": null
+  },
+  {
+   "consulta": "¿Cómo se preservan los registros de evaluación socioeconómica de los estudiantes que solicitan becas?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "incorporación de estudiante al proyecto de extensión en Cuartel V, Moreno",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuánto se autorizó pagar por el servicio de catering durante el congreso de decanos y decanas de ciencias sociales?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Autorización de pago para la adquisición de insumos y servicios de mantenimiento en la Universidad",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 2
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la asignación transitoria de funciones para el cargo de Jefe de División Pagos a favor de Natalia Teresa Pérez?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Programa del seminario de posgrado sobre metodología y técnicas de investigación en ciencias sociales y humanas para el doctorado",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Quiénes son las autoridades del Observatorio Malvinas y cuál es su estructura?",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 1
+  },
+  {
+   "consulta": "Reintegro de gastos para actividades de la Asociación Civil de Microbiología General",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 3
+  },
+  {
+   "consulta": "Modificación de artículo sobre imputación presupuestaria en la Secretaría de Posgrado",
+   "tipo": "tematica",
+   "hibrido": 5,
+   "rerank": 1
+  },
+  {
+   "consulta": "continuidad docente Cintia Vanesa Bianchi Ayudante de Primera Psicología",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Quiero saber quiénes están designados para dictar el Taller de Lectura y Comprensión de Textos en febrero de 2025 y cuántas comisiones tiene cada uno.",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 3
+  },
+  {
+   "consulta": "Renovación del equipo de trabajo para la caracterización de grasas alimentarias en el CATEC",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Servicios personales para el taller de handball en Luján durante julio a diciembre de 2026",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuál es la retribución y las fechas del seminario sobre estudios de género que dictará Gloria Alejandra Lynch en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "Modificación de la situación de revista de la docente Rosa Ester Miriam Campos en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué información hay sobre la licencia extraordinaria de la docente Lucía Morresi en la División Biología?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuáles son las condiciones para la garantía de cumplimiento de contrato en las órdenes de compra de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Composición de la Comisión de Plan de Estudios de la Licenciatura en Enfermería",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué dependencias se consultan al recibir las bajas de personal en la Dirección General de Sistemas?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Hasta cuándo se extiende el plazo para inscribirse en los proyectos de investigación sobre sustentabilidad agropecuaria?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quiénes son los directores de la tesis de María Florencia Larroque en Licenciatura en Ciencias Biológicas?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "cambio de dedicación docente de Ayudante de Primera en Ciencias Sociales",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "¿Qué gastos se autorizaron para la compra de materiales para los talleres deportivos en la universidad?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la contratación de Gerardo Adrián Núñez para la Maestría en Gestión Empresaria en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": 4
+  },
+  {
+   "consulta": "Reintegro de gastos para la compra de un regulador de presión para bebederos de pollos",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Funciones de los asistentes en las unidades políticas del Rectorado de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": null
+  },
+  {
+   "consulta": "Cómo se conforma la Comisión Revisora Permanente del Estatuto en la Asamblea Universitaria de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "modificación de la situación de revista de un docente en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "¿Qué información hay sobre la designación de una persona para un seminario sobre la infancia en la Universidad Nacional de Luján en 2024?",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 2
+  },
+  {
+   "consulta": "Información sobre la aprobación y aval de informes finales para proyectos de extensión en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "¿Cómo se preservan los registros de evaluación socioeconómica de los estudiantes que solicitan becas?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué equivalencias académicas se otorgaron a Leon Gomez Damico para la carrera de Ingeniería en Alimentos?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quiénes son los docentes designados como tutor y asesora temática del trabajo final de graduación de Brisa Sánchez en la Licenciatura en Trabajo Social?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de jurados para evaluar un trabajo final en la especialización en matemática aplicada",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quiénes son los miembros de la comisión evaluadora del trabajo final de Micaela Alejandra Macchia en Ingeniería Agronómica?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuál es la nueva fecha límite para presentar el informe final del proyecto sobre la expansión urbana en la región metropolitana de Buenos Aires?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "autorización de servicios personales para dictado de un curso de posgrado en el marco de un proyecto de fortalecimiento de doctorados",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "Quiero saber sobre la designación de personal de gabinete en la Secretaría de Bienestar Universitario de la Universidad Nacional de Luján.",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuáles son los requisitos para constituir la garantía de cumplimiento de contrato en las órdenes de compra de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "modificación de dedicación del docente Pablo Javier Privitera en la División Cultura Corporal",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "designación de Elda Yolanda Monterroso como personal de gabinete en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quién fue aprobado para el cargo de Profesor Adjunto en la División Tecnología Agropecuaria?",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": 1
+  },
+  {
+   "consulta": "modificación de la situación del docente Damián Alejandro Cipolla en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 3
+  },
+  {
+   "consulta": "designación de ayudante de segunda en biología ad honorem",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "Información sobre la inscripción al doctorado en Ciencias Aplicadas de María Eugenia Beily",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Quién fue la persona seleccionada para el cargo de Jefe de Trabajos Prácticos en la División Química?",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 4
+  },
+  {
+   "consulta": "designación de docente tutor en la carrera de especialización en abordajes interdisciplinarios en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 1
+  },
+  {
+   "consulta": "Reconocimiento de actividades académicas en la especialización en Ciencias Sociales con mención en Historia Social",
+   "tipo": "tematica",
+   "hibrido": 5,
+   "rerank": 8
+  },
+  {
+   "consulta": "¿Qué información hay sobre el programa de extensión 'La UNLu en el Barrio' y quiénes son sus integrantes?",
+   "tipo": "tematica",
+   "hibrido": 4,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la contratación de profesores para el taller de vóley en Luján durante el segundo semestre de 2026?",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": 8
+  },
+  {
+   "consulta": "¿Qué información hay sobre el taller de realización audiovisual para el programa Jóvenes y Memoria en Luján?",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 3
+  },
+  {
+   "consulta": "Funciones específicas asignadas a Verónica Cano en la Dirección General de Recursos de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuál es la situación de la renuncia del docente Daniel Adrián Tortonese en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Informe final del proyecto de extensión sobre desayunos y meriendas en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuándo se designa a Virginia Elizabeth Simón como Ayudante de Segunda en la asignatura Termodinámica?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "Quién es el nuevo representante suplente del claustro de docentes auxiliares en el registro de aspirantes?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Licencia extraordinaria sin goce de haberes para docentes en cargos interinos de mayor jerarquía",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de tribunal evaluador para trabajo final de graduación en licenciatura en trabajo social",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la adquisición de mesadas para el laboratorio de microbiología en la universidad?",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 4
+  },
+  {
+   "consulta": "Licencia por maternidad para docentes en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "¿Quién fue designada para brindar apoyo administrativo en la carrera de Especialización en Educación y Políticas Públicas para la Primera Infancia en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "hibrido": 7,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Qué información hay sobre el taller de realización audiovisual para el programa Jóvenes y Memoria en Luján?",
+   "tipo": "tematica",
+   "hibrido": 3,
+   "rerank": 3
+  },
+  {
+   "consulta": "¿Qué asignaturas se reconocen por equivalencia para la carrera de Contador Público en la Universidad Nacional de José C. Paz?",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": 6
+  },
+  {
+   "consulta": "¿Cuánto se autorizó pagar por el servicio de traslado de los equipos de handball a Rafael Calzada en mayo de 2026?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de ayudante de primera en computación en la sede Chivilcoy",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": null
+  },
+  {
+   "consulta": "Funciones de los asistentes en el Rectorado de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": null
+  },
+  {
+   "consulta": "tutoría trabajo final graduación licenciatura en trabajo social Candela Serio",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "asesor técnico en producción de forraje en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuál es la designación de la docente María Luciana Maidana en la asignatura de Enfermería Materno Infantil para el período 2025-2026?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 2
+  },
+  {
+   "consulta": "baja definitiva del docente Luis Juan Güerini en la División Derecho del Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Convocatoria para prácticas de extensión en las carreras de grado y pregrado de la UNLu 2026",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Prórroga de licencia sin goce de haberes para docentes en cargos de mayor jerarquía en Tecnología Agropecuaria",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "¿Cuál es la situación laboral de la docente Rosana Demichuk en el Departamento de Ciencias Sociales?",
+   "tipo": "tematica",
+   "hibrido": 2,
+   "rerank": 6
+  },
+  {
+   "consulta": "¿Qué información hay sobre el programa de la asignatura de Riego y Drenaje para la carrera de Ingeniería Agronómica en la Universidad Nacional de Luján para los años 2026-2027?",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Equivalencias de materias para la carrera de Analista Universitario en Ciencias de Datos",
+   "tipo": "tematica",
+   "hibrido": null,
+   "rerank": null
+  },
+  {
+   "consulta": "Quiero saber quiénes son los miembros del tribunal evaluador del trabajo final de aplicación de Guillermo Andrés Schulz en Ingeniería Agronómica.",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de consejeras y tribunal evaluador para el trabajo final de aplicación de Milagros Peralta en Ingeniería Agronómica",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "designación de responsable para talleres culturales en 2025",
+   "tipo": "tematica",
+   "hibrido": 1,
+   "rerank": 1
+  },
+  {
+   "consulta": "Licencia sin goce de haberes para docente en mayor jerarquía en el Departamento de Tecnología",
+   "tipo": "tematica",
+   "hibrido": 5,
+   "rerank": null
+  }
+ ],
+ "candidatos": 50,
+ "modelo": "BAAI/bge-reranker-v2-m3"
+}

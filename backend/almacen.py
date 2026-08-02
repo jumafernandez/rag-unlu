@@ -35,7 +35,8 @@ from .recuperacion import BM25, RE_IDENTIFICADOR, Indice, normalizar, tokenizar
 # usar SELECT *: si mañana la tabla suma una columna, la respuesta de la API no cambia sola.
 CAMPOS = ['chunk_id', 'documento', 'seccion', 'tipo_seccion', 'cita', 'titulo', 'texto',
           'document_code', 'document_number', 'date_issued', 'fecha_acto', 'estado',
-          'metadata_confianza', 'source_pdf', 'url_documento', 'id_archivo', 'id_documento']
+          'metadata_confianza', 'source_pdf', 'url_documento', 'id_archivo', 'id_documento',
+          'seccion_portal']
 
 
 class AlmacenSQL(Indice):

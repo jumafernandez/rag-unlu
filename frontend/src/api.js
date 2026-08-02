@@ -144,3 +144,44 @@ export const adminQuitarAdmin = (correo) =>
 export const leerTema = () => fetch(`${BASE}/admin/tema`).then((r) => r.json());
 export const guardarTema = (colores) =>
   pedir("/admin/tema", { method: "PUT", body: JSON.stringify({ colores }) });
+
+export const leerInstitucion = () => fetch(`${BASE}/admin/institucion`).then((r) => r.json());
+export const guardarInstitucion = (valores) =>
+  pedir("/admin/institucion", { method: "PUT", body: JSON.stringify({ valores }) });
+
+/** El logo va como multipart, así que no pasa por `pedir`: fetch pone el Content-Type con
+ *  el límite del formulario y fijarlo a mano rompe el envío. */
+export async function subirLogo(archivo) {
+  const cuerpo = new FormData();
+  cuerpo.append("archivo", archivo);
+  const s = leerSesion();
+  const r = await fetch(`${BASE}/admin/logo`, {
+    method: "POST",
+    headers: s?.token ? { Authorization: `Bearer ${s.token}` } : {},
+    body: cuerpo,
+  });
+  if (!r.ok) throw new Error((await r.text().catch(() => "")).slice(0, 200) || "No se pudo subir");
+  return r.json();
+}
+export const quitarLogo = () => pedir("/admin/logo", { method: "DELETE" });
+
+export const adminCorridas = () => pedir("/admin/corridas");
+export const adminCorrida = (id, lineas = 200) => pedir(`/admin/corridas/${id}?lineas=${lineas}`);
+export const adminLanzarCorrida = (operacion) =>
+  pedir("/admin/corridas", { method: "POST", body: JSON.stringify({ operacion }) });
+export const adminCancelarCorrida = (id) =>
+  pedir(`/admin/corridas/${id}/cancelar`, { method: "POST" });
+export const adminRecargarIndice = () =>
+  pedir("/admin/indice/recargar", { method: "POST" });
+export const adminGeneracion = () => pedir("/admin/generacion");
+export const adminGuardarGeneracion = (valores) =>
+  pedir("/admin/generacion", { method: "PUT", body: JSON.stringify({ valores }) });
+export const adminProbarGeneracion = () =>
+  pedir("/admin/generacion/probar", { method: "POST" });
+
+export const adminUso = () => pedir("/admin/uso");
+export const adminUsoConversacion = (id) => pedir(`/admin/uso/conversaciones/${id}`);
+export const leerPreferencias = () => pedir("/preferencias");
+export const guardarPreferencias = (tono) =>
+  pedir("/preferencias", { method: "PUT", body: JSON.stringify({ tono }) });
+export const URL_LOGO = `${BASE}/marca/logo`;

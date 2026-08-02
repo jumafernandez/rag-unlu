@@ -193,3 +193,41 @@ def borrar_conversacion(conversacion_id, usuario_id):
         bd.execute('DELETE FROM conversacion WHERE id=?', (conversacion_id,))
         bd.commit()
         return True
+
+
+# ------------------------------------------------------------------ preferencias
+# Ajustes personales de cada usuario. Hoy: el tono con el que quiere que se le responda.
+# Va en una tabla propia y no como columnas de `usuario` para poder sumar preferencias
+# sin migrar el esquema cada vez.
+ESQUEMA_PREFERENCIA = """
+CREATE TABLE IF NOT EXISTS preferencia (
+    usuario_id TEXT NOT NULL,
+    clave      TEXT NOT NULL,
+    valor      TEXT,
+    cambiada   INTEGER,
+    PRIMARY KEY (usuario_id, clave)
+);
+"""
+
+
+def leer_preferencia(usuario_id, clave, por_omision=None):
+    if not usuario_id:
+        return por_omision
+    with _candado:
+        bd = _bd()
+        bd.executescript(ESQUEMA_PREFERENCIA)
+        fila = bd.execute('SELECT valor FROM preferencia WHERE usuario_id=? AND clave=?',
+                          (usuario_id, clave)).fetchone()
+    return fila['valor'] if fila and fila['valor'] is not None else por_omision
+
+
+def guardar_preferencia(usuario_id, clave, valor):
+    with _candado:
+        bd = _bd()
+        bd.executescript(ESQUEMA_PREFERENCIA)
+        bd.execute('INSERT INTO preferencia (usuario_id, clave, valor, cambiada) '
+                   'VALUES (?,?,?,?) ON CONFLICT(usuario_id, clave) DO UPDATE SET '
+                   'valor=excluded.valor, cambiada=excluded.cambiada',
+                   (usuario_id, clave, valor, int(time.time())))
+        bd.commit()
+    return valor
