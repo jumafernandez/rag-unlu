@@ -1778,3 +1778,94 @@ button, input, select, textarea { font: inherit; }
   background: var(--fondo);
 }
 .uso-mensaje.user .uso-mensaje-texto { background: var(--fondo-marca); }
+
+/* =====================================================================
+   Capa Material — acercar la estética a la familia MPD de SUDOCU.
+   Tipografía Roboto (autoalojada: la aplicación sigue siendo un solo
+   origen), superficies con elevación en vez de borde, radios contenidos
+   y pesos de botón Material. La PALETA no se toca: sigue saliendo de las
+   variables configurables en Personalización.
+   ===================================================================== */
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/roboto-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/roboto-500.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/roboto-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  /* Sombras de elevación Material, las mismas tres capas que usa el MPD. */
+  --elevacion-1: 0 1px 3px rgba(0,0,0,.2), 0 1px 1px rgba(0,0,0,.14), 0 2px 1px -1px rgba(0,0,0,.12);
+  --elevacion-2: 0 1px 5px rgba(0,0,0,.2), 0 2px 2px rgba(0,0,0,.14), 0 3px 1px -2px rgba(0,0,0,.12);
+  --elevacion-4: 0 2px 4px -1px rgba(0,0,0,.2), 0 4px 5px rgba(0,0,0,.14), 0 1px 10px rgba(0,0,0,.12);
+}
+
+html, body, #root {
+  font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* La cabecera de marca como toolbar Material: la marca sólida, texto blanco. */
+.sidebar-brand {
+  background: var(--marca);
+  border-radius: 4px;
+  padding: 12px 14px;
+  box-shadow: var(--elevacion-2);
+  align-items: center;
+}
+.sidebar-brand h1 { color: #fff; font-weight: 500; font-size: 1.45rem; }
+.sidebar-brand p { color: rgba(255,255,255,.82); }
+.logo { border: none; border-radius: 4px; width: 48px; height: 48px; }
+
+/* Superficies: elevación y radio 4px, como md-card. */
+.empty-card,
+.message-bubble.assistant,
+.corrida-operacion,
+.corrida-log,
+.ajustes-caja,
+.admin-tarjetas > div {
+  border: none;
+  border-radius: 4px;
+  box-shadow: var(--elevacion-1);
+}
+.empty-card { box-shadow: var(--elevacion-2); }
+.message-bubble { border-radius: 4px; box-shadow: var(--elevacion-1); }
+.message-bubble.user { border: none; }
+
+/* Botones con el peso y el cuerpo de Material. */
+button, .sidebar-action {
+  font-weight: 500;
+  letter-spacing: .01em;
+}
+.sidebar-action { border-radius: 4px; }
+.suggestion-chip { font-weight: 400; }   /* los chips Material son píldoras: quedan */
+
+/* Entradas y paneles del admin, misma familia. */
+.admin-entrada, .ajustes-caja textarea { border-radius: 4px; }
+.admin-tabla-envoltura, .uso-conversacion { border-radius: 4px; }
+
+/* Tabla estilo md-data-table: cabecera chica gris, filas aireadas. */
+.admin-tabla th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--texto-suave);
+  text-transform: none;
+}
+.admin-tabla td { height: 44px; }
+
+/* El campo de escritura y Enviar, cuadrados como los formularios del MPD. */
+.input-area { border-radius: 4px; box-shadow: var(--elevacion-2); border: none; }
+.input-area button, .primary { border-radius: 4px; }
+.history-search input, .search-box input { border-radius: 4px; }

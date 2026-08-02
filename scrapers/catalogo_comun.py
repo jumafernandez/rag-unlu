@@ -71,7 +71,8 @@ def fila_a_registro(d, seccion):
         'id_documento': id_documento or '',
         'URL': url_documento(id_archivo, id_documento) if id_archivo and id_documento else '',
         'Seccion': seccion,
-        'Codigo': nro.get('tipo') or '',
+        # UNLu lo llama 'tipo'; UNSL, 'codigo_tipo_documento'. Mismo dato, otra clave.
+        'Codigo': nro.get('tipo') or nro.get('codigo_tipo_documento') or '',
         'Nro': nro.get('nro') or '',
         'Anio': nro.get('anio') or '',
         'Organismo': nro.get('organismo') or '',

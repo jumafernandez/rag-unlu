@@ -211,7 +211,10 @@ def main():
                    help='respuestas vacías seguidas antes de dar por terminada una carpeta')
     a = p.parse_args()
 
-    carpetas = carpetas_del_portal() if a.todas else dict(CARPETAS)
+    # Siempre se pregunta al portal: también con --carpeta, porque el nombre de la
+    # sección sale de acá y el mapa estático es de la UNLu (con otra instalación
+    # etiquetaría cualquier cosa).
+    carpetas = carpetas_del_portal()
     ids = a.carpeta or (sorted(carpetas) if a.todas else None)
     if not ids:
         sys.exit('indicá --carpeta ID o --todas')
