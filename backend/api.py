@@ -383,10 +383,13 @@ Si alguno de los dos no aparece en el contexto, decilo con claridad y no lo inve
 Nunca digas cuál "está vigente": este sistema no conoce vigencia.""",
     'resumen': """
 
-MODO RESUMEN. Quien consulta pidió una síntesis. Formato: un resumen de 5 a 8 líneas de
-qué establece la normativa del tema, integrando lo que digan los distintos actos, con la
-cita entre paréntesis después de cada afirmación. Al final, bajo el título **Actos
-clave**, los 3 a 5 más importantes con una línea cada uno. Nada más.""",
+MODO RESUMEN. Quien consulta pidió una síntesis NARRADA sobre un tema o una entidad
+(una persona, una carrera, una dependencia, un programa). Escribí uno o dos párrafos
+CORRIDOS —sin viñetas, sin numeración, sin listas, sin encabezados— que integren los
+hallazgos: qué dispuso la normativa sobre esa entidad, cómo fue cambiando en el tiempo
+si se nota, qué designaciones, roles o hechos aparecen. La cita va entre paréntesis
+después de cada afirmación, como en el resto del sistema. Prosa de quien le cuenta a un
+colega lo que encontró en el digesto, no un informe con formato.""",
     'novedades': """
 
 MODO NOVEDADES. Quien consulta pidió lo NUEVO. El contexto ya viene restringido a actos

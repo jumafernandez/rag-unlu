@@ -1915,3 +1915,35 @@ button, .sidebar-action {
 /* El historial es navegación secundaria: no compite en peso con la conversación. */
 .history-item { color: var(--texto-suave); }
 .history-row.activa .history-item { color: var(--marca-oscura); }
+
+/* ---- Pulido del panel: pestañas y ritmo vertical ---- */
+/* Las pestañas nunca quiebran en dos filas: una sola línea con scroll horizontal,
+   como las tabs de Material. El subrayado activo pisa el borde del contenedor. */
+.admin-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--borde);
+}
+.admin-tabs::-webkit-scrollbar { display: none; }
+.admin-tab {
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-bottom: -1px;   /* el subrayado activo se apoya sobre el borde, no encima */
+}
+
+/* Mismo ritmo vertical para todos los campos del panel: el dato de solo lectura
+   ("Clave de API: configurada") se alinea con los inputs de al lado. */
+.admin-campo label { margin-bottom: 6px; }
+.admin-dato {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 2px;
+}
+
+/* El pie de sesión: nombre, tuerca y Salir centrados en la misma línea. */
+.sesion-activa { display: flex; align-items: center; gap: 8px; }
+.sesion-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sesion-ajustes { line-height: 0; }

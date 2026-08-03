@@ -164,7 +164,7 @@ export default function App() {
     { cmd: "novedades", ejemplo: "/novedades 60 concursos  (días y tema, ambos opcionales)",
       hint: "Lo publicado recientemente; con número elegís la ventana en días" },
     { cmd: "resumen", ejemplo: "/resumen licencias docentes",
-      hint: "Síntesis breve del tema con sus actos clave" },
+      hint: "Síntesis narrada sobre un tema o una entidad, en prosa" },
   ];
   const parseSkill = (texto) => {
     const m = texto.match(/^\/(\w+)(?:\s+(.+))?$/s);
