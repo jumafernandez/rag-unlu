@@ -50,7 +50,12 @@ import sys
 import time
 import urllib.request
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Dos anclas distintas a propósito. Los SCRIPTS viven en el repo (REPO); los DATOS de la
+# instancia viven en su directorio de trabajo (RAIZ = cwd). En la instancia histórica de
+# la UNLu ambos coinciden; en una instalación (instalaciones/unsl) el código es el del
+# repo y el corpus, el catálogo y el índice quedan en la carpeta de esa instalación.
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAIZ = os.getcwd()
 PY = sys.executable
 
 METADATOS = 'scrapers/metadatos_nuevo.csv'
@@ -63,7 +68,9 @@ def paso(nombre, comando, **kwargs):
     print(f'\n=== {nombre} ===', flush=True)
     print('$', ' '.join(comando), flush=True)
     t0 = time.time()
-    r = subprocess.run(comando, cwd=RAIZ, **kwargs)
+    ambiente = {**os.environ,
+                'PYTHONPATH': REPO + os.pathsep + os.environ.get('PYTHONPATH', '')}
+    r = subprocess.run(comando, cwd=RAIZ, env=ambiente, **kwargs)
     print(f'--- {nombre}: {"ok" if r.returncode == 0 else f"ERROR ({r.returncode})"} '
           f'en {time.time() - t0:.0f}s', flush=True)
     if r.returncode != 0:
@@ -149,7 +156,7 @@ def main():
 
     # 1. recolectar --- el portal responde intermitente; la paciencia alta es deliberada
     if not a.sin_recolectar:
-        paso('recolectar', [PY, 'scrapers/recolectar_api.py', '--todas',
+        paso('recolectar', [PY, os.path.join(REPO, 'scrapers', 'recolectar_api.py'), '--todas',
                             '--salida', METADATOS,
                             '--traza', 'scrapers/traza.jsonl',
                             '--paciencia', str(a.paciencia)])
@@ -164,7 +171,7 @@ def main():
 
     # 3. descargar lo que falte
     if not a.sin_descargar:
-        paso('descargar', [PY, 'scrapers/bajar_pdfs.py', '--metadatos', METADATOS,
+        paso('descargar', [PY, os.path.join(REPO, 'scrapers', 'bajar_pdfs.py'), '--metadatos', METADATOS,
                            '--destino', DESCARGAS, '--log', LOG_DESCARGAS,
                            '--saltar-indexados'])
 
@@ -188,7 +195,7 @@ def main():
     rel = os.path.relpath(tanda, RAIZ)
 
     # 5. procesar (extractor + post-procesador + canónicos)
-    paso('procesar', [PY, 'pipeline/procesar_corpus.py',
+    paso('procesar', [PY, os.path.join(REPO, 'pipeline', 'procesar_corpus.py'),
                       '--pdfs', os.path.join(rel, 'pdfs'),
                       '--salida', os.path.join(rel, 'procesados'),
                       '--sin-scratch'])
@@ -198,23 +205,34 @@ def main():
                       '--metadatos', METADATOS,
                       '--pdfs', os.path.join(rel, 'pdfs'),
                       '--salida', os.path.join(rel, 'metadata.csv')])
-    paso('chunkear', [PY, 'pipeline/chunkear.py',
+    paso('chunkear', [PY, os.path.join(REPO, 'pipeline', 'chunkear.py'),
                       '--resultados', os.path.join(rel, 'procesados'),
                       '--salida', os.path.join(rel, 'chunks.jsonl'),
                       '--metadata', os.path.join(rel, 'metadata.csv')])
 
     # 7. vectorizar --- embeddings.py escribe en un DIRECTORIO: densos.npy, el
     # chunks.jsonl definitivo (sin texto_indexado) e indice.json, alineados entre sí
-    paso('vectorizar', [PY, 'pipeline/embeddings.py',
+    paso('vectorizar', [PY, os.path.join(REPO, 'pipeline', 'embeddings.py'),
                         '--chunks', os.path.join(rel, 'chunks.jsonl'),
                         '--salida', os.path.join(rel, 'vectores')])
 
     # 8. fusionar al índice: chunks y vectores DE LA MISMA SALIDA, que es lo único
-    # que garantiza el alineamiento por posición
-    paso('fusionar', [PY, '-m', 'pipeline.fusionar_indice',
-                      '--chunks-nuevos', os.path.join(rel, 'vectores', 'chunks.jsonl'),
-                      '--densos-nuevos', os.path.join(rel, 'vectores', 'densos.npy'),
-                      '--aplicar'])
+    # que garantiza el alineamiento por posición. Si el índice todavía no existe ---la
+    # primera base de una instalación nueva--- no hay nada que fusionar: la tanda ES el
+    # índice y se adopta entera.
+    ruta_chunks = os.path.join(RAIZ, 'indice', 'chunks.jsonl')
+    if not os.path.exists(ruta_chunks):
+        import shutil
+        os.makedirs(os.path.join(RAIZ, 'indice'), exist_ok=True)
+        shutil.copy(os.path.join(RAIZ, rel, 'vectores', 'chunks.jsonl'), ruta_chunks)
+        shutil.copy(os.path.join(RAIZ, rel, 'vectores', 'densos.npy'),
+                    os.path.join(RAIZ, 'indice', 'densos.npy'))
+        print('\n=== primera base: la tanda se adopta como índice inicial ===', flush=True)
+    else:
+        paso('fusionar', [PY, '-m', 'pipeline.fusionar_indice',
+                          '--chunks-nuevos', os.path.join(rel, 'vectores', 'chunks.jsonl'),
+                          '--densos-nuevos', os.path.join(rel, 'vectores', 'densos.npy'),
+                          '--aplicar'])
 
     # 9. refrescar la metadata de todos los fragmentos (URLs, fechas de acto)
     paso('refrescar metadata', [PY, '-m', 'pipeline.actualizar_metadata',

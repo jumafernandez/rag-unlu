@@ -55,8 +55,8 @@ en la recuperaci\'on de normativa universitaria}
 \begin{abstract}
 La normativa de una universidad nacional es p\'ublica, pero encontrarla exige
 saber de antemano qu\'e acto la contiene. Presentamos un asistente conversacional
-de consulta sobre el digesto de la Universidad Nacional de Luj\'an: 19.959 actos
-administrativos, fragmentados por unidad normativa y recuperados de forma h\'ibrida
+de consulta sobre el digesto de la Universidad Nacional de Luj\'an: 21.364 actos
+administrativos y 151.696 fragmentos, fragmentados por unidad normativa y recuperados de forma h\'ibrida
 sobre metadatos autoritativos del sistema de origen. El sistema mantiene un estado
 de di\'alogo con dos ranuras---la entidad de la que se habla y los actos en
 juego---que no completan una consulta a un esquema fijo sino que \emph{pesan} la
@@ -88,7 +88,7 @@ la normativa sobre una licencia, sobre una designaci\'on o sobre un plan de
 estudios, sin tener idea de qu\'e acto lo establece.
 
 Este trabajo presenta un asistente conversacional sobre el digesto de la
-Universidad Nacional de Luj\'an (UNLu), construido sobre los 19.959 actos
+Universidad Nacional de Luj\'an (UNLu), construido sobre los 21.364 actos
 administrativos publicados en su portal SUDOCU desde abril de 2024. El sistema
 responde en lenguaje natural y cita los fragmentos normativos que sustentan cada
 afirmaci\'on, de modo que toda respuesta puede rastrearse hasta el documento
@@ -209,14 +209,23 @@ se trata de un sistema en operaci\'on sobre un corpus institucional real.
 
 La UNLu publica sus actos administrativos en un portal SUDOCU, sistema de
 gesti\'on documental desarrollado por la Universidad Nacional de General Sarmiento
-y adoptado por el sistema universitario nacional. Recolectamos \textbf{19.959}
-documentos en PDF correspondientes a once secciones del portal, junto con sus
-metadatos publicados: tipo de acto, c\'odigo, n\'umero, fecha de emisi\'on,
-t\'itulo y \'organo emisor.
+y adoptado por el sistema universitario nacional. Una primera recolecci\'on por
+interfaz obtuvo 19.959 documentos en PDF; la recolecci\'on definitiva se hace
+contra la API del propio portal ---la misma que su interfaz usa por dentro--- y
+obtiene, por cada acto, sus metadatos desglosados (tipo, c\'odigo, n\'umero, fecha,
+t\'itulo, \'organo emisor), su identificador interno y una URL permanente al PDF
+oficial. El cat\'alogo completo re\'une \textbf{21.344} actos en once carpetas, y
+la completitud se afirma contra el total que el portal declara por carpeta, no se
+supone. Tras depurar actos duplicados y reparar identidades degradadas con el
+cat\'alogo, el \'indice servido contiene \textbf{21.364} documentos y
+\textbf{151.696} fragmentos.
 
 El corpus abarca desde abril de 2024, fecha de puesta en producci\'on del portal.
 El digesto hist\'orico anterior, de aproximadamente 120.000 documentos, tiene otra
 fisonom\'ia y no est\'a incorporado a\'un.
+
+\nota{JM: parrafo de origen reescrito para reflejar la recoleccion por API y la
+depuracion; revisar si el nivel de detalle te cierra.}
 
 \subsection{Uni\'on con los metadatos autoritativos}
 \label{sec:union}
@@ -358,24 +367,24 @@ conjuntos con verdad de referencia, por muestreo estratificado de fragmentos por
 secci\'on del portal y tipo de acto ---sin estratificar, el conjunto queda dominado
 por las secciones grandes y no informa sobre las dem\'as---:
 
-\textbf{Consultas por identificador} (\pend[: n]). Se toma un documento y se
+\textbf{Consultas por identificador} ($n=30$). Se toma un documento y se
 pregunta por su c\'odigo y n\'umero, con plantillas fijas y sin intervenci\'on de
 ning\'un modelo. El documento correcto se conoce de antemano, de modo que las
 m\'etricas son deterministas y no intervienen juicios.
 
-\textbf{Consultas por contenido} (\pend[: n]). Se genera con un modelo de lenguaje,
+\textbf{Consultas por contenido} ($n=131$). Se genera con un modelo de lenguaje,
 a partir de un fragmento, la consulta que har\'ia quien necesita esa informaci\'on
 sin tener el documento delante, con dos restricciones: no nombrar el n\'umero del
 acto y no copiar frases textuales. Cada par pasa por un control de calidad
 autom\'atico ---un segundo pase que decide, con el fragmento y la consulta a la
 vista, si el primero responde a la segunda--- y lo que no pasa se descarta y se
-reporta (\pend[: \% descartado]). Es la construcci\'on habitual cuando no hay
+reporta (34{,}5\% descartado). Es la construcci\'on habitual cuando no hay
 anotaci\'on disponible, y su limitaci\'on debe declararse: mide la recuperaci\'on
 contra un sustituto de la necesidad de informaci\'on, no contra la necesidad real.
 Por eso la validaci\'on con evaluadores del dominio (Secci\'on~\ref{sec:humana})
 no es complementaria sino necesaria: mide otra cosa.
 
-\textbf{Consultas conversacionales} (\pend[: n]). Dos turnos generados desde un
+\textbf{Consultas conversacionales} ($n=58$: 29 tem\'aticas y 29 ancladas en un acto). Dos turnos generados desde un
 mismo fragmento: el primero establece el tema y el segundo es una repregunta que
 no se sostiene sola (``\emph{¿y de qu\'e a\~no es?}''). Son el banco de prueba de
 los mecanismos de estado de la Secci\'on~\ref{sec:procedencia}.
@@ -413,32 +422,35 @@ el nombre de la persona a la que se le atribuye algo.
 \subsection{Validaci\'on con evaluadores del dominio}
 \label{sec:humana}
 
-Participan tres evaluadores con distinto nivel de especialidad y distinta relaci\'on
-con la normativa (Tabla~\ref{tab:evaluadores}). La heterogeneidad es deliberada: el
-sistema tiene destinatarios de perfiles muy distintos y una validaci\'on hecha solo
-por especialistas no dir\'ia nada sobre el resto.
-
-El instrumento tiene dos bloques. En el primero, \textbf{comparaci\'on pareada a
-ciegas}: dos respuestas a la misma repregunta, sin informaci\'on sobre qu\'e
-configuraci\'on produjo cada una. Con pocos evaluadores, una preferencia pareada a
-ciegas es m\'as confiable que un puntaje absoluto, y neutraliza por construcci\'on
-el sesgo de quien conoce el sistema. En el segundo, cada evaluador consulta con sus
-propias necesidades de informaci\'on y declara si se apoyar\'ia en la respuesta.
-
-Un subconjunto de \pend[: \%] de los \'items es anotado por m\'as de una persona
-para reportar acuerdo entre anotadores.
+Las m\'etricas autom\'aticas no responden la pregunta que decide la adopci\'on: si una
+persona del dominio se apoyar\'ia en las respuestas. Tres evaluadores con distinta
+relaci\'on con la normativa ---un estudiante, un docente de la Divisi\'on Matem\'atica y
+un jefe de divisi\'on con rol de gesti\'on--- completan un \'unico cuestionario sobre la
+configuraci\'on completa del sistema (la ganadora de la evaluaci\'on autom\'atica):
+diez consultas fijas con sus respuestas congeladas ---id\'enticas entre evaluadores, lo
+que permite reportar acuerdo--- y tres consultas propias de su trabajo, hechas en vivo.
+Cada respuesta se punt\'ua en escala Likert de 1 a 5 en cuatro dimensiones (utilidad,
+fidelidad a las citas, completitud y claridad), con marca expl\'icita de contenido
+incorrecto; un bloque final punt\'ua confianza, ventaja sobre el m\'etodo actual de
+b\'usqueda y disposici\'on a que la Universidad lo ofrezca abiertamente.
 
 \begin{table}[H]
-\centering
-\caption{Perfil de los evaluadores.}
-\label{tab:evaluadores}
-\begin{tabular}{llll}
+\centering\small
+\caption{Validaci\'on con evaluadores: mediana (m\'in--m\'ax) por dimensi\'on sobre los
+\'items fijos, y bloque global.}
+\label{tab:jueces}
+\begin{tabular}{lrrr}
 \toprule
-Evaluador & Rol & Relaci\'on con la normativa & \'Items \\
+ & E1 (estudiante) & E2 (docente) & E3 (gesti\'on) \\
 \midrule
-E1 & Estudiante & Destinatario, sin experiencia previa & \pend \\
-E2 & Docente, Divisi\'on Matem\'atica & Usuario ocasional & \pend \\
-E3 & Jefe de Divisi\'on, Computaci\'on & Usuario frecuente, rol de gesti\'on & \pend \\
+Utilidad     & \pend & \pend & \pend \\
+Fidelidad    & \pend & \pend & \pend \\
+Completitud  & \pend & \pend & \pend \\
+Claridad     & \pend & \pend & \pend \\
+\midrule
+Confianza    & \pend & \pend & \pend \\
+Ventaja      & \pend & \pend & \pend \\
+Adopci\'on   & \pend & \pend & \pend \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -447,14 +459,14 @@ E3 & Jefe de Divisi\'on, Computaci\'on & Usuario frecuente, rol de gesti\'on & \
 \section{Resultados}
 \label{sec:resultados}
 
-\nota{Esta seccion esta armada con la estructura definitiva y los valores sin
-medir. Ningun numero de las tablas que siguen es un resultado: todos son
-marcadores.}
+\nota{Los numeros de recuperacion, procedencia y citas son mediciones reales sobre
+el indice depurado (agosto 2026). Quedan pendientes solo la tabla de jueces y las
+dos cifras del parrafo de reranking.}
 
 \subsection{Recuperaci\'on y ablaci\'on}
 
 \begin{table}[H]
-\centering
+\centering\small
 \caption{Recuperaci\'on por tipo de consulta: cada se\~nal sola y la fusi\'on
 h\'ibrida con anclaje de identificadores.}
 \label{tab:ablacion}
@@ -465,15 +477,16 @@ h\'ibrida con anclaje de identificadores.}
 \cmidrule(lr){2-4}\cmidrule(l){5-7}
 Configuraci\'on & R@5 & MRR@10 & nDCG@10 & R@5 & MRR@10 & nDCG@10 \\
 \midrule
-Denso solo         & \pend & \pend & \pend & \pend & \pend & \pend \\
-L\'exico solo      & \pend & \pend & \pend & \pend & \pend & \pend \\
-H\'ibrido (sistema) & \pend & \pend & \pend & \pend & \pend & \pend \\
+Denso solo          & 0.100 & 0.075 & 0.081 & 0.779 & 0.645 & 0.689 \\
+L\'exico solo       & 0.833 & 0.683 & 0.757 & 0.786 & 0.682 & 0.715 \\
+H\'ibrido (sistema) & \textbf{1.000} & \textbf{1.000} & \textbf{1.000} & \textbf{0.824} & \textbf{0.721} & \textbf{0.753} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 El reranking no aporta: reordenar el top-50 del h\'ibrido con el cross-encoder
-deja las m\'etricas iguales o peores (R@1 global \pend\ contra \pend\ del h\'ibrido),
+deja las m\'etricas iguales o peores (R@1 global 0{,}677 contra 0{,}702 del
+h\'ibrido, y en identificadores cae de 1{,}000 a 0{,}967),
 y en las consultas por identificador las \emph{empeora}, porque el reranker punt\'ua
 por contenido y desconoce el anclaje exacto que esas consultas necesitan. A cambio
 multiplica el costo por consulta. La fusi\'on RRF con anclaje de identificadores ya
@@ -507,7 +520,7 @@ en el r\'egimen de interacci\'on ---qu\'e puede fijar quien consulta y qu\'e dej
 de ser sobrescrito--- m\'as que en el delta de recuperaci\'on de un turno.
 
 \begin{table}[H]
-\centering
+\centering\small
 \caption{Consultas conversacionales: ablaci\'on de los mecanismos de estado y
 efecto de la procedencia, por poblaci\'on. La configuraci\'on completa usa la
 consulta reescrita, la ranura de entidad y la de actos con pesos de inferencia.}
@@ -519,12 +532,12 @@ consulta reescrita, la ranura de entidad y la de actos con pesos de inferencia.}
 \cmidrule(lr){2-4}\cmidrule(l){5-7}
 Condici\'on & R@5 & MRR@10 & nDCG@10 & R@5 & MRR@10 & nDCG@10 \\
 \midrule
-Sin estado (turno 2 solo)   & \pend & \pend & \pend & \pend & \pend & \pend \\
-$-$ reescritura             & \pend & \pend & \pend & \pend & \pend & \pend \\
-$-$ ranura entidad          & \pend & \pend & \pend & \pend & \pend & \pend \\
-$-$ ranura actos            & \pend & \pend & \pend & \pend & \pend & \pend \\
-Completa (estado inferido)  & \pend & \pend & \pend & \pend & \pend & \pend \\
-Estado corregido (peso usuario) & \pend & \pend & \pend & \pend & \pend & \pend \\
+Sin estado (turno 2 solo)   & 0.241 & 0.149 & 0.173 & 0.000 & 0.000 & 0.000 \\
+$-$ reescritura             & 0.241 & 0.185 & 0.223 & 0.069 & 0.025 & 0.050 \\
+$-$ ranura entidad          & 0.862 & 0.756 & 0.790 & 1.000 & 1.000 & 1.000 \\
+$-$ ranura actos            & 0.862 & 0.757 & 0.791 & 1.000 & 1.000 & 1.000 \\
+Completa (estado inferido)  & \textbf{0.862} & \textbf{0.757} & \textbf{0.791} & \textbf{1.000} & \textbf{1.000} & \textbf{1.000} \\
+Estado corregido (peso usuario) & 0.862 & 0.757 & 0.791 & 1.000 & 1.000 & 1.000 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -533,7 +546,7 @@ Estado corregido (peso usuario) & \pend & \pend & \pend & \pend & \pend & \pend 
 \label{sec:resultcitas}
 
 \begin{table}[H]
-\centering
+\centering\small
 \caption{Verificaci\'on autom\'atica de citas y atribuci\'on sobre respuestas
 generadas por el sistema completo.}
 \label{tab:citas}
@@ -541,10 +554,10 @@ generadas por el sistema completo.}
 \toprule
 Verificaci\'on & Cantidad & \% \\
 \midrule
-Actos citados en las respuestas           & \pend & -- \\
-Anclados en lo recuperado                 & \pend & \pend \\
-Sueltos (sin fuente detr\'as)             & \pend & \pend \\
-Atribuci\'on de entidad nombrada correcta & \pend & \pend \\
+Actos citados en las respuestas           & 133 & -- \\
+Anclados en lo recuperado                 & 129 & 97{,}0\% \\
+Sueltos (sin fuente detr\'as)             & 4 & 3{,}0\% \\
+Atribuci\'on de entidad nombrada correcta & 23/24 & 95{,}8\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -553,49 +566,41 @@ Atribuci\'on de entidad nombrada correcta & \pend & \pend \\
 (actos inexistentes) para medir la tasa de ``no s\'e'': el protocolo actual no lo
 incluye.}
 
+\subsection{Portabilidad verificada en una segunda universidad}
+\label{sec:portabilidad}
+
+\nota{JM: subseccion nueva --- propone mover la portabilidad de trabajo futuro a
+resultado, con la instancia UNSL como evidencia. Si no te cierra, se vuelve al
+enunciado anterior.}
+
+Verificamos la portabilidad contra el portal SUDOCU de la Universidad Nacional de
+San Luis. La sonda de tres pedidos dictamin\'o compatibilidad sin cambios; el
+recolector descubri\'o autom\'aticamente sus 15 carpetas p\'ublicas ---la UNSL
+publica por facultad, la UNLu por tipo de acto--- y una instancia completa del
+asistente, con la marca y el esquema de colores de esa universidad, se construy\'o
+desde su propio panel de administraci\'on sobre un corpus declarado de 72.816
+actos, sin recompilar ni bifurcar el c\'odigo. Dos diferencias reales se
+absorbieron en el c\'odigo com\'un (la clave del c\'odigo de acto en el objeto del
+listado y el nombre de las carpetas); la \'unica adaptaci\'on que qued\'o para
+configuraci\'on por universidad es la limpieza del membrete de sus PDF, cuyo
+esqueleto estructural (Visto, Considerando, parte resolutiva, art\'iculos) se
+detect\'o id\'entico en una muestra piloto de 20 documentos.
+
 \subsection{Validaci\'on con evaluadores}
 
-\begin{table}[H]
-\centering
-\caption{Comparaci\'on pareada a ciegas: preferencia por configuraci\'on, por
-evaluador.}
-\label{tab:pareada}
-\begin{tabular}{lrrrr}
-\toprule
-Evaluador & Prefiere con estado & Prefiere sin estado & Empate & \'Items \\
-\midrule
-E1 & \pend & \pend & \pend & \pend \\
-E2 & \pend & \pend & \pend & \pend \\
-E3 & \pend & \pend & \pend & \pend \\
-\midrule
-Total & \pend & \pend & \pend & \pend \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[H]
-\centering
-\caption{Consultas propias de cada evaluador: disposici\'on a apoyarse en la
-respuesta.}
-\label{tab:propias}
-\begin{tabular}{lrrrr}
-\toprule
-Evaluador & S\'i & Con reservas & No & Consultas \\
-\midrule
-E1 & \pend & \pend & \pend & \pend \\
-E2 & \pend & \pend & \pend & \pend \\
-E3 & \pend & \pend & \pend & \pend \\
-\bottomrule
-\end{tabular}
-\end{table}
+Los resultados del cuestionario se vuelcan en la Tabla~\ref{tab:jueces}
+(Secci\'on~\ref{sec:humana}). \nota{Completar cuando los tres jueces entreguen la
+planilla.}
 
 % ======================== 7. CONCLUSIONES ========================
 \section{Conclusiones y trabajo futuro}
 \label{sec:conclusiones}
 
 Presentamos un asistente conversacional de consulta normativa desplegado sobre el
-digesto de la UNLu, con 19.959 actos y 140.902 fragmentos, recuperaci\'on h\'ibrida
-y trazabilidad completa desde cada afirmaci\'on hasta el documento publicado.
+digesto de la UNLu, con 21.364 actos y 151.696 fragmentos depurados ---sin actos
+duplicados y con la identidad de cada fragmento tomada del cat\'alogo del portal---,
+recuperaci\'on h\'ibrida y trazabilidad completa desde cada afirmaci\'on hasta el
+documento publicado.
 
 El aporte central es tratar la \emph{procedencia} de un valor del estado de
 di\'alogo como se\~nal de confianza que determina su peso en la recuperaci\'on.

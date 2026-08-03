@@ -182,9 +182,18 @@ class AlmacenSQL(Indice):
     def _filtrar(self, filtros, solo_articulos):
         condiciones, valores = [], []
         for k, v in (filtros or {}).items():
-            if v not in (None, ''):
+            if v in (None, ''):
+                continue
+            if k == 'desde':
+                # La fecha del acto está guardada dd/mm/aaaa: se reordena a ISO en la
+                # consulta para que la comparación textual tenga sentido. Para /novedades.
+                condiciones.append(
+                    "LENGTH(fecha_acto)=10 AND "
+                    "substr(fecha_acto,7,4)||'-'||substr(fecha_acto,4,2)||'-'||"
+                    "substr(fecha_acto,1,2) >= ?")
+            else:
                 condiciones.append(f'{k}=?')
-                valores.append(str(v))
+            valores.append(str(v))
         if solo_articulos:
             condiciones.append("tipo_seccion='articulo'")
         if not condiciones:

@@ -1,6 +1,6 @@
 """Actualiza la metadata de los fragmentos con la recolección nueva del portal.
 
-Por qué existe: la recolección nueva (scrapers/recolectar.py) trae por cada acto su URL
+Por qué existe: la recolección por API (scrapers/recolectar_api.py) trae por cada acto su URL
 permanente en el portal, sus identificadores internos y la fecha del propio acto ---que no
 es la misma que la de autorización que muestra la tabla---. Nada de eso estaba antes.
 

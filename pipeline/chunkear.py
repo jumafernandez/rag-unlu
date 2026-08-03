@@ -123,7 +123,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--resultados', required=True, help='dir con *_canonico.yaml y *.md')
     p.add_argument('--salida', required=True)
-    p.add_argument('--metadata', default=None, help='CSV de unir_metadata.py')
+    p.add_argument('--metadata', default=None, help='CSV de metadata_desde_catalogo.py')
     p.add_argument('--max', type=int, default=MAX_CARACTERES)
     a = p.parse_args()
 

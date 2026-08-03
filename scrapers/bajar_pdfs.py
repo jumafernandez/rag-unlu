@@ -59,6 +59,8 @@ def main():
     p.add_argument('--log', default='descargas.jsonl')
     p.add_argument('--desde', help='solo actos con Fecha posterior a esta (dd/mm/aaaa)')
     p.add_argument('--limite', type=int, help='cortar después de N descargas (para probar)')
+    p.add_argument('--hilos', type=int, default=6,
+                   help='descargas simultáneas (la latencia del servidor manda)')
     p.add_argument('--saltar-indexados', action='store_true',
                    help='no bajar actos que el catálogo ya marca como indexados. El PDF '
                         'de un acto indexado ya fue procesado, y el visor en línea lo '
@@ -97,38 +99,73 @@ def main():
         print(f'ya indexados según el catálogo: {antes - len(filas)} (no se bajan)',
               flush=True)
 
+    # En una instancia recién creada estos directorios no existen todavía: se crean acá
+    # y no en la guía de instalación, porque un paso manual olvidable es un error seguro.
+    os.makedirs(a.destino, exist_ok=True)
+    if os.path.dirname(a.log):
+        os.makedirs(os.path.dirname(a.log), exist_ok=True)
+
     print(f'candidatos: {len(filas)}', flush=True)
 
-    bajados = saltados = fallidos = 0
+    # Descarga en paralelo. El tiempo por PDF lo domina la latencia del servidor (~2s),
+    # no el ancho de banda: con hilos el ritmo escala casi lineal. El tope por defecto es
+    # moderado a propósito: somos un lector intensivo de un sistema institucional, no una
+    # prueba de carga.
+    import threading
+    from concurrent.futures import ThreadPoolExecutor
+
+    pendientes = []
+    saltados = 0
+    for r in filas:
+        destino = os.path.join(a.destino, r['Archivo'])
+        if os.path.exists(destino):
+            saltados += 1
+        else:
+            pendientes.append((r, destino))
+    if a.limite:
+        pendientes = pendientes[: a.limite]
+
+    bajados = fallidos = 0
     t0 = time.time()
-    with open(a.log, 'a', encoding='utf-8') as log:
-        for r in filas:
-            destino = os.path.join(a.destino, r['Archivo'])
-            if os.path.exists(destino):
-                saltados += 1
-                continue
-            t1 = time.time()
-            try:
-                sha, tam, codigo = bajar(r['URL'], destino)
+    candado = threading.Lock()
+    log = open(a.log, 'a', encoding='utf-8')
+
+    def uno(par):
+        nonlocal bajados, fallidos
+        r, destino = par
+        t1 = time.time()
+        try:
+            sha, tam, codigo = bajar(r['URL'], destino)
+            registro = {'archivo': r['Archivo'], 'numero': r.get('Numero'),
+                        'fecha': r.get('Fecha'), 'seccion': r.get('Seccion'),
+                        'url': r['URL'], 'http': codigo, 'bytes': tam, 'sha256': sha,
+                        'segundos': round(time.time() - t1, 2), 'estado': 'ok'}
+            ok = True
+        except Exception as e:
+            registro = {'archivo': r['Archivo'], 'numero': r.get('Numero'),
+                        'url': r['URL'], 'estado': 'error',
+                        'error': f'{type(e).__name__}: {e}'[:300],
+                        'segundos': round(time.time() - t1, 2)}
+            ok = False
+        with candado:
+            if ok:
                 bajados += 1
-                registro = {'archivo': r['Archivo'], 'numero': r.get('Numero'),
-                            'fecha': r.get('Fecha'), 'seccion': r.get('Seccion'),
-                            'url': r['URL'], 'http': codigo, 'bytes': tam, 'sha256': sha,
-                            'segundos': round(time.time() - t1, 2), 'estado': 'ok'}
-            except Exception as e:
+            else:
                 fallidos += 1
-                registro = {'archivo': r['Archivo'], 'numero': r.get('Numero'),
-                            'url': r['URL'], 'estado': 'error',
-                            'error': f'{type(e).__name__}: {e}'[:300],
-                            'segundos': round(time.time() - t1, 2)}
             log.write(json.dumps(registro, ensure_ascii=False) + '\n')
             log.flush()
+            hechos = bajados + fallidos
+            if hechos % 100 == 0:
+                ritmo = bajados / max(1e-9, time.time() - t0)
+                restante = (len(pendientes) - hechos) / max(1e-9, ritmo)
+                print(f'  {hechos} de {len(pendientes)} '
+                      f'({100 * hechos / max(1, len(pendientes)):.1f}%) · '
+                      f'{ritmo:.1f}/s · {fallidos} con error · '
+                      f'faltan ~{restante / 3600:.1f} h', flush=True)
 
-            if (bajados + fallidos) % 100 == 0:
-                print(f'  {bajados} bajados · {fallidos} con error · '
-                      f'{time.time() - t0:.0f}s', flush=True)
-            if a.limite and bajados >= a.limite:
-                break
+    with ThreadPoolExecutor(max_workers=a.hilos) as pileta:
+        list(pileta.map(uno, pendientes))
+    log.close()
 
     print(f'\nbajados {bajados} · ya estaban {saltados} · con error {fallidos} '
           f'· {time.time() - t0:.0f}s', flush=True)

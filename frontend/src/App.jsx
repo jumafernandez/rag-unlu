@@ -138,6 +138,38 @@ export default function App() {
   }, []);
   const rotulos = useMemo(() => textos(inst), [inst]);
 
+  // Skills: modos de salida que se piden con "/" en el compositor. La misma búsqueda,
+  // otro formato de respuesta. El servidor valida el modo; esto es solo la superficie.
+  const SKILLS = [
+    { cmd: "lista", ejemplo: "/lista concursos docentes",
+      hint: "Inventario de actos sobre un tema, uno por línea" },
+    { cmd: "ficha", ejemplo: "/ficha RESHCS 893/2025",
+      hint: "Dossier de un acto: qué establece, a quién menciona y quién lo menciona" },
+    { cmd: "comparar", ejemplo: "/comparar RESHCS 893/2025 y RESHCS 903/2023",
+      hint: "Dos actos lado a lado: coincidencias y diferencias" },
+    { cmd: "novedades", ejemplo: "/novedades 60 concursos  (días y tema, ambos opcionales)",
+      hint: "Lo publicado recientemente; con número elegís la ventana en días" },
+    { cmd: "resumen", ejemplo: "/resumen licencias docentes",
+      hint: "Síntesis breve del tema con sus actos clave" },
+  ];
+  const parseSkill = (texto) => {
+    const m = texto.match(/^\/(\w+)(?:\s+(.+))?$/s);
+    if (!m) return null;
+    const skill = SKILLS.find((s) => s.cmd === m[1].toLowerCase());
+    if (!skill) return null;
+    let resto = (m[2] || "").trim();
+    let dias = null;
+    if (skill.cmd === "novedades") {
+      // "/novedades 60 concursos": el primer número es la ventana en días.
+      const d = resto.match(/^(\d{1,3})\s*(.*)$/s);
+      if (d) { dias = parseInt(d[1], 10); resto = d[2].trim(); }
+    }
+    // /novedades funciona sin tema; los demás necesitan uno.
+    if (!resto && skill.cmd !== "novedades") return null;
+    return { modo: skill.cmd, dias,
+             pregunta: resto || "normativa publicada recientemente" };
+  };
+
   // Ajustes personales (la tuerquita de cada usuario). El tono se guarda en el servidor
   // y se aplica a la redacción de las respuestas; el contenido no cambia.
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
@@ -436,7 +468,15 @@ export default function App() {
 
       const K = { preciso: 5, equilibrado: 8, exhaustivo: 16 }[amplitud] ?? 8;
 
-      await consultarEnFlujo({ pregunta: content, k: K, conversacionId: convId, historial, estado }, (evento, datos) => {
+      // "/lista tema" viaja como modo=lista + pregunta=tema. El mensaje del usuario se
+      // muestra tal cual lo escribió, barra incluida: transparencia sobre qué pidió.
+      const skill = parseSkill(content);
+      await consultarEnFlujo({
+        pregunta: skill ? skill.pregunta : content,
+        modo: skill ? skill.modo : null,
+        dias: skill ? skill.dias : null,
+        k: K, conversacionId: convId, historial, estado,
+      }, (evento, datos) => {
         if (evento === "fuentes") {
           // El estado que devuelve el servidor ya trae lo que el usuario había fijado,
           // así que se reemplaza entero en vez de fusionarlo acá.
@@ -741,6 +781,11 @@ export default function App() {
                     <h2>¿En qué puedo ayudarte?</h2>
                     <p>Consultá normativa, resoluciones o disposiciones del {inst.denominacion}.</p>
 
+                    <p className="skills-tip">
+                      Tip: escribí <code>/</code> para los comandos — <code>/lista</code>,{" "}
+                      <code>/ficha</code>, <code>/comparar</code>, <code>/novedades</code>,{" "}
+                      <code>/resumen</code>
+                    </p>
                     <div className="suggestions">
                       {(inst.sugerencias || []).map((s) => (
                         <button key={s} className="suggestion-chip"
@@ -901,6 +946,19 @@ export default function App() {
               </div>
             </div>
 
+            {input.startsWith("/") && !input.includes(" ") && (
+              <div className="skills-menu">
+                {SKILLS.filter((s) => ("/" + s.cmd).startsWith(input.toLowerCase()))
+                  .map((s) => (
+                    <button key={s.cmd} className="skills-item"
+                            onClick={() => { setInput("/" + s.cmd + " "); cajaTexto.current?.focus(); }}>
+                      <code>/{s.cmd}</code>
+                      <span>{s.hint}</span>
+                      <em>{s.ejemplo}</em>
+                    </button>
+                  ))}
+              </div>
+            )}
             <div className="composer-outer">
               {(estado?.entidad || estado?.actos?.length > 0 || verRazonamiento) && (
                 <div className="foco-barra">
@@ -1019,6 +1077,11 @@ export default function App() {
                     {etiqueta}
                   </button>
                 ))}
+
+                <button className="comandos-chip" title="Comandos disponibles"
+                        onClick={() => { setInput("/"); cajaTexto.current?.focus(); }}>
+                  / comandos
+                </button>
 
                 <button className={`razonamiento-toggle ${verRazonamiento ? "activo" : ""}`}
                         onClick={() => setVerRazonamiento((v) => !v)}

@@ -57,6 +57,13 @@ VACIAS = {
 }
 
 
+def _fecha_iso(fecha):
+    """'23/02/2026' -> '2026-02-23'. Vacío si no tiene esa forma."""
+    if fecha and len(fecha) == 10 and fecha[2] == fecha[5] == '/':
+        return f'{fecha[6:]}-{fecha[3:5]}-{fecha[:2]}'
+    return ''
+
+
 def normalizar(texto):
     t = unicodedata.normalize('NFKD', texto.lower())
     return ''.join(c for c in t if not unicodedata.combining(c))
@@ -215,9 +222,14 @@ class Indice(Busqueda):
     def _filtrar(self, filtros, solo_articulos):
         permitidos = None
         if filtros:
+            filtros = dict(filtros)
+            # 'desde' no es igualdad: fecha del acto >= la fecha dada (ISO, compara bien
+            # como texto). Es lo que usa /novedades.
+            desde = filtros.pop('desde', None)
             permitidos = {i for i, c in enumerate(self.chunks)
                           if all(str(c.get(k, '')) == str(v)
-                                 for k, v in filtros.items() if v not in (None, ''))}
+                                 for k, v in filtros.items() if v not in (None, ''))
+                          and (not desde or _fecha_iso(c.get('fecha_acto')) >= desde)}
         if solo_articulos:
             arts = {i for i, c in enumerate(self.chunks) if c.get('tipo_seccion') == 'articulo'}
             permitidos = arts if permitidos is None else (permitidos & arts)

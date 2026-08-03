@@ -46,13 +46,20 @@ from .recuperacion import Indice
 
 
 def _cargar_env():
-    """Lee un .env en la raíz del repo, si existe.
+    """Lee el .env de la INSTANCIA (directorio de trabajo) y el de la raíz del repo.
 
-    Evita tener que exportar la clave en cada sesión y, sobre todo, evita que quede
-    en el historial del shell. El archivo está en .gitignore: nunca se versiona.
-    Las variables ya presentes en el entorno tienen prioridad.
+    El del directorio de trabajo manda: una instalación (instalaciones/unsl) corre con
+    su carpeta como cwd y define ahí su portal, sus bases y su puerto. El de la raíz
+    completa lo que falte (credenciales compartidas). La instancia histórica de la UNLu
+    corre con cwd = raíz del repo, así que para ella nada cambia. Ninguno se versiona.
+    Las variables ya presentes en el entorno tienen prioridad sobre ambos.
     """
-    ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    raiz = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for ruta in (os.path.join(os.getcwd(), '.env'), os.path.join(raiz, '.env')):
+        _cargar_env_de(ruta)
+
+
+def _cargar_env_de(ruta):
     if not os.path.exists(ruta):
         return
     with open(ruta, encoding='utf-8') as fh:
@@ -209,6 +216,12 @@ class Consulta(BaseModel):
     # sin responder a nadie más, ni siquiera a /salud. Verificado: 1 MB lo tumba por
     # completo. 2000 caracteres son de sobra para una consulta sobre normativa.
     pregunta: str = Field(..., min_length=1, max_length=2000)
+    # Skills: modos de salida sobre la misma recuperación. None = conversación normal.
+    #   lista  -> inventario de actos sobre el tema, uno por línea
+    #   ficha  -> dossier de UN acto: qué establece, a quién menciona, quién lo menciona
+    modo: Optional[str] = Field(None, pattern='^(lista|ficha|comparar|novedades|resumen)$')
+    # Ventana de /novedades, en días. Solo aplica a ese modo.
+    dias: Optional[int] = Field(None, ge=7, le=365)
     k: int = Field(8, ge=1, le=30)
     anio: Optional[int] = None
     tipo: Optional[str] = None
@@ -341,14 +354,57 @@ puede haber normativa posterior que no estés viendo.
 Escribí en español rioplatense, claro y directo. Sin preámbulos ni fórmulas de relleno."""
 
 
-def instruccion():
+INSTRUCCION_MODO = {
+    'lista': """
+
+MODO LISTA. Quien consulta pidió un INVENTARIO, no una explicación. Formato de la
+respuesta: un acto por renglón, como ítem de lista Markdown, con su identificador tal
+cual aparece entre corchetes, la fecha si está, y UNA línea de qué establece. Ordenados
+del más reciente al más viejo si las fechas lo permiten. Sin párrafo introductorio y sin
+cierre: solo la lista. Si el contexto sugiere que hay más normativa del tema que la
+mostrada, terminá con una línea que lo diga.""",
+    'ficha': """
+
+MODO FICHA. Quien consulta pidió el dossier de UN acto concreto. Estructura de la
+respuesta, con estos títulos:
+**Identidad** — tipo, código y número, fecha, órgano emisor.
+**Qué establece** — lo dispuesto, artículo por artículo si el contexto los trae.
+**Menciona a** — actos que este documento cita en su texto (solo los que aparezcan).
+**Mencionado por** — actos del contexto que citan a este (solo los que aparezcan).
+Si alguna sección no tiene datos en el contexto, escribí "No consta en lo recuperado".
+Nada de prosa fuera de esa estructura.""",
+    'comparar': """
+
+MODO COMPARAR. Quien consulta pidió comparar DOS actos. Estructura:
+**Qué establece cada uno** — un párrafo corto por acto, con su cita.
+**En qué coinciden** — solo lo que surja del texto de ambos.
+**En qué difieren** — las diferencias concretas (montos, plazos, alcances, órganos).
+Si alguno de los dos no aparece en el contexto, decilo con claridad y no lo inventes.
+Nunca digas cuál "está vigente": este sistema no conoce vigencia.""",
+    'resumen': """
+
+MODO RESUMEN. Quien consulta pidió una síntesis. Formato: un resumen de 5 a 8 líneas de
+qué establece la normativa del tema, integrando lo que digan los distintos actos, con la
+cita entre paréntesis después de cada afirmación. Al final, bajo el título **Actos
+clave**, los 3 a 5 más importantes con una línea cada uno. Nada más.""",
+    'novedades': """
+
+MODO NOVEDADES. Quien consulta pidió lo NUEVO. El contexto ya viene restringido a actos
+recientes. Formato: lista Markdown ordenada del más nuevo al más viejo, cada ítem con su
+identificador entre corchetes tal cual está escrito, la fecha del acto y UNA línea de qué
+establece. Abrí con una sola línea que diga desde qué fecha estás informando. Sin cierre.""",
+}
+
+
+def instruccion(modo=None):
     """El prompt del sistema, con la identidad que se configuró en Personalización.
 
     Se arma en cada uso: cambiar el nombre de la institución o la denominación del cuerpo
     normativo desde el panel alcanza, sin reiniciar ni recompilar.
     """
     inst = admin.leer_institucion()
-    return INSTRUCCION_BASE.format(denominacion=inst['denominacion'], nombre=inst['nombre'])
+    base = INSTRUCCION_BASE.format(denominacion=inst['denominacion'], nombre=inst['nombre'])
+    return base + INSTRUCCION_MODO.get(modo or '', '')
 
 
 # Señales de que una pregunta se apoya en lo dicho antes y no se sostiene sola.
@@ -641,8 +697,39 @@ def pesos_de_actos(estado: dict) -> dict:
     return salida
 
 
-def _mensajes(pregunta: str, contexto: str, historial=None, tono=None):
-    sistema = instruccion()
+def _extra_ficha(ix, texto_consulta, resultados):
+    """Bloque extra de contexto para el modo ficha: qué actos MENCIONAN al consultado.
+
+    Sale de la señal léxica sobre el identificador ---la misma que usa el anclaje---:
+    fragmentos de OTROS documentos donde el número del acto aparece textualmente. Es la
+    dirección inversa de la cita, que ni el portal ni el digesto ofrecen.
+    """
+    ids = ix._identificadores(texto_consulta)
+    if not ids:
+        return ''
+    documentos_del_acto = {ix.chunk(i).get('documento') for i, _, _ in resultados}
+    puntajes = ix.puntuar_lexico(texto_consulta)
+    citantes = {}
+    for i, _ in sorted(puntajes.items(), key=lambda kv: -kv[1])[:60]:
+        ch = ix.chunk(i)
+        if ch.get('documento') in documentos_del_acto:
+            continue
+        if not (ids & ix._ids_de_chunk(i)):
+            continue
+        cita_doc = (ch.get('cita') or '').split('—')[0].strip()
+        if cita_doc and cita_doc not in citantes:
+            citantes[cita_doc] = ch.get('fecha_acto') or ''
+        if len(citantes) >= 10:
+            break
+    if not citantes:
+        return ''
+    lineas = '\n'.join(f'- {c}' + (f' ({f})' if f else '') for c, f in citantes.items())
+    return ('\n\n---\nACTOS DEL ÍNDICE QUE MENCIONAN AL CONSULTADO '
+            '(para la sección "Mencionado por"):\n' + lineas)
+
+
+def _mensajes(pregunta: str, contexto: str, historial=None, tono=None, modo=None):
+    sistema = instruccion(modo)
     if tono:
         # El tono es del usuario y afecta la FORMA, nunca el contenido: va después de las
         # reglas y con esa aclaración explícita, para que no pueda usarse para pedirle al
@@ -660,17 +747,17 @@ def _mensajes(pregunta: str, contexto: str, historial=None, tono=None):
     return mensajes
 
 
-def generar(pregunta: str, contexto: str, historial=None, tono=None) -> str:
+def generar(pregunta: str, contexto: str, historial=None, tono=None, modo=None) -> str:
     llm, g = cliente_llm()
     r = llm.chat.completions.create(
         model=g['modelo'],
         temperature=g['temperatura'],
-        messages=_mensajes(pregunta, contexto, historial, tono),
+        messages=_mensajes(pregunta, contexto, historial, tono, modo),
     )
     return r.choices[0].message.content
 
 
-def generar_en_partes(pregunta: str, contexto: str, historial=None, tono=None):
+def generar_en_partes(pregunta: str, contexto: str, historial=None, tono=None, modo=None):
     """Igual que `generar`, pero devolviendo el texto a medida que llega.
 
     La respuesta tarda lo mismo; lo que cambia es que se empieza a leer enseguida en vez
@@ -681,7 +768,7 @@ def generar_en_partes(pregunta: str, contexto: str, historial=None, tono=None):
     flujo = llm.chat.completions.create(
         model=g['modelo'],
         temperature=g['temperatura'],
-        messages=_mensajes(pregunta, contexto, historial, tono),
+        messages=_mensajes(pregunta, contexto, historial, tono, modo),
         stream=True,
     )
     for parte in flujo:
@@ -751,9 +838,22 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
 
     # El texto crudo va también a la señal léxica: BM25 lo tokeniza conservando los
     # identificadores, que es lo que el vector denso no distingue.
+    # Los modos piden más material: lista es un inventario y ficha quiere todos los
+    # artículos del acto (el anclaje ya restringe al documento pedido). Novedades además
+    # restringe por fecha del acto.
+    k_efectivo = c.k
+    if c.modo in ('lista', 'novedades', 'comparar'):
+        k_efectivo = max(c.k, 16)
+    elif c.modo in ('ficha', 'resumen'):
+        k_efectivo = max(c.k, 12)
+    if c.modo == 'novedades':
+        import datetime
+        filtros = dict(filtros or {})
+        filtros['desde'] = (datetime.date.today()
+                            - datetime.timedelta(days=c.dias or 45)).isoformat()
     resultados = ix.buscar(denso,
                            texto_consulta=consulta_busqueda if c.usar_lexico else '',
-                           k=c.k, filtros=filtros or None, solo_articulos=c.solo_articulos,
+                           k=k_efectivo, filtros=filtros or None, solo_articulos=c.solo_articulos,
                            pesos_actos=pesos_de_actos(estado) if c.usar_anclaje else None,
                            peso_entidad=peso_de(estado.get('entidad_origen')),
                            entidad=estado.get('entidad') if c.usar_foco else None)
@@ -770,9 +870,13 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
             advertencia = 'Sin OPENAI_API_KEY: se devuelven las fuentes sin respuesta generada.'
         else:
             try:
-                respuesta = generar(c.pregunta, ix.contexto(resultados),
+                contexto = ix.contexto(resultados)
+                if c.modo == 'ficha':
+                    contexto += _extra_ficha(ix, consulta_busqueda, resultados)
+                respuesta = generar(c.pregunta, contexto,
                                     c.historial if c.usar_historial_generacion else None,
-                                    tono=historial.leer_preferencia(usuario, 'tono'))
+                                    tono=historial.leer_preferencia(usuario, 'tono'),
+                                    modo=c.modo)
             except Exception as e:
                 advertencia = f'Falló la generación ({type(e).__name__}). Se devuelven las fuentes.'
 
@@ -1018,9 +1122,22 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
         filtros['year'] = c.anio
     if c.tipo:
         filtros['document_type'] = c.tipo
+    # Los modos piden más material: lista es un inventario y ficha quiere todos los
+    # artículos del acto (el anclaje ya restringe al documento pedido). Novedades además
+    # restringe por fecha del acto.
+    k_efectivo = c.k
+    if c.modo in ('lista', 'novedades', 'comparar'):
+        k_efectivo = max(c.k, 16)
+    elif c.modo in ('ficha', 'resumen'):
+        k_efectivo = max(c.k, 12)
+    if c.modo == 'novedades':
+        import datetime
+        filtros = dict(filtros or {})
+        filtros['desde'] = (datetime.date.today()
+                            - datetime.timedelta(days=c.dias or 45)).isoformat()
     resultados = ix.buscar(denso,
                            texto_consulta=consulta_busqueda if c.usar_lexico else '',
-                           k=c.k, filtros=filtros or None, solo_articulos=c.solo_articulos,
+                           k=k_efectivo, filtros=filtros or None, solo_articulos=c.solo_articulos,
                            pesos_actos=pesos_de_actos(estado) if c.usar_anclaje else None,
                            peso_entidad=peso_de(estado.get('entidad_origen')),
                            entidad=estado.get('entidad') if c.usar_foco else None)
@@ -1044,10 +1161,14 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
             yield _sse('aviso', {'mensaje': 'Sin clave de generación: se muestran las fuentes.'})
         else:
             try:
+                contexto = ix.contexto(resultados)
+                if c.modo == 'ficha':
+                    contexto += _extra_ficha(ix, consulta_busqueda, resultados)
                 for parte in generar_en_partes(
-                        c.pregunta, ix.contexto(resultados),
+                        c.pregunta, contexto,
                         c.historial if c.usar_historial_generacion else None,
-                        tono=historial.leer_preferencia(usuario, 'tono')):
+                        tono=historial.leer_preferencia(usuario, 'tono'),
+                        modo=c.modo):
                     partes.append(parte)
                     yield _sse('texto', {'t': parte})
             except Exception as e:
@@ -1359,13 +1480,17 @@ def admin_quitar(correo: str, authorization: Optional[str] = Header(None)):
 # desde una terminal: el panel arma la línea de comandos, nada más. `sys.executable` es el
 # Python del entorno virtual que sirve la API, así que las corridas usan las mismas
 # dependencias que el resto del sistema.
+# Los scripts se anclan al repo; las corridas corren en el directorio de la INSTANCIA
+# (los datos de cada instalación viven en su cwd, no en el repo).
+_REPO = str(pathlib.Path(__file__).resolve().parent.parent)
+
 OPERACIONES = {
     'catalogo': {
         'titulo': '1 · Catálogo',
         'descripcion': 'Recorre las carpetas públicas del portal SUDOCU y arma la lista '
                        'de actos, con la identidad y el enlace permanente de cada uno. '
                        'No descarga documentos.',
-        'comando': [sys.executable, 'scrapers/recolectar_api.py', '--todas',
+        'comando': [sys.executable, os.path.join(_REPO, 'scrapers', 'recolectar_api.py'), '--todas',
                     '--salida', 'scrapers/metadatos_nuevo.csv',
                     '--traza', 'scrapers/traza.jsonl',
                     '--paciencia', '25'],
@@ -1374,7 +1499,7 @@ OPERACIONES = {
         'titulo': '2 · Descarga de documentos',
         'descripcion': 'Baja los PDF del catálogo que todavía no están en disco. Lo ya '
                        'descargado no se vuelve a pedir.',
-        'comando': [sys.executable, 'scrapers/bajar_pdfs.py',
+        'comando': [sys.executable, os.path.join(_REPO, 'scrapers', 'bajar_pdfs.py'),
                     '--metadatos', 'scrapers/metadatos_nuevo.csv',
                     '--destino', 'data/portal-incremental',
                     '--log', 'data/descargas.jsonl',
@@ -1383,8 +1508,7 @@ OPERACIONES = {
     'vectorizacion': {
         'titulo': '3 · Vectorización',
         'descripcion': 'Extrae el texto de los documentos descargados que aún no están '
-                       'en el índice, los parte por artículo y calcula sus vectores. Es '
-                       'el paso pesado.',
+                       'en el índice, los parte por artículo y calcula sus vectores.',
         'comando': [sys.executable, '-m', 'pipeline.actualizar',
                     '--sin-recolectar', '--sin-descargar', '--sin-indexar'],
         'entorno': {'OMP_NUM_THREADS': '1'},
@@ -1405,7 +1529,6 @@ OPERACIONES = {
     },
 }
 
-_RAIZ = str(pathlib.Path(__file__).resolve().parent.parent)
 
 
 class LanzarCorrida(BaseModel):
@@ -1443,7 +1566,9 @@ def corridas_lanzar(pedido: LanzarCorrida, authorization: Optional[str] = Header
         cid = corridas.lanzar(pedido.operacion, op['comando'],
                               {'comando': ' '.join(op['comando'])},
                               admin.correo_de(uid) or uid,
-                              cwd=_RAIZ, entorno=op.get('entorno'))
+                              cwd=os.getcwd(),
+                              entorno={'PYTHONPATH': _REPO,
+                                       **(op.get('entorno') or {})})
     except ValueError as e:
         raise HTTPException(409, str(e))
     return {'id': cid}

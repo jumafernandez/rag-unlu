@@ -108,10 +108,28 @@ def pedir(cid, offset, intentos=3):
     return None
 
 
+def total_declarado(cid):
+    """El total que el portal declara para una carpeta, en un pedido. None si no responde."""
+    try:
+        d = pedir(cid, 0, intentos=2)
+        docs = (d or {}).get('documents') or []
+        return int(docs[0].get('total') or 0) or None if docs else None
+    except Exception:
+        return None
+
+
 def recolectar(cid, nombre, salida, maximo=None, tope_vacias=6, traza=None):
     print(f'\n=== [{cid}] {nombre} ===', flush=True)
     registros, tomados, vistos, offset = [], set(), set(), 0
     vacias, total_portal = 0, None
+
+    # El CSV se escribe PÁGINA a página, no al final de la carpeta: un corte a mitad de
+    # una carpeta grande no pierde nada, y reanudar es rehacer solo la carpeta corta.
+    existe = os.path.exists(salida)
+    archivo_csv = open(salida, 'a', newline='', encoding='utf-8-sig')
+    escritor = csv.DictWriter(archivo_csv, fieldnames=COLUMNAS)
+    if not existe:
+        escritor.writeheader()
     while True:
         t_ini = time.time()
         d = pedir(cid, offset)
@@ -161,7 +179,10 @@ def recolectar(cid, nombre, salida, maximo=None, tope_vacias=6, traza=None):
             nuevos += 1
             reg = fila_a_registro(x, nombre)
             reg['Archivo'] = nombre_archivo(reg, tomados)
+            reg['ID PDF'] = len(registros) + 1
             registros.append(reg)
+            escritor.writerow(reg)
+        archivo_csv.flush()
         offset += TOPE
         if len(registros) % 150 < TOPE:
             print(f'  {len(registros)} documentos (offset {offset})', flush=True)
@@ -180,15 +201,7 @@ def recolectar(cid, nombre, salida, maximo=None, tope_vacias=6, traza=None):
         if maximo and len(registros) >= maximo:
             break
 
-    for i, reg in enumerate(registros, 1):
-        reg['ID PDF'] = i
-    if registros:
-        existe = os.path.exists(salida)
-        with open(salida, 'a', newline='', encoding='utf-8-sig') as f:
-            w = csv.DictWriter(f, fieldnames=COLUMNAS)
-            if not existe:
-                w.writeheader()
-            w.writerows(registros)
+    archivo_csv.close()
     if total_portal:
         faltan = total_portal - len(registros)
         estado = 'COMPLETA' if faltan == 0 else f'INCOMPLETA: faltan {faltan}'
@@ -218,16 +231,47 @@ def main():
     if not ids:
         sys.exit('indicá --carpeta ID o --todas')
 
-    # Reanudable por carpeta: lo ya recolectado en este CSV no se repite.
+    # Reanudable por carpeta, mirando el TOTAL: una carpeta solo se saltea si lo que hay
+    # en el CSV alcanza lo que el portal declara (con tolerancia de 3, porque el total
+    # viene inflado por filas repetidas entre páginas: se midieron diferencias de 1 a 3).
+    # Una carpeta corta ---un corte a mitad de listado--- se REHACE: sus filas se sacan
+    # del CSV y se lista de nuevo. Antes bastaba una fila para saltear la carpeta entera,
+    # y una interrupción dejaba agujeros permanentes.
     if os.path.exists(a.salida):
         with open(a.salida, encoding='utf-8-sig') as f:
-            hechas = {r['Seccion'] for r in csv.DictReader(f)}
-        antes = len(ids)
-        ids = [i for i in ids if carpetas.get(i) not in hechas]
-        if len(ids) < antes:
-            print(f'ya estaban: {sorted(hechas)}', flush=True)
+            filas_previas = list(csv.DictReader(f))
+        por_seccion = {}
+        for r in filas_previas:
+            por_seccion[r['Seccion']] = por_seccion.get(r['Seccion'], 0) + 1
+
+        completas, rehacer = [], []
+        for cid in list(ids):
+            nombre = carpetas.get(cid, f'carpeta {cid}')
+            n = por_seccion.get(nombre, 0)
+            if not n:
+                continue
+            total = total_declarado(cid)
+            if total is None or n >= total - 3:
+                completas.append(nombre)
+                ids = [i for i in ids if i != cid]
+            else:
+                rehacer.append(nombre)
+                print(f'  {nombre}: {n} de {total} en el CSV -> se rehace', flush=True)
+
+        if completas:
+            print(f'ya completas: {sorted(completas)}', flush=True)
+        if rehacer:
+            conservar = [r for r in filas_previas if r['Seccion'] not in rehacer]
+            with open(a.salida, 'w', newline='', encoding='utf-8-sig') as f:
+                w = csv.DictWriter(f, fieldnames=COLUMNAS)
+                w.writeheader()
+                w.writerows(conservar)
         if not ids:
-            sys.exit('no queda ninguna carpeta por recolectar en este CSV')
+            # Que no quede nada por hacer es un final feliz, no un error: salir con
+            # código distinto de cero hacía que el panel lo mostrara como "Falló".
+            print('no queda ninguna carpeta por recolectar: el catálogo está completo',
+                  flush=True)
+            return
 
     traza = open(a.traza, 'a', encoding='utf-8') if a.traza else None
     t0, total, resumen = time.time(), 0, []

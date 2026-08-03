@@ -1,94 +1,74 @@
-# rag-unlu
+# rag-unlu — ChatDigesto
 
-Pipeline para construir un sistema RAG sobre la **normativa de la Universidad Nacional de Luján**:
-disposiciones, resoluciones y órdenes de compra que van del PDF publicado al texto estructurado
-con metadata, listo para indexar.
+Asistente conversacional sobre la **normativa de una universidad nacional** publicada en
+su portal SUDOCU. Responde en lenguaje natural, cita cada afirmación con su fragmento
+normativo y enlaza al PDF oficial. Nació para el Digesto de la UNLu y corre sin cambios
+de código en cualquier universidad con ese portal: hay una segunda instancia funcionando
+contra el Boletín Oficial de la UNSL (`instalaciones/unsl/`).
 
-El corpus sale de **dos sistemas distintos**, con documentos de fisonomía diferente
-(ver [docs/fuentes.md](docs/fuentes.md)):
+- **Recuperación híbrida**: embeddings BGE-m3 + BM25 propio (conserva identificadores
+  como `RESHCS 893/2025`) fusionados con RRF, más anclaje exacto cuando la consulta
+  nombra un acto.
+- **Estado de diálogo con procedencia**: el sistema sigue la entidad y los actos en
+  juego; lo que infiere pesa poco, lo que el usuario fija pesa más y no se sobrescribe.
+  El estado es visible y editable en la interfaz.
+- **Skills**: `/lista`, `/ficha` (con "quién lo menciona"), `/comparar`, `/novedades`.
+- **Panel de administración**: personalización completa de la institución (nombre, logo,
+  colores, textos), configuración del LLM, registro de ejecuciones del pipeline con log
+  en vivo, vista de uso.
+- **Un límite dicho de frente**: la Universidad no registra derogaciones, así que el
+  sistema jamás afirma vigencia.
 
-| Fuente | Período | Documentos | Estado |
-|---|---|---|---|
-| **portal** | desde abril/2024 | 19.959 | en Clementina, parseándose |
-| **digesto** (legacy) | hasta abril/2024 | ~120.000 | scrapeado, pendiente de incorporar |
+## Arranque
 
-El cómputo pesado corre en **Clementina XXI** (supercomputadora nacional, SLURM).
+Guía completa en [docs/despliegue.md](docs/despliegue.md). En corto:
 
-## El recorrido de un documento
-
+```bash
+python -m venv .venv && .venv/bin/pip install -r requirements.txt
+cd frontend && npm install && npx vite build && cd ..
+cp .env.ejemplo .env   # completar credenciales
+OMP_NUM_THREADS=1 .venv/bin/python -m uvicorn backend.api:app --port 8000
 ```
-scrapers/     portal y digesto -> PDFs + metadatos.csv (fecha, título, estado del sistema fuente)
-  └─ ingesta/         rclone: Drive -> disco -> Clementina (rsync)
-       └─ extractor/  PDF -> .md jerarquizado + .json de señales
-            └─ pipeline/  .json + .md -> _canonico.yaml -> archivo canónico único
-                 └─ (front-matter YAML + cuerpo Markdown, listo para chunkear)
+
+¿Otra universidad? Primero la sonda (3 pedidos de solo lectura):
+
+```bash
+.venv/bin/python scrapers/probar_portal.py --portal https://<portal>/sudocu/mpd/
 ```
+
+y después una carpeta en `instalaciones/` con su `.env` — el código no se toca
+(ver [instalaciones/README.md](instalaciones/README.md)).
+
+## El pipeline de datos
+
+Cuatro pasos, ejecutables desde el panel (pestaña Ejecuciones) o por terminal — son los
+mismos scripts:
+
+| Paso | Script | Qué hace |
+|---|---|---|
+| 1 · Catálogo | `scrapers/recolectar_api.py` | Lista los actos contra la API del portal; carpetas autodescubiertas; completitud contra el total declarado |
+| 2 · Descarga | `scrapers/bajar_pdfs.py` | Baja los PDF que falten (paralela, reanudable, SHA-256 registrado) |
+| 3 · Vectorización | `pipeline/actualizar.py --sin-recolectar --sin-descargar --sin-indexar` | Extrae, chunkea por unidad normativa, embebe y fusiona lo nuevo |
+| 4 · Indexación | `pipeline/actualizar.py --solo-indexar` | Reconstruye SQLite+FAISS con swap atómico y recarga la API sin cortar el servicio |
+
+`python -m pipeline.actualizar` corre los cuatro seguidos: es la rutina que se programa
+(cron semanal, ver la guía). El catálogo de actos y su ciclo de vida viven en
+`pipeline/catalogo.py`; la depuración de duplicados en `pipeline/depurar_indice.py`.
 
 ## Estructura
 
 | Carpeta | Qué hay |
 |---|---|
-| `scrapers/` | Scraping de ambos sistemas + `metadatos.csv` (subtree, autoría de Fran) |
-| `ingesta/` | Bajar los PDFs del Drive y subirlos a Clementina. Ver [docs/ingesta-corpus.md](docs/ingesta-corpus.md) |
-| `extractor/` | Parser PDF→Markdown+JSON de los becarios (subtree, ver [CREDITS.md](CREDITS.md)) |
-| `pipeline/` | Lo que rodea al extractor: instalación offline, job de SLURM, armado del canónico, auditoría |
-| `patches/` | Nuestras mejoras al extractor, aisladas para proponer upstream |
-| `docs/` | Las dos fuentes, revisión del extractor, auditoría del corpus como insumo de RAG |
+| `backend/` | API FastAPI: recuperación, generación, sesiones, panel |
+| `frontend/` | Interfaz React (build servido por la propia API) |
+| `scrapers/` | Recolección por API del portal + sonda de portabilidad |
+| `pipeline/` | Chunking, embeddings, índice, catálogo, orquestador |
+| `extractor/` | Parser PDF→Markdown de los becarios (subtree, ver CREDITS.md) |
+| `evaluacion/` | Consultas sintéticas, ablación, fidelidad de citas, cuestionario humano |
+| `instalaciones/` | Una carpeta por universidad: solo configuración |
+| `papers/` | CACIC 2026 |
+| `docs/` | Despliegue, administración, uso, recolección, privacidad |
+| `*/anteriores/` | Métodos reemplazados, conservados con su historia |
 
-## Estado
-
-| Etapa | Estado |
-|---|---|
-| Corpus **portal** en Clementina | ✅ 19.959 PDFs (8,56 GiB), verificados uno por uno |
-| Extractor revisado y parcheado | ✅ portabilidad + calidad (ver `patches/`) |
-| Instalación en Clementina | ✅ venv con deps offline, verificado |
-| Corrida completa de los 19.959 | ⚠️ se cuelga a ~686 documentos — en diagnóstico |
-| Metadata del scraper en el pipeline | ⏳ `metadatos.csv` trae fecha/título/estado del sistema fuente, sin usar todavía |
-| Corpus **digesto** (~120k) | ⏳ scrapeado, sin incorporar; el parser nunca vio documentos `legacy` |
-| Indexado / RAG | ⏳ pendiente |
-
-## Arranque rápido
-
-```bash
-# 1. traer el corpus (necesita rclone configurado, ver ingesta/SETUP_RCLONE.md)
-cd ingesta && ./download_portal_rclone.sh && ./upload_portal.sh && ./verify_upload.sh
-
-# 2. preparar Clementina (sin internet: wheels precompiladas)
-cd ../pipeline && ./01_bajar_wheels.sh 3.9
-# ... subir a Clementina y allá:
-./02_instalar_en_clementina.sh wheels-py3.9
-
-# 3. procesar (job array: cada tarea toma un shard disjunto de los PDFs)
-sbatch pipeline/run_corpus.slurm
-
-# 4. auditar el resultado
-python pipeline/verificar_resultados.py <resultados> <pdfs>   # cobertura e integridad
-python pipeline/auditoria_rag.py <resultados>                 # calidad como insumo de RAG
-```
-
-### Por qué un runner propio para el cluster
-
-`extractor/procesador_masivo.py` anda bien en una carpeta chica, pero la corrida de los 19.959
-en Clementina **se colgó a los 686 documentos** sin dejar rastro de dónde. Descartamos, midiendo:
-PDFs que cuelguen (3.000 probados, 0), deadlock de buffers de pipe (el PDF más grande escribe
-232 bytes) y memoria (112–142 MB por proceso; ~8 GB en total, nada para un nodo).
-
-Queda como sospechoso la escritura de decenas de miles de archivos chicos en **un solo
-directorio del filesystem compartido**. `pipeline/procesar_corpus.py` lo evita y además hace
-diagnosticable cualquier cuelgue futuro:
-
-- trabaja en el **disco local del nodo** y copia al final, en vez de martillar el FS compartido;
-- reparte la salida en **256 subdirectorios** (con 140k documentos serían ~420.000 archivos);
-- escribe un **JSONL con una línea por documento** (estado y duración): si se cuelga, el último
-  registro dice exactamente en qué archivo;
-- **shardea** entre tareas de un job array, y **se reanuda** sin reprocesar.
-
-No modifica el extractor: lo invoca igual que antes.
-
-## Qué mide la auditoría
-
-`auditoria_rag.py` no pregunta "¿el parser anduvo?" sino "¿esto sirve para recuperar normativa
-con precisión?": chunkabilidad (¿hay esqueleto de headers?), filtrado (¿la metadata permite
-acotar por tipo/órgano/año sin mentir?), integridad (¿documentos mudos, ruido que contamina
-embeddings?) y enlaces entre normas. Resultados sobre 300 documentos en
-[docs/revision-extractor.md](docs/revision-extractor.md).
+El corpus histórico previo al portal (~120.000 documentos) aún no está incorporado; el
+camino para volúmenes así es Clementina XXI (`pipeline/*.slurm`).

@@ -61,3 +61,11 @@ datos/chatdigesto.sqlite
 /datos
 scrapers/traza.jsonl
 scrapers/traza.jsonl
+
+# Instalaciones: en el repo va solo la configuración; los datos de cada instancia, no.
+instalaciones/*/.env
+instalaciones/*/datos/
+instalaciones/*/data/
+instalaciones/*/indice/
+instalaciones/*/logs/
+datos/chatdigesto.sqlite

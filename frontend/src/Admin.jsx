@@ -10,7 +10,7 @@
  * El permiso se verifica en el servidor. Que la entrada esté escondida para el resto es
  * comodidad, no seguridad.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   adminEstado, adminDocumentos, adminAdmins, adminAgregarAdmin, adminQuitarAdmin,
   leerTema, guardarTema, leerInstitucion, guardarInstitucion, subirLogo, quitarLogo, URL_LOGO,
@@ -141,6 +141,16 @@ function Corridas({ alFallar }) {
   const refrescar = () => adminCorridas().then(setDatos).catch((e) => alFallar(e.message));
   useEffect(() => { refrescar(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Si hay una ejecución en curso, su log se abre solo al entrar: es lo que se vino a
+  // mirar. Una sola vez, para no reabrirlo si el usuario lo cierra a propósito.
+  const autoAbierta = useRef(false);
+  useEffect(() => {
+    if (!autoAbierta.current && datos?.en_curso && abierta == null) {
+      autoAbierta.current = true;
+      abrir(datos.en_curso.id);
+    }
+  });   // eslint-disable-line react-hooks/exhaustive-deps
+
   // Mientras haya una corrida en curso, la lista y el log abierto se refrescan solos.
   useEffect(() => {
     if (!datos?.en_curso && !(detalle && detalle.estado === "en_curso")) return;
@@ -172,13 +182,6 @@ function Corridas({ alFallar }) {
 
   return (
     <>
-      <p className="admin-nota">
-        Los pasos del pipeline, en orden: el catálogo dice qué actos existen, la descarga
-        trae sus PDF, la vectorización los procesa y calcula sus vectores, y la indexación
-        deja todo listo para servir. Cada paso es el mismo script que se corre desde una
-        terminal; el panel lo lanza y guarda su registro. Corre uno a la vez.
-      </p>
-
       <div className="corrida-operaciones">
         {datos.operaciones.map((op) => (
           <div className="corrida-operacion" key={op.clave}>
