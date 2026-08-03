@@ -17,6 +17,16 @@ Cormack, G.V., Clarke, C.L.A., Buettcher, S.: Reciprocal rank fusion
   outperforms condorcet and individual rank learning methods. In: Proceedings
   of SIGIR (2009)
 
+\bibitem{crompton2023state}
+Crompton, H., Burke, D.: Artificial intelligence in higher education: the state
+  of the field. International Journal of Educational Technology in Higher
+  Education  20, ~22 (2023)
+
+\bibitem{george2023managing}
+George, B., Wooden, O.: Managing the strategic transformation of higher
+  education through artificial intelligence. Administrative Sciences  13(9),
+  196 (2023)
+
 \bibitem{kemper2024rarec}
 Kemper, S., Cui, J., Dicarlantonio, K., Lin, K., Tang, D., Korikov, A., Sanner,
   S.: Retrieval-augmented conversational recommendation with prompt-based
@@ -49,6 +59,11 @@ Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: {SOVITE}: Towards
 Manku, G.S., et~al.: {ShopTalk}: A system for conversational faceted search.
   In: SIGIR Workshop on eCommerce (2022), convierte el estado de dialogo en
   consulta textual mas restricciones de faceta
+
+\bibitem{pang2025exploring}
+Pang, W., Wei, Z.: Exploring the transformative potential of artificial
+  intelligence in university academic management. Education Journal  8(3),
+  97--103 (2025)
 
 \bibitem{robertson2009bm25}
 Robertson, S., Zaragoza, H.: The probabilistic relevance framework: {BM25} and

@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.6.9)  3 AUG 2026 17:07
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.6.9)  3 AUG 2026 17:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -518,16 +518,16 @@ ve/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/local/texlive/2026/te
 xmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}{/usr/local/texlive/2026/texmf-dist/f
 onts/enc/dvips/lm/lm-mathsy.enc}] [7]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 446.
+(Font)              <9> on input line 457.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 446.
+(Font)              <6> on input line 457.
 
-Overfull \hbox (4.4294pt too wide) in paragraph at lines 478--489
+Overfull \hbox (4.4294pt too wide) in paragraph at lines 489--500
  [][] 
  []
 
 [8]
-Overfull \hbox (62.21109pt too wide) in paragraph at lines 533--547
+Overfull \hbox (62.21109pt too wide) in paragraph at lines 544--558
  [][] 
  []
 
@@ -541,10 +541,10 @@ L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 5876 strings out of 467525
- 88922 string characters out of 5418983
- 519340 words of memory out of 5000000
- 34645 multiletter control sequences out of 15000+600000
+ 5880 strings out of 467525
+ 88995 string characters out of 5418983
+ 519355 words of memory out of 5000000
+ 34649 multiletter control sequences out of 15000+600000
  681899 words of font info for 79 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  57i,9n,65p,361b,365s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -563,7 +563,7 @@ onts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1
 lmsy9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local
 /texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on main.pdf (12 pages, 312045 bytes).
+Output written on main.pdf (12 pages, 312798 bytes).
 PDF statistics:
  124 PDF objects out of 1000 (max. 8388607)
  86 compressed objects within 1 object stream
