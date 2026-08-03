@@ -4,6 +4,9 @@ Gracias por participar. Vas a leer **10 consultas reales con la respuesta que di
 sistema** y puntuar cada una. Después vas a hacer **3 consultas tuyas** directamente en
 el sistema. Total estimado: 30–40 minutos.
 
+Cada respuesta se apoya en **uno o dos actos administrativos** — verificarla es abrir
+a lo sumo dos documentos.
+
 ## Cómo puntuar
 
 Cada respuesta se puntúa de **1 a 5** en cuatro dimensiones:
@@ -15,8 +18,8 @@ Cada respuesta se puntúa de **1 a 5** en cuatro dimensiones:
 | **Completitud** | Falta normativa que conocés o esperarías | No le falta nada relevante |
 | **Claridad** | Confusa o difícil de leer | Clara y bien organizada |
 
-Para **Fidelidad**, espiá al menos una cita por respuesta (los enlaces van al documento
-oficial). Si detectás algo **incorrecto**, marcá SÍ en la última columna y anotá qué.
+Para **Fidelidad**, abrí el acto citado (uno o dos por respuesta). Si detectás algo
+**incorrecto**, marcá SÍ en la columna correspondiente de la planilla y anotá qué.
 
 No hay respuestas buenas ni malas del cuestionario: si una respuesta del sistema te
 parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
@@ -25,241 +28,176 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 
 ## Ítem 1
 
-**Consulta:** ¿De qué trata la Disposicion DISPCD-CB 348/2025?
+**Consulta:** asesor técnico en producción de forraje en la Universidad Nacional de Luján
 
 **Respuesta del sistema:**
 
-> La Disposición DISPCD-CB 348/2025 aprueba la realización del Taller Extracurricular titulado “Anatomofisiologia práctica, un repaso intensivo”, cuyo responsable es Sofía Laura Hernández. Este taller está dirigido a estudiantes de la Licenciatura en Enfermería que hayan cursado la asignatura Anatomofisiología y no hayan aprobado el examen final, así como a estudiantes de otras carreras de la Universidad Nacional de Luján.
-> 
-> El taller comenzará el 25 de septiembre y finalizará el 13 de noviembre, con encuentros presenciales los días jueves de 17 a 21 horas y actividades virtuales asincrónicas de 2 horas semanales. Se establece que los participantes deben cumplir con el 75% de asistencia a las actividades presenciales y completar el 100% de las actividades virtuales (Disposición DISPCD-CB 348/2025 — Artículo 1).
+> El Ingeniero Diego Bersachia fue designado como Asesor Técnico del área productiva del Campo Experimental de la Universidad Nacional de Luján, a partir del 14 de marzo de 2025. Su designación responde a la necesidad de contar con un experto en producción de forraje, con el objetivo de brindar asesoramiento técnico especializado y optimizar las tareas vinculadas a dicha actividad, de acuerdo a los objetivos fijados en el reglamento del CIDEPA (Disposición Centro De Investigación Docencia Y Extensión En Producción Agropecuaria 1/2025 — Artículo 2).
 
-**Fuentes citadas:** Disposicion DISPCD-CB 348/2025 — Artículo 1 · Disposicion DISPCD-CB 348/2025 · Disposicion DISPCD-CB 348/2025 · Disposicion DISPCD-CB 348/2025 · Disposicion DISPCD-CB 348/2025 — Considerando
+**Acto a verificar:** Disposición Centro De Investigación Docencia Y Extensión En Producción Agropecuaria 1/2025
 
 ---
 
 ## Ítem 2
 
-**Consulta:** Licencia por maternidad para docentes en el Departamento de Ciencias Sociales
+**Primera consulta:** ¿Sobre qué trata la renuncia de la docente Susana Beatriz Serisier?
+
+**Repregunta (la que se evalúa):** ¿Y de qué año es la aceptación de esta renuncia?
 
 **Respuesta del sistema:**
 
-> Se han registrado varias solicitudes de licencia por maternidad para docentes del Departamento de Ciencias Sociales. A continuación, se detallan las disposiciones correspondientes:
-> 
-> 1. **Melisa Gabriela García** - Disposición DGP 31/2026, EXP 110/2026, fecha: 2026-03-02.
-> 2. **María Celeste Barrenechea** - Disposición DGP 313/2025, EXP 1496/2025, fecha: 2025-12-30.
-> 3. **María Josefina Barca** - Disposición DGP 125/2026, EXP 1700/2026, fecha: 2026-06-25.
-> 4. **Camila Martucci** - Disposición DGP 185/2024, EXP 898/2024, fecha: 2024-11-08.
-> 5. **Camila López García** - Disposición DGP 234/2024, EXP 1269/2024, fecha: 2024-12-20.
-> 6. **Clara Mariana Cantarelo** - Disposición DGP 102/2024, EXP 139/2024, fecha: 2024-06-03.
-> 7. **María Daniela Chiaramonte** - Disposición DGP 113/2026, EXP 1637/2026, fecha: 2026-06-16.
-> 8. **María José Acuña** - Disposición DGP 110/2026, EXP 1630/2026, fecha: 2026-06-16.
-> 
-> Si necesitas más información sobre alguna de estas solicitudes, no dudes en preguntar.
+> La renuncia definitiva de la docente Susana Beatriz Serisier fue aceptada a partir del 18 de mayo de 2026, según la Disposición CS 45/2026 (Artículo 1). La resolución que determina su baja definitiva en el Departamento de Ciencias Sociales también se emitió el 23 de junio de 2026 (Resolución RESPRHCS 78/2026 — Artículo 1).
 
-**Fuentes citadas:** Disposicion DGP 31/2026 — Visto · Disposicion DGP 313/2025 — Visto · Disposicion DGP 125/2026 — Visto · Disposicion DGP 185/2024 — Visto · Disposicion DGP 234/2024 — Visto
+**Actos a verificar:** Disposicion CS 45/2026 · Resolucion RESPRHCS 78/2026
 
 ---
 
 ## Ítem 3
 
-**Primera consulta:** ¿Qué me puedes contar sobre la renuncia de un docente en la Universidad Nacional de Luján?
+**Primera consulta:** ¿Sobre qué trata la disposición relacionada con el registro de aspirantes para un cargo suplente en el área de Metodología de la Investigación?
 
-**Repregunta (la que se evalúa):** ¿Y de qué año es esa renuncia?
+**Repregunta (la que se evalúa):** ¿Y de qué año es esa disposición? ¿Se mantiene Carlos Fernando Torres en ese cargo?
 
 **Respuesta del sistema:**
 
-> He encontrado varias renuncias de docentes en la Universidad Nacional de Luján. Aquí te detallo algunas:
+> La disposición relacionada con el registro de aspirantes para un cargo suplente en el área de Metodología de la Investigación es la DISPCD-E 152/2026, que fue emitida el 15 de julio de 2026. En esta disposición se aprueba el dictamen del Jurado que intervino en el registro de aspirantes y se propone la designación de Carlos Fernando Torres en un cargo suplente de Ayudante de Primera con dedicación semiexcluisva, a partir del 1° de septiembre de 2026, mientras dure la licencia de la docente María Ana González (DISPCD-E 152/2026 — Artículo 2).
 > 
-> 1. **Santiago Feijóo** - Departamento de Ciencias Sociales, renunció el 29 de julio de 2024 (Disposición CS 49/2024).
-> 
-> 2. **Daniel Adrián Tortonese** - Legajo Nº 1162, renunció el 1 de marzo de 2026 (Disposición CS 29/2026).
-> 
-> 3. **Mónica Graciela Parisi** - Legajo 1803, renunció por promoción en carrera docente el 28 de noviembre de 2024 (Disposición DISPPCD-CB 350/2024).
-> 
-> 4. **Pablo Alejandro Ojeda** - Legajo 3193, renunció por promoción en carrera docente el 25 de octubre de 2024 (Disposición DISPPCD-CB 312/2024).
-> 
-> 5. **Pablo Eduardo Ducca** - Legajo 5289, renunció el 22 de agosto de 2024 (Disposición DISPPCD-CB 213/2024).
-> 
-> 6. **Hernán Costa** - Legajo 2441, renunció por promoción en carrera docente el 29 de noviembre de 2024 (Disposición DISPPCD-CB 351/2024).
-> 
-> 7. **Gloria Alejandra Lynch** - Legajo 937, renunció el 1 de mayo de 2026 (Disposición CS 39/2026).
-> 
-> 8. **Juan Manuel Fernández** - Legajo 3096, renunció el 6 de agosto de 2024 (Disposición DISPPCD-CB 198/2024).
-> 
-> Si necesitas más información sobre alguna de estas renuncias, no dudes en preguntar.
+> Carlos Fernando Torres fue designado en un cargo ordinario de Ayudante de Segunda con dedicación simple en el área de Metodología de la Investigación desde el 1° de marzo de 2026 hasta el 28 de febrero de 2027 (DISPSEACAD 488/2026 — Artículo 1). Por lo tanto, no se mantiene en el mismo cargo, ya que se le propone un cargo suplente diferente a partir de septiembre de 2026.
 
-**Fuentes citadas:** Disposicion CS 49/2024 · Disposicion CS 29/2026 — Visto · Disposicion DISPPCD-CB 350/2024 · Disposicion DISPPCD-CB 312/2024 · Disposicion DISPPCD-CB 213/2024
+**Actos a verificar:** Disposicion DISPCD-E 152/2026 · Disposicion DISPSEACAD 488/2026
 
 ---
 
 ## Ítem 4
 
-**Consulta:** ¿Qué establece la Disposicion DISPCD-T 41/2025?
+**Consulta:** ¿De qué trata la Disposicion DISPPCD-E 37/2026?
 
 **Respuesta del sistema:**
 
-> La Disposición DISPCD-T 41/2025 establece la aprobación del acta dictamen de la Comisión Evaluadora de Carrera Docente, que considera positiva la evaluación de Eduardo Augusto Penon para su promoción a un cargo ordinario de Profesor Asociado con dedicación Exclusiva en el Departamento de Tecnología. 
+> La Disposición DISPPCD-E 37/2026 aprueba el programa del Seminario de Posgrado Optativo "Pedagogías de los Movimientos Populares" para la carrera de posgrado Maestría en Educación Popular de Adultos, con vigencia desde 2026 hasta 2029. Este seminario está a cargo de la docente Ana Clara De Mingo y busca ampliar la comprensión sobre experiencias político-pedagógicas de movimientos populares, especialmente del MOCASE VC, contribuyendo a la mejora de las prácticas pedagógicas, la formación de profesionales comprometidos y la construcción de líneas de investigación con impacto social democratizador (Disposición DISPPCD-E 37/2026 — Artículo 1 y Considerando). 
 > 
-> En su Artículo 1, se propone al H. Consejo Superior la aprobación del acta dictamen, y en el Artículo 2, se propone la promoción del docente a dicho cargo, específicamente en la División Tecnología Agropecuaria, Disciplina Producción Vegetal, para prestar servicios en cualquiera de las asignaturas de la disciplina, preferentemente en Producción Vegetal IV (Dasonomía) (Disposición DISPCD-T 41/2025 — Artículo 1 y Artículo 2). 
-> 
-> La evaluación fue realizada por la Comisión Evaluadora el 19 de diciembre de 2024, y se actuó de acuerdo con la reglamentación vigente, sin registrarse impugnaciones (Disposición DISPCD-T 41/2025 — Considerando).
+> La disposición se emite en el marco de las atribuciones conferidas por otra normativa y cuenta con el dictamen favorable de la Comisión Académica de la Maestría (Disposición DISPPCD-E 37/2026 — Considerando).
 
-**Fuentes citadas:** Disposicion DISPCD-T 41/2025 — Visto · Disposicion DISPCD-T 41/2025 — Artículo 1 · Disposicion DISPCD-T 41/2025 — Considerando · Disposicion DISPCD-T 41/2025 — Artículo 2
+**Acto a verificar:** Disposicion DISPPCD-E 37/2026
 
 ---
 
 ## Ítem 5
 
-**Consulta:** texto de la Disposicion DGAA 560/2024
+**Consulta:** Disposicion DISPPCD-E 91/2025
 
 **Respuesta del sistema:**
 
-> La Disposición DGAA 560/2024 se refiere a la solicitud de cambio de carrera de Sergio Alejandro Pereira Prieto, con legajo 88699 y DNI 32342461. A continuación, se presenta el texto completo de la disposición:
+> La Disposición DISPPCD-E 91/2025, emitida el 14 de julio de 2025, tiene como objetivo avalar el Informe de Avance del Proyecto de Extensión titulado “De-formando: deporte en clave de la ESI en la comunidad de San Fernando”. Este proyecto está dirigido por María Leticia Labake y codirigido por Nicolás Mármol.
 > 
-> **Visto:**
-> La solicitud de cambio de carrera por Sergio Alejandro Pereira Prieto (Legajo N°88699)(DNI N°32342461) por la cual solicita la consideración de equivalencias para la Carrera de Licenciatura en Geografía de la cual es estudiante regular; y
+> **Consideraciones relevantes:**
+> - El proyecto fue avalado previamente por el Departamento de Educación mediante la Disposición DISPPCD-ELUJ:0000121/23 y aprobado por la Resolución RESHCS-LUJ:0000752-22.
+> - El Informe de Avance se ajusta a la reglamentación para la presentación de acciones y proyectos de extensión, aprobada por la Resolución RESHCS-LUJ:0000579/17.
+> - La Comisión Asesora Permanente de Extensión emitió un dictamen favorable sobre el proyecto.
 > 
-> **Considerando:**
-> Que la Coordinación de la carrera dictamina otorgar la/s asignatura/s (20146) FUNDAMENTOS DE ECONOMÍA por equivalencia con asignaturas cursadas y aprobadas en esta Universidad.
-> Que el/la recurrente no cumple con el requisito de correlatividad de la/s asignatura/s mencionada/s anteriormente.
-> Por ello;
+> **Artículos de la disposición:**
+> - **Artículo 1:** Avala el Informe de Avance del Proyecto de Extensión.
+> - **Artículo 2:** Registra, comunica y archiva la disposición.
 > 
-> **Artículo 1:**
-> Informar a Sergio Alejandro Pereira Prieto (Legajo N°88699) (DNI N°32342461) que el otorgamiento de equivalencia/s de la/s asignatura/s (20146) FUNDAMENTOS DE ECONOMÍA quedará supeditado a la aprobación de su/s correlativa/s.
-> 
-> **Artículo 2:**
-> Notificar que, una vez aprobada/s la/s asignatura/s que adeude; deberá solicitar por escrito el correspondiente acto dispositivo.
-> 
-> **Artículo 3:**
-> Por Departamento de Administración Académica notificar; registrar y archivar.
-> 
-> Fecha de la disposición: 2024-06-25.
+> Si necesitas más información sobre esta disposición o algún otro tema, no dudes en preguntar.
 
-**Fuentes citadas:** Disposicion DGAA 560/2024 — Artículo 2 · Disposicion DGAA 560/2024 · Disposicion DGAA 560/2024 — Artículo 3 · Disposicion DGAA 560/2024 — Artículo 1 · Disposicion DGAA 560/2024 — Considerando
+**Acto a verificar:** Disposicion DISPPCD-E 91/2025
 
 ---
 
 ## Ítem 6
 
-**Primera consulta:** ¿Qué trata la disposición sobre la renuncia de un docente en el Departamento de Ciencias Sociales?
+**Primera consulta:** ¿Cuál es el tema de la designación de tutora y co-tutora para el trabajo final de graduación de Carolina Ventura?
 
-**Repregunta (la que se evalúa):** ¿Y de qué año es la renuncia de Alfredo Juan Bacigaluppi?
+**Repregunta (la que se evalúa):** ¿Y de qué año es esa designación?
 
 **Respuesta del sistema:**
 
-> La renuncia del docente Alfredo Juan Bacigaluppi es a partir del 1º de agosto de 2024 (Disposición CS 50/2024 — Artículo 1).
+> La designación de tutora y co-tutora para el trabajo final de graduación de Carolina Ventura es del año 2025, específicamente del 14 de febrero de 2025 (Disposición DISPDD-T 14/2025 — Artículo 1).
 
-**Fuentes citadas:** Disposicion CS 50/2024 — Visto · Disposicion CS 50/2024 — Artículo 2 · Disposicion CS 50/2024 — Artículo 1 · Resolucion RESPRHCS 102/2024 — Visto · Resolucion RESPRHCS 102/2024 — Artículo 1
+**Acto a verificar:** Disposicion DISPDD-T 14/2025
 
 ---
 
 ## Ítem 7
 
-**Primera consulta:** ¿Cuál es el tema de la disposición que propone la integración de la Comisión Evaluadora para la promoción de un docente en la División Química?
-
-**Repregunta (la que se evalúa):** ¿Y de qué año es esta propuesta? ¿Quién la firmó?
+**Consulta:** ¿Cuáles son los detalles sobre la contratación de profesores para el taller de vóley en Luján durante el segundo semestre de 2026?
 
 **Respuesta del sistema:**
 
-> La propuesta de integración de la Comisión Evaluadora para la promoción de la docente María Emilia Villanueva es de 2026, específicamente del 13 de mayo de ese año (Disposición DISPCD-CB 123/2026 — Artículo 1). 
+> No encontré normativa específica sobre la contratación de profesores para el taller de vóley en Luján durante el segundo semestre de 2026. Sin embargo, hay información sobre la contratación de profesores para el período de febrero a junio de 2026.
 > 
-> No se menciona en el fragmento quién firmó la disposición. Si necesitas más información o detalles sobre otros actos, no dudes en preguntar.
+> 1. **Simón Hernández**: Contratado como profesor para el Taller Deportivo de Vóley - Luján, con una carga horaria de 60 horas al mes y una retribución mensual de $433.440, durante el período del 1º de febrero al 30 de junio de 2026 (Disposición DSECBUAE 3/2026 — Artículo 3).
+> 
+> 2. **Mariela Da Silva**: Contratada como profesora para el Taller Deportivo de Vóley - Luján, con una carga horaria de 70 horas al mes y una retribución mensual de $505.680, durante el mismo período (Disposición DSECBUAE 3/2026 — Artículo 1).
+> 
+> 3. **Carolina Conde Duhour**: Contratada como profesora para el Taller Deportivo de Vóley - Luján, con una carga horaria de 50 horas al mes y una retribución mensual de $361.200, también durante el período del 1º de febrero al 30 de junio de 2026 (Disposición DSECBUAE 3/2026 — Artículo 2).
+> 
+> Si necesitas información adicional o sobre otro tema, no dudes en preguntar.
 
-**Fuentes citadas:** Disposicion DISPCD-CB 123/2026 — Visto · Disposicion DISPCD-CB 410/2025 — Visto · Disposicion DISPCD-CB 498/2025 — Visto · Disposicion DISPCD-CB 123/2026 — Artículo 1 · Disposicion DISPCD-CB 149/2025 — Visto
+**Acto a verificar:** Disposicion DSECBUAE 3/2026
 
 ---
 
 ## Ítem 8
 
-**Consulta:** Quiero saber sobre la designación de personal de gabinete en la Secretaría de Bienestar Universitario de la Universidad Nacional de Luján.
+**Consulta:** Disposicion DISPDD-T 68/2026
 
 **Respuesta del sistema:**
 
-> Se han realizado varias designaciones de personal de gabinete en la Secretaría de Bienestar Universitario de la Universidad Nacional de Luján. A continuación, te detallo las resoluciones pertinentes:
+> La Disposición DISPDD-T 68/2026 se refiere a la renuncia presentada por la docente Melisa Fernanda Gotte a un cargo interino de Jefa de Trabajos Prácticos con dedicación Exclusiva en el Departamento de Tecnología. A continuación, se detallan los aspectos más relevantes:
 > 
-> 1. **Resolución RR 305/2026**:
->    - **Designación**: Fatima Daniela Cirulli
->    - **DNI**: 39.906.973
->    - **Tareas**: Asistencia en la Secretaría de Bienestar Universitario y Asuntos Estudiantiles
->    - **Período**: Desde el 1º de junio de 2026 hasta el 31 de julio de 2026
->    - **Fecha**: 23 de junio de 2026 (Resolución RR 305/2026 — Artículo 2)
+> 1. **Datos de la docente**: Melisa Fernanda Gotte, DNI 34.480.957, Legajo 4721.
+> 2. **Cargo**: Jefa de Trabajos Prácticos con dedicación Exclusiva en las asignaturas Enfermería Quirúrgica y Prácticas Integradas de Enfermería I de la Disciplina Enfermería Aplicada.
+> 3. **Fecha de la renuncia**: La renuncia es efectiva a partir del 1º de junio de 2026.
+> 4. **Trámite**: La renuncia fue presentada para asumir un cargo con carácter ordinario y se propone al H. Consejo Superior la aceptación de la misma, conforme a las Resoluciones RESHCS-LUJ: 0000733/16 y RESREC-LUJ: 0000501/16.
 > 
-> 2. **Resolución RR 94/2026**:
->    - **Designación**: Nanci Analía Gallo
->    - **DNI**: 29.553.249
->    - **Tareas**: Coordinación en la Secretaría de Bienestar Universitario y Asuntos Estudiantiles
->    - **Período**: Desde el 1º de marzo de 2026 hasta el 31 de julio de 2026
->    - **Fecha**: 26 de marzo de 2026 (Resolución RR 94/2026 — Artículo 1)
-> 
-> 3. **Resolución RR 118/2026**:
->    - **Designación**: Alejandra Noemí Ibarra
->    - **DNI**: 32.698.773
->    - **Tareas**: Coordinación en la Secretaría de Bienestar Universitario y Asuntos Estudiantiles
->    - **Período**: Desde el 1º de marzo de 2026 hasta el 31 de julio de 2026
->    - **Fecha**: 6 de abril de 2026 (Resolución RR 118/2026 — Artículo 1)
-> 
-> 4. **Resolución RR 98/2026**:
->    - **Designación**: Emiliano Francisco Pérez
->    - **DNI**: 40.796.801
->    - **Tareas**: Coordinación en la Secretaría de Bienestar Universitario y Asuntos Estudiantiles
->    - **Período**: Desde el 1º de marzo de 2026 hasta el 31 de julio de 2026
->    - **Fecha**: 26 de marzo de 2026 (Resolución RR 98/2026 — Artículo 1)
-> 
-> Estas designaciones son parte de la planta no permanente y están destinadas a tareas específicas dentro de la Secretaría de Bienestar Universitario y Asuntos Estudiantiles. Si necesitas más información o detalles sobre algún aspecto en particular, no dudes en preguntar.
+> Esta disposición fue emitida el 29 de abril de 2026 (Disposición DISPDD-T 68/2026 — Artículo 1).
 
-**Fuentes citadas:** Resolucion RR 305/2026 — Artículo 2 · Resolucion RR 94/2026 — Artículo 1 · Resolucion RR 94/2026 — Artículo 2 · Resolucion RR 118/2026 — Artículo 1 · Resolucion RR 94/2026 — Visto
+**Acto a verificar:** Disposicion DISPDD-T 68/2026
 
 ---
 
 ## Ítem 9
 
-**Consulta:** Programa del seminario de posgrado sobre metodología y técnicas de investigación en ciencias sociales y humanas para el doctorado
+**Consulta:** ¿Qué estudiantes fueron incorporadas al equipo del proyecto de investigación sobre la memoria colectiva en la formación docente en la Universidad Nacional de Luján?
 
 **Respuesta del sistema:**
 
-> Se han aprobado varios programas del seminario de posgrado "Metodología y técnicas de investigación en Ciencias Sociales y Humanas" para la carrera de Doctorado en Ciencias Sociales y Humanas:
+> Fueron incorporadas al equipo del proyecto de investigación sobre la memoria colectiva en la formación docente en la Universidad Nacional de Luján las siguientes estudiantes:
 > 
-> 1. **Disposición DISPPCD-E 82/2026**:
->    - **Docente**: Alicia Itatí Palermo
->    - **Vigencia**: 2026-2028
->    - **Fecha**: 2026-07-02
->    - **Contenido**: Incluye criterios de elección metodológica, selección de casos, conceptos y teoría en la investigación, técnicas e instrumentos para la obtención de datos en investigación cualitativa, entre otros. (Disposición DISPPCD-E 82/2026 — Artículo 1).
+> 1. Mariela Paiva
+> 2. Soledad Ana Gabriela
+> 3. María Cecilia Condorelle
+> 4. Verónica Romina Álvarez
 > 
-> 2. **Disposición DISPPCD-CS 287/2026**:
->    - **Docente responsable**: Dra. Gloria Lynch
->    - **Vigencia**: 2026-2028
->    - **Fecha**: 2026-05-22
->    - **Contenido**: Programa del seminario "Metodología y Técnicas de la Investigación en Ciencias Sociales y Humanas con Enfoque Cuantitativo". (Disposición DISPPCD-CS 287/2026 — Artículo 1).
-> 
-> 3. **Disposición DISPPCD-E 172/2024**:
->    - **Docente**: Alicia Itatí Palermo
->    - **Vigencia**: No especificada en el acto, pero es anterior a los otros.
->    - **Fecha**: 2024-07-04
->    - **Contenido**: Programa del mismo seminario, similar al mencionado anteriormente. (Disposición DISPPCD-E 172/2024 — Artículo 1).
-> 
-> Si necesitas más detalles sobre alguno de estos programas, házmelo saber.
+> Esto se establece en la Disposición DISPCD-E 192/2024, donde se menciona su incorporación al proyecto dirigido por Mónica Insaurralde y codirigido por Natalia Wiurnos (Disposición DISPCD-E 192/2024 — Artículo 1).
 
-**Fuentes citadas:** Disposicion DISPPCD-E 82/2026 — Visto · Disposicion DISPCD-CS 287/2026 — Visto · Disposicion DISPPCD-E 172/2024 — Visto · Disposicion DISPPCD-E 172/2024 — Artículo 1 · Disposicion DISPPCD-E 82/2026 — Artículo 1
+**Acto a verificar:** Disposicion DISPCD-E 192/2024
 
 ---
 
 ## Ítem 10
 
-**Consulta:** ¿Qué información hay sobre la designación de una persona para un seminario sobre la infancia en la Universidad Nacional de Luján en 2024?
+**Consulta:** Composición de la Comisión de Plan de Estudios de la Licenciatura en Enfermería
 
 **Respuesta del sistema:**
 
-> Hay varias disposiciones relacionadas con la designación de personas para seminarios sobre la infancia en la Universidad Nacional de Luján en 2024:
+> La composición de la Comisión de Plan de Estudios de la Licenciatura en Enfermería, según la Disposición DISPCD-CS 96/2026, es la siguiente:
 > 
-> 1. **Claudia Garavano** fue asignada para dictar el seminario “Educación y Legislación para la Primera Infancia en Argentina y Latinoamérica” en el Departamento de Ciencias Sociales. Esta asignación se formalizó mediante la Disposición DISPCD-CS 599/2024, con fecha del 2 de diciembre de 2024 (Disposición DISPCD-CS 599/2024).
+> **Titulares:**
+> - Roxana Haydee LAUCIERI (D.N.I. 22.960.401)
+> - María Celeste DOMECQ THESZ (D.N.I. 26.489.054)
+> - Romina Natalia SPOLITA (D.N.I. Nº 30.341.800)
 > 
-> 2. **Vanesa Haydee Villeta** fue propuesta para la prestación de servicios personales en el seminario “Construcción Socio-Histórica de la Infancia”, correspondiente a la Carrera de Especialización en Abordajes Interdisciplinarios con Niñas, Niños, Adolescentes y Jóvenes. Esta designación se realizó mediante la Disposición DISPSECPOS 87/2024, con fecha del 13 de agosto de 2024, y se establece una retribución total de PESOS CIENTO CUARENTA Y CUATRO MIL ($ 144.000.-) (Disposición DISPSECPOS 87/2024).
+> **Suplentes:**
+> - María Florencia CENDALI (D.N.I. Nº 29.434.354)
+> - Ana Nora FELDMAN (D.N.I. Nº 14.013.444)
+> - Mónica Cecilia RABENNA (D.N.I. Nº 26.391.053) (Disposición DISPCD-CS 96/2026 — Artículo 1). 
 > 
-> 3. La Disposición DISPSECADM 713/2024 menciona la solicitud de servicios personales de **Rosa Ester Miriam Campos** para el seminario “Familia, Niñas/os, Adolescentes y Jóvenes, Crianzas y Cuidados”, que se dictará entre el 1º de octubre y el 30 de noviembre de 2024. Esta solicitud fue presentada el 14 de noviembre de 2024 (Disposición DISPSECADM 713/2024).
-> 
-> Estas disposiciones reflejan la actividad académica relacionada con la infancia en la Universidad durante el año 2024.
+> Además, se aceptó la renuncia de Marisa Mariana CAMEJO como representante docente titular y se designó a Yolanda Anabel Culzoni como su reemplazo (Resolución RESHCS 318/2026 — Artículo 1).
 
-**Fuentes citadas:** Disposicion DISPCD-CS 599/2024 · Disposicion DISPSECPOS 87/2024 — Artículo 1 · Disposicion DISPSECPOS 87/2024 · Disposicion DISPCD-CS 599/2024 — Artículo 2 · Disposicion DISPSECPOS 83/2024 — Considerando
+**Actos a verificar:** Resolucion RESHCS 318/2026 · Disposicion DISPCD-CS 96/2026
 
 ---
 
