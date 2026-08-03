@@ -1904,3 +1904,14 @@ button, .sidebar-action {
   cursor: pointer; font-weight: 500;
 }
 .comandos-chip:hover { background: var(--fondo-marca); color: var(--marca-oscura); }
+
+/* Tipografía a escala Material: el panel central y el historial venían sobredimensionados
+   (el saludo a 37,6px, la lista a 16px). Cuerpo 16 / secundario 14-15 / rótulos 13. */
+.empty-card h2 { font-size: 26px; }
+.empty-card p, .skills-tip { font-size: 15px; }
+.suggestion-chip { font-size: 14px; }
+.sidebar-section-title { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+.history-item { font-size: 14px; line-height: 1.45; }
+/* El historial es navegación secundaria: no compite en peso con la conversación. */
+.history-item { color: var(--texto-suave); }
+.history-row.activa .history-item { color: var(--marca-oscura); }

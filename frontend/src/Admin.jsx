@@ -61,6 +61,30 @@ export function aplicarTema(colores) {
   Object.entries(colores || {}).forEach(([k, v]) => {
     if (v) raiz.style.setProperty(`--${k}`, v);
   });
+
+  // Los NEUTROS derivan de la paleta: grises de texto, bordes y fondos salen mezclando
+  // los cuatro colores configurables con grises de referencia. Sin esto quedaban fijos
+  // con el matiz verdoso de la UNLu y otra universidad los heredaba (se notaba en un
+  // tema azul). Las proporciones reproducen los valores históricos de la UNLu con
+  // diferencias imperceptibles, así que para ella nada cambia.
+  const c = colores || {};
+  if (c["marca"] && c["marca-oscura"] && c["fondo-marca"] && c["realce"]) {
+    const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const mez = (a, b, p) => {
+      const [ar, ag, ab] = rgb(a), [br, bg, bb] = rgb(b);
+      const h = (x, y) => Math.round(x * p + y * (1 - p)).toString(16).padStart(2, "0");
+      return `#${h(ar, br)}${h(ag, bg)}${h(ab, bb)}`;
+    };
+    const set = (n, v) => raiz.style.setProperty(`--${n}`, v);
+    set("texto", mez(c["marca-oscura"], "#1c1c1c", 0.25));
+    set("texto-suave", mez(c["marca-oscura"], "#777777", 0.35));
+    set("texto-tenue", mez(c["marca-oscura"], "#8a8a8a", 0.28));
+    set("marca-media", mez(c["marca-oscura"], "#777777", 0.55));
+    set("marca-clara", mez(c["marca"], "#ffffff", 0.6));
+    set("fondo", mez(c["fondo-marca"], "#fbfbfb", 0.35));
+    set("borde", mez(c["realce"], c["marca"], 0.82));
+    set("borde-fuerte", mez(c["realce"], c["marca"], 0.62));
+  }
 }
 
 /** '#2f6b2f' -> 'rgb(47, 107, 47)' */
