@@ -227,6 +227,8 @@ def main():
         shutil.copy(os.path.join(RAIZ, rel, 'vectores', 'chunks.jsonl'), ruta_chunks)
         shutil.copy(os.path.join(RAIZ, rel, 'vectores', 'densos.npy'),
                     os.path.join(RAIZ, 'indice', 'densos.npy'))
+        shutil.copy(os.path.join(RAIZ, rel, 'vectores', 'indice.json'),
+                    os.path.join(RAIZ, 'indice', 'indice.json'))
         print('\n=== primera base: la tanda se adopta como índice inicial ===', flush=True)
     else:
         paso('fusionar', [PY, '-m', 'pipeline.fusionar_indice',

@@ -57,8 +57,12 @@ class AlmacenSQL(Indice):
         # atiende cada petición en el suyo.
         self._local = threading.local()
 
-        with open(os.path.join(ruta, 'indice.json'), encoding='utf-8') as fh:
-            self.info = json.load(fh)
+        try:
+            with open(os.path.join(ruta, 'indice.json'), encoding='utf-8') as fh:
+                self.info = json.load(fh)
+        except FileNotFoundError:
+            # indice.json describe la corrida de embeddings; su ausencia no impide servir.
+            self.info = {}
 
         cur = self._bd().execute('SELECT COUNT(*) FROM chunk')
         self.n = cur.fetchone()[0]

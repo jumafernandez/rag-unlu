@@ -124,7 +124,21 @@ export default function App() {
   // Alcance del corpus: cuántos documentos hay y hasta cuándo llega la normativa. Para
   // quien consulta un digesto eso decide si una respuesta vacía significa "no existe" o
   // "todavía no está cargado".
-  useEffect(() => { salud().then(setAlcance).catch(() => setAlcance(null)); }, []);
+  // El alcance (documentos y fecha) se reintenta hasta conseguirlo y se refresca al
+  // volver a la pestaña: una instancia puede arrancar sin índice o estar reiniciándose,
+  // y con un único intento el bloque quedaba oculto para siempre.
+  useEffect(() => {
+    let vivo = true;
+    const pedir = () => salud().then((d) => { if (vivo && d?.documentos) setAlcance(d); })
+                               .catch(() => {});
+    pedir();
+    const timer = setInterval(() => {
+      if (!document.querySelector(".alcance")) pedir();
+    }, 30000);
+    const alVolver = () => pedir();
+    window.addEventListener("focus", alVolver);
+    return () => { vivo = false; clearInterval(timer); window.removeEventListener("focus", alVolver); };
+  }, []);
 
   // Los colores guardados se aplican al arrancar, antes de cualquier sesión: son parte de
   // la identidad visual de la institución, no una preferencia de usuario.

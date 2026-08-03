@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.6.9)  2 AUG 2026 20:15
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.6.9)  3 AUG 2026 01:57
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -518,16 +518,16 @@ ve/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/local/texlive/2026/te
 xmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}{/usr/local/texlive/2026/texmf-dist/f
 onts/enc/dvips/lm/lm-mathsy.enc}] [7]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 442.
+(Font)              <9> on input line 445.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 442.
+(Font)              <6> on input line 445.
 
-Overfull \hbox (4.4294pt too wide) in paragraph at lines 474--485
+Overfull \hbox (4.4294pt too wide) in paragraph at lines 477--488
  [][] 
  []
 
 [8]
-Overfull \hbox (62.21109pt too wide) in paragraph at lines 529--543
+Overfull \hbox (62.21109pt too wide) in paragraph at lines 532--546
  [][] 
  []
 
@@ -563,7 +563,7 @@ onts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1
 lmsy9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt10.pfb>
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtt9.pfb></usr/local
 /texlive/2026/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on main.pdf (12 pages, 310248 bytes).
+Output written on main.pdf (12 pages, 310023 bytes).
 PDF statistics:
  124 PDF objects out of 1000 (max. 8388607)
  86 compressed objects within 1 object stream

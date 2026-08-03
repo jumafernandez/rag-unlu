@@ -108,10 +108,13 @@ def cargar_metadata_autoritativa(ruta):
 
 def cita_de(meta, seccion_titulo, tipo):
     """'Disposición DISPCD-CB 528/2025 — Artículo 2'"""
-    tipo_doc = (meta.get('document_type') or 'documento').capitalize()
+    tipo_doc = (meta.get('document_type') or 'documento')
     codigo = meta.get('document_code') or ''
     numero = meta.get('document_number') or ''
-    cabeza = ' '.join(x for x in (tipo_doc, codigo, numero) if x and x != 'unknown').strip()
+    piezas = [x for x in (tipo_doc, codigo, numero) if x and x.lower() != 'unknown']
+    cabeza = ' '.join(piezas).strip()
+    if cabeza:
+        cabeza = cabeza[0].upper() + cabeza[1:]
     if tipo in ('articulo', 'anexo') and seccion_titulo:
         return f'{cabeza} — {seccion_titulo}'
     if seccion_titulo and tipo != 'otra':
@@ -166,6 +169,9 @@ def main():
                     meta['estado'] = fuente['estado']
                 if fuente.get('tipo_documento'):
                     meta['tipo_documento_fuente'] = fuente['tipo_documento']
+                    # También es la mejor fuente para el tipo con que se cita: el del
+                    # parser depende de cómo salió el PDF y a veces es 'unknown'.
+                    meta['document_type'] = fuente['tipo_documento']
                 meta['metadata_confianza'] = fuente.get('confianza')
 
                 # La IDENTIDAD del acto también sale de la fuente, no del PDF.
@@ -178,7 +184,9 @@ def main():
                 #
                 # El portal publica el número completo junto al documento. Tomarlo de ahí
                 # elimina las dos cosas: la identidad deja de depender de cómo salió el PDF.
-                m_num = re.match(r'\s*([A-ZÑ0-9][A-ZÑ0-9-]*)\s*:?\s*(\d+)\s*/\s*(\d{2,4})\s*$',
+                # El separador entre código y número varía por instalación: la UNLu
+                # escribe "DISPCD-CB : 528 / 2025" y la UNSL "DR - 250 / 2023".
+                m_num = re.match(r'\s*([A-ZÑ0-9][A-ZÑ0-9-]*?)\s*[-:]?\s+(\d+)\s*/\s*(\d{2,4})\s*$',
                                  (fuente.get('numero') or '').strip(), re.IGNORECASE)
                 if m_num:
                     anio = m_num.group(3)
