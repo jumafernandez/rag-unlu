@@ -1,8 +1,8 @@
 # Evaluación con jueces — ChatDigesto UNLu
 
-Gracias por participar. Vas a leer **10 consultas reales con la respuesta que dio el
+Gracias por participar. Vas a leer **15 consultas reales con la respuesta que dio el
 sistema** y puntuar cada una. Después vas a hacer **3 consultas tuyas** directamente en
-el sistema. Total estimado: 30–40 minutos.
+el sistema. Total estimado: 40–50 minutos.
 
 Cada respuesta se apoya en **uno o dos actos administrativos** — verificarla es abrir
 a lo sumo dos documentos.
@@ -32,7 +32,7 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 
 **Respuesta del sistema:**
 
-> El Ingeniero Diego Bersachia fue designado como Asesor Técnico del área productiva del Campo Experimental de la Universidad Nacional de Luján, a partir del 14 de marzo de 2025. Su designación responde a la necesidad de contar con un experto en producción de forraje, con el objetivo de brindar asesoramiento técnico especializado y optimizar las tareas vinculadas a dicha actividad, de acuerdo a los objetivos fijados en el reglamento del CIDEPA (Disposición Centro De Investigación Docencia Y Extensión En Producción Agropecuaria 1/2025 — Artículo 2).
+> El Ingeniero Diego Bersachia fue designado como Asesor Técnico del área productiva del Campo Experimental de la Universidad Nacional de Luján, con fecha del 14 de marzo de 2025. Su función es brindar asesoramiento técnico especializado en producción de forraje y optimizar las tareas vinculadas a dicha actividad, de acuerdo a los objetivos fijados en el reglamento del CIDEPA (Disposición Centro De Investigación Docencia Y Extensión En Producción Agropecuaria 1/2025 — Artículo 2).
 
 **Acto a verificar:** Disposición Centro De Investigación Docencia Y Extensión En Producción Agropecuaria 1/2025
 
@@ -46,9 +46,9 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 
 **Respuesta del sistema:**
 
-> La renuncia definitiva de la docente Susana Beatriz Serisier fue aceptada a partir del 18 de mayo de 2026, según la Disposición CS 45/2026 (Artículo 1). La resolución que determina su baja definitiva en el Departamento de Ciencias Sociales también se emitió el 23 de junio de 2026 (Resolución RESPRHCS 78/2026 — Artículo 1).
+> La renuncia definitiva de la docente Susana Beatriz Serisier fue aceptada mediante la Disposición CS 45/2026, que se emitió el 9 de junio de 2026. Esta renuncia tiene efecto a partir del 18 de mayo de 2026 (Disposición CS 45/2026 — Artículo 1).
 
-**Actos a verificar:** Disposicion CS 45/2026 · Resolucion RESPRHCS 78/2026
+**Acto a verificar:** Disposicion CS 45/2026
 
 ---
 
@@ -60,9 +60,9 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 
 **Respuesta del sistema:**
 
-> La disposición relacionada con el registro de aspirantes para un cargo suplente en el área de Metodología de la Investigación es la DISPCD-E 152/2026, que fue emitida el 15 de julio de 2026. En esta disposición se aprueba el dictamen del Jurado que intervino en el registro de aspirantes y se propone la designación de Carlos Fernando Torres en un cargo suplente de Ayudante de Primera con dedicación semiexcluisva, a partir del 1° de septiembre de 2026, mientras dure la licencia de la docente María Ana González (DISPCD-E 152/2026 — Artículo 2).
+> La disposición relacionada con el registro de aspirantes para un cargo suplente en el área de Metodología de la Investigación es la DISPCD-E 152/2026, que fue emitida el 15 de julio de 2026. En esta disposición se aprueba el dictamen del Jurado que intervino en el registro de aspirantes y se propone la designación de Carlos Fernando Torres en un cargo suplente de Ayudante de Primera con dedicación semiexcluisva, a partir del 1° de septiembre de 2026, mientras dure la licencia sin goce de haberes de la docente María Ana González (Disposición DISPCD-E 152/2026 — Artículo 2).
 > 
-> Carlos Fernando Torres fue designado en un cargo ordinario de Ayudante de Segunda con dedicación simple en el área de Metodología de la Investigación desde el 1° de marzo de 2026 hasta el 28 de febrero de 2027 (DISPSEACAD 488/2026 — Artículo 1). Por lo tanto, no se mantiene en el mismo cargo, ya que se le propone un cargo suplente diferente a partir de septiembre de 2026.
+> Carlos Fernando Torres fue designado en un cargo ordinario de Ayudante de Segunda con dedicación simple en el área de Metodología de la Investigación desde el 1° de marzo de 2026 hasta el 28 de febrero de 2027 (Disposición DISPSEACAD 488/2026 — Artículo 1). Por lo tanto, a partir del 1° de septiembre de 2026, pasaría a ocupar el cargo suplente mencionado.
 
 **Actos a verificar:** Disposicion DISPCD-E 152/2026 · Disposicion DISPSEACAD 488/2026
 
@@ -74,9 +74,9 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 
 **Respuesta del sistema:**
 
-> La Disposición DISPPCD-E 37/2026 aprueba el programa del Seminario de Posgrado Optativo "Pedagogías de los Movimientos Populares" para la carrera de posgrado Maestría en Educación Popular de Adultos, con vigencia desde 2026 hasta 2029. Este seminario está a cargo de la docente Ana Clara De Mingo y busca ampliar la comprensión sobre experiencias político-pedagógicas de movimientos populares, especialmente del MOCASE VC, contribuyendo a la mejora de las prácticas pedagógicas, la formación de profesionales comprometidos y la construcción de líneas de investigación con impacto social democratizador (Disposición DISPPCD-E 37/2026 — Artículo 1 y Considerando). 
+> La Disposición DISPPCD-E 37/2026 aprueba el programa del Seminario de Posgrado Optativo "Pedagogías de los Movimientos Populares" para la carrera de posgrado Maestría en Educación Popular de Adultos, con vigencia de 2026 a 2029. Este seminario, a cargo de la docente Ana Clara De Mingo, busca ampliar la comprensión sobre experiencias político-pedagógicas de movimientos populares, especialmente del MOCASE VC, y contribuir a la mejora de las prácticas pedagógicas, la formación de profesionales comprometidos y la construcción de líneas de investigación con impacto social democratizador (Disposición DISPPCD-E 37/2026 — Artículo 1). 
 > 
-> La disposición se emite en el marco de las atribuciones conferidas por otra normativa y cuenta con el dictamen favorable de la Comisión Académica de la Maestría (Disposición DISPPCD-E 37/2026 — Considerando).
+> La disposición también menciona que la presentación del programa se ajusta a la reglamentación vigente y cuenta con dictamen favorable de la Comisión Académica de la Maestría en Educación Popular de Adultos (Disposición DISPPCD-E 37/2026 — Considerando).
 
 **Acto a verificar:** Disposicion DISPPCD-E 37/2026
 
@@ -92,7 +92,7 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 > 
 > **Consideraciones relevantes:**
 > - El proyecto fue avalado previamente por el Departamento de Educación mediante la Disposición DISPPCD-ELUJ:0000121/23 y aprobado por la Resolución RESHCS-LUJ:0000752-22.
-> - El Informe de Avance se ajusta a la reglamentación para la presentación de acciones y proyectos de extensión, aprobada por la Resolución RESHCS-LUJ:0000579/17.
+> - El Informe de Avance se ajusta a la Reglamentación para la presentación de acciones y proyectos de extensión, aprobada por la Resolución RESHCS-LUJ:0000579/17.
 > - La Comisión Asesora Permanente de Extensión emitió un dictamen favorable sobre el proyecto.
 > 
 > **Artículos de la disposición:**
@@ -145,14 +145,13 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 
 **Respuesta del sistema:**
 
-> La Disposición DISPDD-T 68/2026 se refiere a la renuncia presentada por la docente Melisa Fernanda Gotte a un cargo interino de Jefa de Trabajos Prácticos con dedicación Exclusiva en el Departamento de Tecnología. A continuación, se detallan los aspectos más relevantes:
+> La Disposición DISPDD-T 68/2026 se refiere a la renuncia presentada por la docente Melisa Fernanda Gotte a un cargo interino de Jefa de Trabajos Prácticos con dedicación Exclusiva en el Departamento de Tecnología, específicamente en las asignaturas Enfermería Quirúrgica y Prácticas Integradas de Enfermería I de la Disciplina Enfermería Aplicada. 
 > 
-> 1. **Datos de la docente**: Melisa Fernanda Gotte, DNI 34.480.957, Legajo 4721.
-> 2. **Cargo**: Jefa de Trabajos Prácticos con dedicación Exclusiva en las asignaturas Enfermería Quirúrgica y Prácticas Integradas de Enfermería I de la Disciplina Enfermería Aplicada.
-> 3. **Fecha de la renuncia**: La renuncia es efectiva a partir del 1º de junio de 2026.
-> 4. **Trámite**: La renuncia fue presentada para asumir un cargo con carácter ordinario y se propone al H. Consejo Superior la aceptación de la misma, conforme a las Resoluciones RESHCS-LUJ: 0000733/16 y RESREC-LUJ: 0000501/16.
+> La renuncia fue presentada para asumir un cargo con carácter ordinario y se propone al H. Consejo Superior la aceptación de esta renuncia, que tendrá efecto a partir del 1º de junio de 2026 (Disposición DISPDD-T 68/2026 — Artículo 1).
 > 
-> Esta disposición fue emitida el 29 de abril de 2026 (Disposición DISPDD-T 68/2026 — Artículo 1).
+> Además, se menciona que la Secretaria Académica del Departamento ha tomado conocimiento de la renuncia y que corresponde tramitarla conforme a las Resoluciones RESHCS-LUJ: 0000733/16 y RESREC-LUJ: 0000501/16 (Disposición DISPDD-T 68/2026 — Considerando). 
+> 
+> Si necesitas más información sobre esta disposición o algún otro tema, no dudes en preguntar.
 
 **Acto a verificar:** Disposicion DISPDD-T 68/2026
 
@@ -171,7 +170,7 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 > 3. María Cecilia Condorelle
 > 4. Verónica Romina Álvarez
 > 
-> Esto se establece en la Disposición DISPCD-E 192/2024, donde se menciona su incorporación al proyecto dirigido por Mónica Insaurralde y codirigido por Natalia Wiurnos (Disposición DISPCD-E 192/2024 — Artículo 1).
+> Esto se establece en la Disposición DISPCD-E 192/2024, donde se menciona su incorporación al equipo de trabajo que lleva adelante el Proyecto de Investigación “Historia reciente y construcción de la memoria colectiva en la formación de grado de Profesoras/es de Educación Primaria. El caso del conurbano Bonaerense” dirigido por Mónica Insaurralde y codirigido por Natalia Wiurnos (Disposición DISPCD-E 192/2024 — Artículo 1).
 
 **Acto a verificar:** Disposicion DISPCD-E 192/2024
 
@@ -193,11 +192,115 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 > **Suplentes:**
 > - María Florencia CENDALI (D.N.I. Nº 29.434.354)
 > - Ana Nora FELDMAN (D.N.I. Nº 14.013.444)
-> - Mónica Cecilia RABENNA (D.N.I. Nº 26.391.053) (Disposición DISPCD-CS 96/2026 — Artículo 1). 
-> 
-> Además, se aceptó la renuncia de Marisa Mariana CAMEJO como representante docente titular y se designó a Yolanda Anabel Culzoni como su reemplazo (Resolución RESHCS 318/2026 — Artículo 1).
+> - Mónica Cecilia RABENNA (D.N.I. Nº 26.391.053) (Disposición DISPCD-CS 96/2026 — Artículo 1).
 
-**Actos a verificar:** Resolucion RESHCS 318/2026 · Disposicion DISPCD-CS 96/2026
+**Acto a verificar:** Disposicion DISPCD-CS 96/2026
+
+---
+
+## Ítem 11
+
+**Consulta:** ¿De qué trata la Disposicion DISPCD-CB 348/2025?
+
+**Respuesta del sistema:**
+
+> La Disposición DISPCD-CB 348/2025 aprueba la realización del Taller Extracurricular titulado “Anatomofisiologia práctica, un repaso intensivo”, cuyo responsable es Sofía Laura Hernández. Este taller está dirigido a estudiantes de la Licenciatura en Enfermería que hayan cursado la asignatura Anatomofisiología y no hayan aprobado el examen final, así como a estudiantes de otras carreras de la Universidad Nacional de Luján.
+> 
+> El taller comenzará el 25 de septiembre y finalizará el 13 de noviembre, con encuentros presenciales los días jueves de 17 a 21 horas y actividades virtuales asincrónicas de 2 horas semanales. Se establece que los participantes deben cumplir con el 75% de asistencia a las actividades presenciales y completar el 100% de las actividades virtuales (Disposición DISPCD-CB 348/2025 — Artículo 1).
+
+**Acto a verificar:** Disposicion DISPCD-CB 348/2025
+
+---
+
+## Ítem 12
+
+**Consulta:** ¿Qué establece la Disposicion DISPCD-T 41/2025?
+
+**Respuesta del sistema:**
+
+> La Disposición DISPCD-T 41/2025 establece la aprobación del acta dictamen de la Comisión Evaluadora de Carrera Docente, que considera positiva la evaluación de Eduardo Augusto Penon para su promoción a un cargo ordinario de Profesor Asociado con dedicación Exclusiva en el Departamento de Tecnología. 
+> 
+> En su Artículo 1, se propone al H. Consejo Superior la aprobación del acta dictamen, y en el Artículo 2, se propone la promoción del docente a dicho cargo, específicamente en la División Tecnología Agropecuaria, Disciplina Producción Vegetal, para prestar servicios en cualquiera de las asignaturas de la disciplina, preferentemente en Producción Vegetal IV (Dasonomía) (Disposición DISPCD-T 41/2025 — Artículo 1 y Artículo 2). 
+> 
+> La disposición también menciona que la Comisión Evaluadora, reunida el 19 de diciembre de 2024, consideró por unanimidad positiva la evaluación y que no se registraron impugnaciones (Disposición DISPCD-T 41/2025 — Considerando).
+
+**Acto a verificar:** Disposicion DISPCD-T 41/2025
+
+---
+
+## Ítem 13
+
+**Consulta:** texto de la Disposicion DGAA 560/2024
+
+**Respuesta del sistema:**
+
+> La Disposición DGAA 560/2024 se refiere a la solicitud de cambio de carrera de Sergio Alejandro Pereira Prieto, legajo 88699, DNI 32342461. A continuación, se presenta el texto completo de la disposición:
+> 
+> **Visto:**
+> La solicitud de cambio de carrera por Sergio Alejandro Pereira Prieto (Legajo N°88699)(DNI N°32342461) por la cual solicita la consideración de equivalencias para la Carrera de Licenciatura en Geografía de la cual es estudiante regular; y
+> 
+> **Considerando:**
+> Que la Coordinación de la carrera dictamina otorgar la/s asignatura/s (20146) FUNDAMENTOS DE ECONOMÍA por equivalencia con asignaturas cursadas y aprobadas en esta Universidad.
+> Que el/la recurrente no cumple con el requisito de correlatividad de la/s asignatura/s mencionada/s anteriormente.
+> Por ello;
+> 
+> **Artículo 1:**
+> Informar a Sergio Alejandro Pereira Prieto (Legajo N°88699) (DNI N°32342461) que el otorgamiento de equivalencia/s de la/s asignatura/s (20146) FUNDAMENTOS DE ECONOMÍA quedará supeditado a la aprobación de su/s correlativa/s.
+> 
+> **Artículo 2:**
+> Notificar que, una vez aprobada/s la/s asignatura/s que adeude; deberá solicitar por escrito el correspondiente acto dispositivo.
+> 
+> **Artículo 3:**
+> Por Departamento de Administración Académica notificar; registrar y archivar.
+> 
+> Fecha: 2024-06-25.
+
+**Acto a verificar:** Disposicion DGAA 560/2024
+
+---
+
+## Ítem 14
+
+**Consulta:** Programa del seminario de posgrado sobre metodología y técnicas de investigación en ciencias sociales y humanas para el doctorado
+
+**Respuesta del sistema:**
+
+> Se han aprobado varios programas del seminario de posgrado "Metodología y técnicas de investigación en Ciencias Sociales y Humanas" para la carrera de Doctorado en Ciencias Sociales y Humanas:
+> 
+> 1. **Disposición DISPPCD-E 82/2026**:
+>    - **Docente**: Alicia Itatí Palermo
+>    - **Vigencia**: 2026-2028
+>    - **Fecha**: 2026-07-02
+>    - **Contenido**: Incluye criterios de elección metodológica, selección de casos, conceptos y teoría en la investigación, técnicas e instrumentos para la obtención de datos en investigación cualitativa, entre otros. (Disposición DISPPCD-E 82/2026 — Artículo 1)
+> 
+> 2. **Disposición DISPPCD-CS 287/2026**:
+>    - **Docente responsable**: Dra. Gloria Lynch
+>    - **Vigencia**: 2026-2028
+>    - **Fecha**: 2026-05-22
+>    - **Contenido**: Programa del seminario "Metodología y Técnicas de la Investigación en Ciencias Sociales y Humanas con Enfoque Cuantitativo". (Disposición DISPPCD-CS 287/2026 — Artículo 1)
+> 
+> 3. **Disposición DISPPCD-E 172/2024**:
+>    - **Docente**: Alicia Itatí Palermo
+>    - **Fecha**: 2024-07-04
+>    - **Contenido**: Programa del seminario "Metodología y técnicas de investigación en Ciencias Sociales y Humanas". (Disposición DISPPCD-E 172/2024 — Artículo 1)
+> 
+> Si necesitas más detalles sobre alguno de estos programas, házmelo saber.
+
+**Actos a verificar:** Disposicion DISPPCD-E 82/2026 · Disposicion DISPPCD-E 172/2024
+
+---
+
+## Ítem 15
+
+**Primera consulta:** ¿Qué trata la disposición sobre la renuncia de un docente en el Departamento de Ciencias Sociales?
+
+**Repregunta (la que se evalúa):** ¿Y de qué año es la renuncia de Alfredo Juan Bacigaluppi?
+
+**Respuesta del sistema:**
+
+> La renuncia del docente Alfredo Juan Bacigaluppi es a partir del 1º de agosto de 2024 (Disposición CS 50/2024 — Artículo 1).
+
+**Acto a verificar:** Disposicion CS 50/2024
 
 ---
 
