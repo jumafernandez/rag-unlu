@@ -166,6 +166,20 @@ export default function App() {
     { cmd: "resumen", ejemplo: "/resumen licencias docentes",
       hint: "Síntesis narrada sobre un tema o una entidad, en prosa" },
   ];
+  const [skillSel, setSkillSel] = useState(0);
+  const [menuSkillsCerrado, setMenuSkillsCerrado] = useState(false);
+  const skillsFiltradas = useMemo(
+    () => (input.startsWith("/") && !input.includes(" ")
+      ? SKILLS.filter((s) => ("/" + s.cmd).startsWith(input.toLowerCase()))
+      : []),
+    [input]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const menuSkillsVisible = skillsFiltradas.length > 0 && !menuSkillsCerrado;
+  const completarSkill = (s) => {
+    setInput("/" + s.cmd + " ");
+    setSkillSel(0);
+    cajaTexto.current?.focus();
+  };
+
   const parseSkill = (texto) => {
     const m = texto.match(/^\/(\w+)(?:\s+(.+))?$/s);
     if (!m) return null;
@@ -247,6 +261,7 @@ export default function App() {
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
   };
   useEffect(() => { ajustarAlto(cajaTexto.current); }, [input]);
+  useEffect(() => { setMenuSkillsCerrado(false); setSkillSel(0); }, [input]);
 
   // El ancho del panel se recuerda entre visitas.
   useEffect(() => {
@@ -960,17 +975,18 @@ export default function App() {
               </div>
             </div>
 
-            {input.startsWith("/") && !input.includes(" ") && (
+            {menuSkillsVisible && (
               <div className="skills-menu">
-                {SKILLS.filter((s) => ("/" + s.cmd).startsWith(input.toLowerCase()))
-                  .map((s) => (
-                    <button key={s.cmd} className="skills-item"
-                            onClick={() => { setInput("/" + s.cmd + " "); cajaTexto.current?.focus(); }}>
-                      <code>/{s.cmd}</code>
-                      <span>{s.hint}</span>
-                      <em>{s.ejemplo}</em>
-                    </button>
-                  ))}
+                {skillsFiltradas.map((s, i) => (
+                  <button key={s.cmd}
+                          className={`skills-item ${i === Math.min(skillSel, skillsFiltradas.length - 1) ? "sel" : ""}`}
+                          onMouseEnter={() => setSkillSel(i)}
+                          onClick={() => completarSkill(s)}>
+                    <code>/{s.cmd}</code>
+                    <span>{s.hint}</span>
+                    <em>{s.ejemplo}</em>
+                  </button>
+                ))}
               </div>
             )}
             <div className="composer-outer">
@@ -1045,6 +1061,32 @@ export default function App() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
+                    // Con el menú de comandos abierto, el teclado navega el menú: Tab o
+                    // Enter autocompletan la opción marcada (NO envían), las flechas se
+                    // mueven y Esc lo cierra. Igual que los comandos "/" de cualquier
+                    // herramienta con slash commands.
+                    if (menuSkillsVisible && !e.nativeEvent.isComposing) {
+                      if (e.key === "Tab" || e.key === "Enter") {
+                        e.preventDefault();
+                        completarSkill(skillsFiltradas[Math.min(skillSel, skillsFiltradas.length - 1)]);
+                        return;
+                      }
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setSkillSel((s) => (s + 1) % skillsFiltradas.length);
+                        return;
+                      }
+                      if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setSkillSel((s) => (s - 1 + skillsFiltradas.length) % skillsFiltradas.length);
+                        return;
+                      }
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        setMenuSkillsCerrado(true);
+                        return;
+                      }
+                    }
                     // Enter envía; Shift+Enter hace salto de línea. Se ignora mientras
                     // el navegador está componiendo caracteres (acentos, teclados IME),
                     // porque ahí el Enter confirma la composición, no la consulta.

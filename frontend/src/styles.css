@@ -1947,3 +1947,5 @@ button, .sidebar-action {
 .sesion-activa { display: flex; align-items: center; gap: 8px; }
 .sesion-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sesion-ajustes { line-height: 0; }
+.skills-item.sel { background: var(--fondo-marca); }
+.skills-item.sel code { text-decoration: underline; }
