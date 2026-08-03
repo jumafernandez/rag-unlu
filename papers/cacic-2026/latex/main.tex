@@ -36,9 +36,9 @@
 %     en la recuperacion de normativa universitaria
 %   - Quien fijo el valor importa: procedencia del estado de dialogo en un
 %     asistente de consulta normativa
-\title{Usar lo que ya se sabe: metadatos estructurados y estado de di\'alogo
-en la recuperaci\'on de normativa universitaria}
-\titlerunning{Metadatos estructurados y estado de di\'alogo}
+\title{Un RAG portable sobre SUDOCU: consulta conversacional de la normativa
+de las universidades nacionales con estados de di\'alogo con procedencia}
+\titlerunning{Un RAG portable sobre SUDOCU}
 
 % \nota{Definir orden de autoria y filiaciones antes de enviar.}
 \author{Juan Manuel Fern\'andez\inst{1} \and
@@ -55,22 +55,23 @@ en la recuperaci\'on de normativa universitaria}
 \begin{abstract}
 La normativa de una universidad nacional es p\'ublica, pero encontrarla exige
 saber de antemano qu\'e acto la contiene. Presentamos un asistente conversacional
-de consulta sobre el digesto de la Universidad Nacional de Luj\'an: 21.364 actos
-administrativos y 151.696 fragmentos, fragmentados por unidad normativa y recuperados de forma h\'ibrida
-sobre metadatos autoritativos del sistema de origen. El sistema mantiene un estado
-de di\'alogo con dos ranuras---la entidad de la que se habla y los actos en
-juego---que no completan una consulta a un esquema fijo sino que \emph{pesan} la
-recuperaci\'on. La contribuci\'on central es que ese peso lo determina la
-\emph{procedencia} del valor: lo que infiere el sistema refuerza de forma d\'ebil,
-mientras que lo que el usuario fija ---visible y editable en la interfaz--- pesa
-m\'as y deja de ser sobrescrito. Evaluamos recuperaci\'on, ablaci\'on de cada
-mecanismo y validaci\'on con evaluadores del dominio. El sistema est\'a desplegado
-y su adaptaci\'on a otras universidades con portal SUDOCU se reduce a un valor de
-configuraci\'on: las carpetas del portal se descubren autom\'aticamente, y una
-sonda de tres pedidos de solo lectura verifica la compatibilidad antes de
-comprometerse.
+de consulta de normativa institucional, portable entre las universidades que
+publican en el m\'odulo de publicaci\'on de SUDOCU, e instanciado sobre los 21.364
+actos administrativos de la Universidad Nacional de Luj\'an, fragmentados por
+unidad normativa y recuperados de forma h\'ibrida sobre metadatos autoritativos
+del sistema de origen. El sistema mantiene un estado de di\'alogo con dos
+ranuras ---la entidad de la que se habla y los actos en juego--- que no completan
+un esquema fijo sino que \emph{pesan} la recuperaci\'on. La contribuci\'on central
+es que ese peso lo determina la \emph{procedencia} del valor: lo que infiere el
+sistema refuerza de forma d\'ebil; lo que la persona fija ---visible y editable en
+la interfaz--- pesa m\'as y no se sobrescribe. Evaluamos recuperaci\'on,
+ablaci\'on de cada mecanismo, fidelidad de citas y validaci\'on con evaluadores
+del dominio. La ingesta completa ---cat\'alogo, descarga, vectorizaci\'on,
+indexaci\'on--- se opera desde el panel del propio sistema, y la portabilidad
+est\'a verificada: una segunda instancia corre sobre el portal de la Universidad
+Nacional de San Luis con el mismo c\'odigo y solo configuraci\'on.
 
-\keywords{Recuperaci\'on aumentada por generaci\'on, Estado de di\'alogo,
+\keywords{Generaci\'on aumentada por recuperaci\'on, Estado de di\'alogo,
 Documentos normativos, Metadatos estructurados, Sistemas desplegados.}
 \end{abstract}
 
