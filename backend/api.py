@@ -101,6 +101,8 @@ async def ciclo_de_vida(_app):
     propia construcción del índice (~2,5 GB y 37 s), y el servidor se ahogaba solo. Acá
     se carga una vez; uvicorn no atiende hasta que termina.
     """
+    # El proxy de salida guardado en el panel rige desde el arranque.
+    admin.aplicar_proxy()
     t0 = time.time()
     try:
         ix = indice()

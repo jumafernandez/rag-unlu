@@ -35,6 +35,17 @@ def fila_a_item(ws, f):
     }
 
 
+def copia_anonima(ruta, n, destino):
+    wb = openpyxl.load_workbook(ruta)
+    for h in wb.sheetnames:
+        if h.startswith('Juez') and str(wb[h].cell(1, 2).value or '').strip():
+            wb[h].cell(1, 2).value = f'Juez {n}'
+    # Los metadatos del archivo también identifican (autor de Excel).
+    wb.properties.creator = None
+    wb.properties.lastModifiedBy = None
+    wb.save(destino)
+
+
 def compilar(rutas):
     jueces = []
     for n, ruta in enumerate(sorted(rutas), start=1):
@@ -59,7 +70,10 @@ def a_markdown(jueces):
     L = ['# Respuestas de la evaluación con jueces', '',
          'Instrumento: [cuestionario-humano.md](cuestionario-humano.md) · '
          'Ítems evaluados: [items-congelados.json](items-congelados.json) · '
-         'Datos crudos: [respuestas-jueces.json](respuestas-jueces.json)', '',
+         'Datos crudos: [respuestas-jueces.json](respuestas-jueces.json) · '
+         'Planillas originales (anonimizadas): '
+         + ', '.join(f'[juez {j["juez"]}](planilla-juez-{j["juez"]}.xlsx)' for j in jueces),
+         '',
          f'## Resumen — ítems fijos ({len(jueces)} jueces, '
          f'n={15 * len(jueces)} por dimensión)', '',
          '| Dimensión | Media ± DE |', '|---|---|']
@@ -90,6 +104,8 @@ def a_markdown(jueces):
 if __name__ == '__main__':
     carpeta = Path(__file__).parent.parent / 'evaluacion'
     datos = compilar(sys.argv[1:])
+    for n, ruta in enumerate(sorted(sys.argv[1:]), start=1):
+        copia_anonima(ruta, n, carpeta / f'planilla-juez-{n}.xlsx')
     (carpeta / 'respuestas-jueces.json').write_text(
         json.dumps(datos, ensure_ascii=False, indent=1), encoding='utf-8')
     (carpeta / 'respuestas-jueces.md').write_text(a_markdown(datos), encoding='utf-8')

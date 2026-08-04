@@ -218,6 +218,11 @@ def guardar_tema(colores, por):
     return leer_tema()
 
 
+# Se captura al importar, antes de que aplicar_proxy() toque el entorno: es el
+# respaldo que fija el despliegue (systemd/.env), sobre el que el panel manda.
+_PROXY_ENTORNO = os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY') or ''
+
+
 def generacion_por_omision():
     """Valores de arranque del LLM de generación.
 
@@ -231,9 +236,30 @@ def generacion_por_omision():
         # Vacío = api.openai.com. Cualquier endpoint compatible sirve: un vLLM en un
         # servidor de la Universidad, un Ollama local, otro proveedor.
         'base_url': os.environ.get('RAG_LLM_BASE', ''),
+        # Las universidades suelen salir a Internet por un proxy institucional; vacío
+        # significa conexión directa.
+        'proxy': _PROXY_ENTORNO,
         # 0 a propósito: en normativa se busca reproducibilidad, no creatividad.
         'temperatura': 0.0,
     }
+
+
+def aplicar_proxy():
+    """Deja HTTPS_PROXY/HTTP_PROXY según el panel, con el entorno como respaldo.
+
+    Los clientes HTTP del sistema (openai/httpx, requests de google-auth, urllib del
+    reenvío de PDF) leen estas variables al abrir cada conexión, así que el cambio
+    rige en caliente. Se llama al arrancar y al guardar Generación.
+    """
+    proxy = (leer_ajuste('generacion', {}) or {}).get('proxy') or _PROXY_ENTORNO
+    if proxy:
+        os.environ['HTTPS_PROXY'] = proxy
+        os.environ['HTTP_PROXY'] = proxy
+        # El tráfico local no pasa por el proxy (recarga del índice, salud).
+        os.environ.setdefault('NO_PROXY', 'localhost,127.0.0.1')
+    else:
+        os.environ.pop('HTTPS_PROXY', None)
+        os.environ.pop('HTTP_PROXY', None)
 
 
 def leer_generacion():
@@ -264,6 +290,11 @@ def guardar_generacion(valores, por):
         if not 0 <= temperatura <= 2:
             raise ValueError('temperatura: entre 0 y 2')
         limpio['temperatura'] = temperatura
+    if 'proxy' in valores:
+        proxy = str(valores['proxy']).strip()[:300]
+        if proxy and not proxy.startswith(('http://', 'https://')):
+            raise ValueError('proxy: la dirección debe empezar con http:// o https://')
+        limpio['proxy'] = proxy
     if 'clave' in valores:
         # SOLO escritura: se guarda si viene no vacía y jamás se devuelve por la API.
         # Vacía significa "no tocar la actual", no "borrar": borrar es quitar el ajuste.
@@ -273,6 +304,7 @@ def guardar_generacion(valores, por):
                 raise ValueError('clave: demasiado corta')
             limpio['clave'] = clave[:400]
     guardar_ajuste('generacion', {**(leer_ajuste('generacion', {}) or {}), **limpio}, por)
+    aplicar_proxy()
     return leer_generacion()
 
 

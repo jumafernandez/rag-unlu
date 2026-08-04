@@ -610,6 +610,15 @@ function Generacion({ alFallar }) {
                  onChange={(e) => setValores((v) => ({ ...v, base_url: e.target.value }))} />
         </div>
         <div className="admin-campo">
+          <label htmlFor="g-proxy"
+                 title="Si la institución sale a Internet por un proxy, la dirección va acá; vacío = conexión directa">
+            Proxy de salida (opcional)</label>
+          <input id="g-proxy" type="url" className="admin-entrada"
+                 placeholder="http://proxy.universidad.edu.ar:8080"
+                 value={valores.proxy || ""}
+                 onChange={(e) => setValores((v) => ({ ...v, proxy: e.target.value }))} />
+        </div>
+        <div className="admin-campo">
           <label htmlFor="g-temp"
                  title="0 = respuestas reproducibles, recomendado en normativa">Temperatura</label>
           <input id="g-temp" type="number" min="0" max="2" step="0.1" className="admin-entrada"

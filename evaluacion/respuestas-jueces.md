@@ -1,6 +1,6 @@
 # Respuestas de la evaluación con jueces
 
-Instrumento: [cuestionario-humano.md](cuestionario-humano.md) · Ítems evaluados: [items-congelados.json](items-congelados.json) · Datos crudos: [respuestas-jueces.json](respuestas-jueces.json)
+Instrumento: [cuestionario-humano.md](cuestionario-humano.md) · Ítems evaluados: [items-congelados.json](items-congelados.json) · Datos crudos: [respuestas-jueces.json](respuestas-jueces.json) · Planillas originales (anonimizadas): [juez 1](planilla-juez-1.xlsx), [juez 2](planilla-juez-2.xlsx)
 
 ## Resumen — ítems fijos (2 jueces, n=30 por dimensión)
 

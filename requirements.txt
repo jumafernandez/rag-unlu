@@ -25,3 +25,11 @@ openai
 # "no se pudo validar la credencial", sin decir qué pasó.
 google-auth
 requests
+
+# El panel sube archivos (logos de la personalización): FastAPI necesita
+# python-multipart para leer formularios multipart, y sin él la API ni arranca.
+python-multipart
+
+# El panel sube archivos (logos de Personalización): FastAPI necesita
+# python-multipart para leer formularios multipart y sin él la API no arranca.
+python-multipart

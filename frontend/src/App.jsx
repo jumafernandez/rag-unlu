@@ -761,7 +761,7 @@ export default function App() {
             target="_blank"
             rel="noreferrer"
           >
-            <img src="/logo-licdia-96.png" alt="Logo LICDIA" className="licdia-logo" />
+            <img src={`${import.meta.env.BASE_URL}logo-licdia-96.png`} alt="Logo LICDIA" className="licdia-logo" />
             <span>Desarrollado por LICDIA</span>
           </a>
         </div>
