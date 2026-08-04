@@ -12,7 +12,7 @@
 \usepackage{cmap}
 \input{glyphtounicode}
 \pdfgentounicode=1
-\usepackage[spanish]{babel}
+\usepackage[spanish,es-tabla]{babel}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{amsmath}
@@ -20,6 +20,8 @@
 \usepackage{url}
 \usepackage{xcolor}
 \usepackage{multirow}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
 \usepackage{float}
 
 % Marcador de valor pendiente de medicion. Todo numero que todavia no se midio va
@@ -37,39 +39,41 @@
 %   - Quien fijo el valor importa: procedencia del estado de dialogo en un
 %     asistente de consulta normativa
 \title{Un RAG portable sobre SUDOCU: consulta conversacional de la normativa
-de las universidades nacionales con estados de di\'alogo con procedencia}
+de las universidades nacionales aplicando estados de di\'alogo con procedencia}
 \titlerunning{Un RAG portable sobre SUDOCU}
 
-% \nota{Definir orden de autoria y filiaciones antes de enviar.}
 \author{Juan Manuel Fern\'andez\inst{1} \and
         Francisco Tamasi\inst{1} \and
         Sebasti\'an Marchetti\inst{1} \and
         Mario Oloriz\inst{1}}
 \authorrunning{J. M. Fern\'andez et al.}
 \institute{Universidad Nacional de Luj\'an, Luj\'an, Argentina\\
-\email{\{jmfernandez,ftamasi,smarchetti\}@unlu.edu.ar}}
+\email{\{jmfernandez,ftamasi,smarchetti, moloriz\}@unlu.edu.ar}}
 
 \maketitle
 \thispagestyle{empty}
 
 \begin{abstract}
-La normativa de una universidad nacional es p\'ublica, pero encontrarla exige
-saber de antemano qu\'e acto la contiene. Presentamos un asistente conversacional
-de consulta de normativa institucional, portable entre las universidades que
-publican en el m\'odulo de publicaci\'on de SUDOCU, e instanciado sobre los 21.364
-actos administrativos de la Universidad Nacional de Luj\'an, fragmentados por
-unidad normativa y recuperados de forma h\'ibrida sobre metadatos autoritativos
-del sistema de origen. El sistema mantiene un estado de di\'alogo con dos
-ranuras ---la entidad de la que se habla y los actos en juego--- que no completan
-un esquema fijo sino que \emph{pesan} la recuperaci\'on. La contribuci\'on central
-es que ese peso lo determina la \emph{procedencia} del valor: lo que infiere el
-sistema refuerza de forma d\'ebil; lo que la persona fija ---visible y editable en
-la interfaz--- pesa m\'as y no se sobrescribe. Evaluamos recuperaci\'on,
-ablaci\'on de cada mecanismo, fidelidad de citas y validaci\'on con evaluadores
-del dominio. La ingesta completa ---cat\'alogo, descarga, vectorizaci\'on,
-indexaci\'on--- se opera desde el panel del propio sistema, y la portabilidad
-est\'a verificada: una segunda instancia corre sobre el portal de la Universidad
-Nacional de San Luis con el mismo c\'odigo y solo configuraci\'on.
+La normativa de las universidades nacionales argentinas es p\'ublica, pero los
+portales que la publican solo admiten b\'usqueda por atributos del acto:
+localizar qu\'e norma regula una situaci\'on exige conocer de antemano el acto
+que la contiene. Se presenta un sistema de generaci\'on aumentada por
+recuperaci\'on (RAG) sobre el m\'odulo de publicaci\'on documental de SUDOCU,
+desplegado sobre los 21.364 actos administrativos de la Universidad Nacional de
+Luj\'an, segmentados por unidad normativa en 151.696 fragmentos. La
+recuperaci\'on combina \emph{embeddings} multiling\"ues con un \'indice l\'exico
+que preserva los identificadores normativos, fusionados por posici\'on. Sobre
+esa base, el sistema mantiene un estado de di\'alogo con dos \emph{slots} ---la
+entidad en discusi\'on y los actos mencionados--- cuyo peso en la recuperaci\'on
+lo determina la \emph{procedencia} de cada valor: lo que el sistema infiere
+pondera d\'ebilmente; lo que el usuario fija, visible y editable en la interfaz,
+prevalece y no se sobrescribe. En la evaluaci\'on, la fusi\'on resuelve por
+completo las consultas por identificador (R@5 de 1{,}00) y el procesamiento
+conversacional lleva la repregunta el\'iptica de 0{,}12 a 0{,}93; el 97{,}0\%
+de los actos citados en las respuestas queda anclado en el material recuperado.
+La portabilidad se verific\'o construyendo una segunda instancia sobre el portal
+de la Universidad Nacional de San Luis, con el mismo c\'odigo y solo
+configuraci\'on.
 
 \keywords{Generaci\'on aumentada por recuperaci\'on, Estado de di\'alogo,
 Documentos normativos, Metadatos estructurados, Sistemas desplegados.}
@@ -79,81 +83,72 @@ Documentos normativos, Metadatos estructurados, Sistemas desplegados.}
 \section{Introducci\'on}
 \label{sec:intro}
 
-La normativa de una universidad nacional argentina es p\'ublica y est\'a en l\'inea.
-Sin embargo, consultarla supone un conocimiento previo que la mayor\'ia de sus
-destinatarios no tiene: para encontrar una resoluci\'on hay que saber, con
-razonable precisi\'on, qu\'e resoluci\'on se busca. Los portales de publicaci\'on
-documental ofrecen b\'usqueda por n\'umero, por tipo de acto y por \'organo emisor,
-pero no por lo que a una persona efectivamente le pasa: necesita saber qu\'e dice
-la normativa sobre una licencia, sobre una designaci\'on o sobre un plan de
-estudios, sin tener idea de qu\'e acto lo establece.
+En Argentina, las universidades nacionales producen su normativa mediante actos
+administrativos ---resoluciones, disposiciones, ordenanzas--- cuya publicaci\'on
+en l\'inea avanz\'o de manera desigual: no existe un canal \'unico y cada
+instituci\'on combina digestos propios, boletines oficiales y sistemas de
+gesti\'on documental. En ese escenario, el Sistema \'Unico Documental (SUDOCU),
+desarrollado por la Universidad Nacional de General Sarmiento en el marco del
+consorcio SIU, se consolid\'o como plataforma de gesti\'on y publicaci\'on
+documental del sistema universitario: 37 instituciones utilizan su soluci\'on de
+expediente electr\'onico integrado\footnote{\url{https://sudocu.dev/}, consultado
+en agosto de 2026.}, y su m\'odulo de publicaci\'on expone los actos
+administrativos en un portal p\'ublico. La normativa, sin embargo, sigue exigiendo
+un conocimiento previo que la mayor\'ia de sus destinatarios no tiene: para
+encontrar una resoluci\'on hay que saber qu\'e resoluci\'on se busca. Los portales de publicaci\'on
+documental ofrecen b\'usqueda por n\'umero, tipo de acto y \'organo emisor: la
+b\'usqueda opera sobre atributos del acto y no sobre su contenido, de modo que
+localizar qu\'e norma regula una situaci\'on concreta exige conocer de antemano el
+acto que la contiene.
 
-Este trabajo presenta un asistente conversacional sobre el digesto de la
-Universidad Nacional de Luj\'an (UNLu), construido sobre los 21.364 actos
-administrativos publicados en su portal SUDOCU desde abril de 2024. El sistema
-responde en lenguaje natural y cita los fragmentos normativos que sustentan cada
-afirmaci\'on, de modo que toda respuesta puede rastrearse hasta el documento
-original.
+Este trabajo presenta un sistema de generaci\'on aumentada por recuperaci\'on
+(RAG)~\cite{lewis2020rag} sobre el m\'odulo de publicaci\'on documental de SUDOCU,
+implementado y evaluado sobre la totalidad de los actos publicados por la
+Universidad Nacional de Luj\'an (21.364 documentos) y desplegado adem\'as sobre
+m\'as de 26.000 documentos de una segunda universidad nacional (San Luis). El
+sistema responde en lenguaje natural y cita los fragmentos normativos que
+sustentan cada afirmaci\'on, con trazabilidad hasta el documento oficial
+publicado.
 
-El problema no se agota en la recuperaci\'on de un solo turno. Consultar normativa
-es conversacional por naturaleza: se pregunta por un tema, se identifica un acto y
-se repregunta sobre su articulado. Esas repreguntas no se sostienen solas
----\emph{``¿y qu\'e dice el art\'iculo 2?''}--- y en castellano suelen omitir el
-sujeto, lo que agrava el problema: \emph{``¿est\'a en alguna comisi\'on?''} es
-\emph{``¿[ella] est\'a en alguna comisi\'on?''} y no contiene ning\'un pronombre
-que delate la dependencia del contexto.
+A su vez, la consulta de normativa es conversacional ---se pregunta por un tema,
+se identifica un acto y se repregunta sobre su articulado, con repreguntas
+el\'ipticas que omiten el sujeto--- y los sistemas de di\'alogo orientados a
+tareas abordan esa dependencia manteniendo un estado que resume la
+conversaci\'on~\cite{young2013pomdp,williams2013pomdp}.
+Este trabajo adopta ese mecanismo con una funci\'on distinta: el estado no completa
+los campos de una consulta sobre un esquema cerrado, sino que \emph{pondera} la
+recuperaci\'on sobre un corpus documental abierto, apoyada en los metadatos
+estructurados que el sistema de origen provee.
 
-Los sistemas orientados a tareas resuelven esto manteniendo un estado de di\'alogo
-que resume la conversaci\'on~\cite{young2013pomdp,williams2013pomdp}. Aqu\'i
-adoptamos esa idea pero con un destino distinto: el estado no completa los campos
-de una consulta a una base con esquema conocido, sino que \emph{pesa} la
-recuperaci\'on sobre un corpus documental abierto, apoy\'andose en los metadatos
-estructurados que el sistema de origen ya provee.
+El aporte central es el criterio que gobierna esa ponderaci\'on. En la literatura,
+la aplicaci\'on dura o blanda de una restricci\'on depende de la incertidumbre del
+modelo, del tipo de atributo o de la arquitectura del sistema. Aqu\'i depende de la
+\emph{procedencia} del valor: una entidad inferida por el sistema refuerza
+d\'ebilmente la recuperaci\'on; una fijada por el usuario ---que ve el estado y
+puede editarlo--- recibe mayor peso y no se sobrescribe. La correcci\'on del
+usuario se trata como una observaci\'on de mayor confianza que la inferencia del
+propio sistema.
 
-Sobre esa base introducimos el aporte central del trabajo. En la literatura, la
-decisi\'on de aplicar una restricci\'on de manera dura o blanda depende de la
-incertidumbre del modelo, del tipo de atributo o de la arquitectura del sistema.
-Nosotros la hacemos depender de \textbf{qui\'en puso el valor ah\'i}: una entidad
-inferida por el sistema refuerza d\'ebilmente la recuperaci\'on, mientras que una
-entidad fijada por el usuario ---que ve el estado y puede editarlo--- pesa m\'as y
-el modelo deja de sobrescribirla. La correcci\'on del usuario no es solo una
-enmienda: es una afirmaci\'on con mayor confianza que la que el sistema puede
-tener por s\'i mismo, y el sistema la trata como tal.
+Las contribuciones son: (i) un sistema desplegado de consulta conversacional de
+normativa universitaria, con trazabilidad desde cada afirmaci\'on hasta el
+documento publicado, fragmentaci\'on por unidad normativa seg\'un la forma
+jur\'idica del acto administrativo argentino, y operaci\'on
+---cat\'alogo, descarga, vectorizaci\'on, indexaci\'on--- \'integramente
+autoadministrada; (ii) un estado de di\'alogo cuya \emph{procedencia} determina el
+r\'egimen de recuperaci\'on, visible y editable por quien consulta, con
+ablaci\'on de cada mecanismo; y (iii)
+portabilidad verificada: una segunda instancia opera sobre el portal SUDOCU de
+otra universidad nacional con el mismo c\'odigo y solo configuraci\'on
+(Secci\'on~\ref{sec:portabilidad}).
 
-Las contribuciones de este art\'iculo son:
-
-\begin{enumerate}
-\item Un sistema desplegado de consulta conversacional sobre normativa
-universitaria, con trazabilidad completa desde cada afirmaci\'on hasta el PDF
-publicado, y fragmentaci\'on por unidad normativa (Visto, Considerando, parte
-resolutiva, art\'iculos, anexos) que sigue la forma jur\'idica del acto
-administrativo argentino.
-
-\item Un estado de di\'alogo cuya \emph{procedencia} determina el r\'egimen de
-recuperaci\'on, visible y editable por quien consulta, con ablaci\'on de cada
-mecanismo por separado.
-
-\item Un an\'alisis emp\'irico del corpus que expone un l\'imite estructural: la
-Universidad no registra qu\'e norma deroga o modifica a cu\'al, de modo que
-ning\'un sistema construido sobre este digesto puede afirmar vigencia. Sostenemos
-que explicitar ese l\'imite es parte del dise\~no, no una omisi\'on.
-
-\item Portabilidad verificable: SUDOCU es un sistema de alcance nacional y el
-m\'odulo de publicaci\'on documental es un componente est\'andar suyo. La
-superficie de adaptaci\'on a otra universidad es la URL del portal ---las carpetas
-se descubren autom\'aticamente--- y una sonda de tres pedidos de solo lectura
-responde, antes de comprometerse, si esa instalaci\'on es compatible.
-\end{enumerate}
-
-El resto del art\'iculo se organiza as\'i. La Secci\'on~\ref{sec:relacionado}
-revisa el trabajo relacionado. La Secci\'on~\ref{sec:corpus} describe el corpus y
-su construcci\'on. La Secci\'on~\ref{sec:sistema} detalla el sistema. La
-Secci\'on~\ref{sec:evaluacion} presenta el protocolo de evaluaci\'on y la
-Secci\'on~\ref{sec:resultados} los resultados. La Secci\'on~\ref{sec:conclusiones}
-concluye.
+El resto del art\'iculo presenta los antecedentes
+(Secci\'on~\ref{sec:relacionado}), la metodolog\'ia ---corpus, sistema y protocolo
+de evaluaci\'on--- (Secci\'on~\ref{sec:metodologia}), los experimentos y sus
+resultados (Secci\'on~\ref{sec:resultados}) y las conclusiones
+(Secci\'on~\ref{sec:conclusiones}).
 
 % ========================== 2. RELACIONADO ==========================
-\section{Trabajo relacionado}
+\section{Antecedentes}
 \label{sec:relacionado}
 
 La aplicaci\'on de IA en la educaci\'on superior crece aceleradamente, pero con
@@ -168,21 +163,21 @@ normativo ni trazabilidad a la norma publicada. Este trabajo se ubica en esa
 vacancia ---particularmente aguda en el contexto latinoamericano--- con un
 sistema desplegado de consulta normativa para la gesti\'on universitaria.
 
-\subsection{Recuperaci\'on aumentada sobre corpus normativos}
+La generaci\'on aumentada por recuperaci\'on acopla un modelo de lenguaje con un
+\'indice de b\'usqueda: la respuesta se redacta condicionada a fragmentos
+recuperados del corpus, lo que reduce la fabricaci\'on de contenido y habilita la
+cita de fuentes~\cite{lewis2020rag,gao2024survey}. El enfoque se aplic\'o a
+dominios legales y regulatorios, donde la exigencia de respaldo documental es
+mayor que en dominio abierto: la evaluaci\'on emp\'irica de herramientas
+comerciales de investigaci\'on jur\'idica asistida registra tasas de
+alucinaci\'on significativas incluso con recuperaci\'on
+aumentada~\cite{magesh2024hallucination}.
 
-La recuperaci\'on aumentada por generaci\'on~\cite{lewis2020rag} se aplic\'o a
-dominios legales y regulatorios, donde la exigencia de citar la fuente es mayor
-que en dominio abierto: una afirmaci\'on sin respaldo no es un error menor sino un
-riesgo. El \'area sobre digestos universitarios latinoamericanos est\'a poco
-poblada; el trabajo m\'as cercano que encontramos opera sobre un corpus de un
-orden de magnitud menor.
-
-\subsection{Estado de di\'alogo como filtro de recuperaci\'on}
-
-El seguimiento del estado de di\'alogo es est\'andar en sistemas orientados a
-tareas~\cite{young2013pomdp,williams2013pomdp}, donde las ranuras completan una
-consulta a una base con esquema cerrado y conocido. Varios trabajos recientes lo
-usan, en cambio, para restringir la recuperaci\'on. ShopTalk~\cite{manku2022shoptalk}
+En la dimensi\'on conversacional, el seguimiento del estado de di\'alogo es
+est\'andar en sistemas orientados a tareas~\cite{young2013pomdp,williams2013pomdp},
+donde los \emph{slots} (ranuras) completan una consulta a una base con esquema cerrado y
+conocido. Varios trabajos recientes lo usan, en cambio, para restringir la
+recuperaci\'on. ShopTalk~\cite{manku2022shoptalk}
 convierte el estado de di\'alogo en una combinaci\'on de consulta textual y
 restricciones de faceta, y ya combina un r\'egimen duro y uno blando seg\'un el
 atributo est\'e o no anclado al cat\'alogo. Thulke et al.~\cite{thulke2021dstc9}
@@ -191,452 +186,364 @@ candidatos antes del \emph{ranking}. RA-Rec~\cite{kemper2024rarec} nombra
 expl\'icitamente restricciones duras y blandas en el esquema del estado, aunque
 las resuelve colapsadas en una consulta en lenguaje natural.
 
-Nuestro sistema comparte con estos trabajos el uso del estado como se\~nal de
+El sistema que se presenta en este trabajo comparte con estos antecedentes el uso
+del estado como se\~nal de
 recuperaci\'on. Se diferencia en dos puntos: el corpus es documental y abierto
----no un cat\'alogo de \'items ni un esquema tipo MultiWOZ--- y, sobre todo, el
+---no un cat\'alogo de \'items ni un esquema tipo MultiWOZ~\cite{budzianowski2018multiwoz}--- y, sobre todo, el
 r\'egimen de aplicaci\'on no lo decide la incertidumbre del modelo ni el tipo de
 atributo, sino la procedencia del valor.
 
-\subsection{Transparencia y control del usuario}
-
-Que el usuario pueda inspeccionar y corregir lo que un sistema infiri\'o es un
-principio establecido, de los sistemas \emph{penetrables} de Koenemann y
+Por \'ultimo, que el usuario pueda inspeccionar y corregir lo que un sistema
+infiri\'o es un principio establecido, de los sistemas \emph{penetrables} de Koenemann y
 Belkin~\cite{koenemann1996case} al ciclo de explicaci\'on y correcci\'on de
 Kulesza et al.~\cite{kulesza2015principles}. En di\'alogo orientado a tareas,
-SOVITE~\cite{li2020sovite} muestra las ranuras detectadas y permite repararlas
+SOVITE~\cite{li2020sovite} muestra los \emph{slots} detectados y permite repararlos
 por manipulaci\'on directa; en recuperaci\'on, propuestas recientes plantean
 exponer y dejar editar la intenci\'on inferida~\cite{anand2023context}.
 
-Reconocemos expl\'icitamente que la idea de mostrar y dejar editar el estado
-inferido \emph{no es nueva}. Nuestro aporte no es la editabilidad en s\'i, sino
-vincularla a un r\'egimen de recuperaci\'on: la procedencia del valor determina
-cu\'anto pesa. A eso se suma que, a diferencia de las propuestas citadas, aqu\'i
-se trata de un sistema en operaci\'on sobre un corpus institucional real.
+Los antecedentes relevados aportan estas piezas por separado: el estado de
+di\'alogo como se\~nal de recuperaci\'on, por un lado, y la transparencia y
+correcci\'on del estado inferido como principio de dise\~no, por el otro. No se
+registra, en cambio, un sistema que las combine ---exponer el estado, admitir su
+edici\'on y hacer de la \emph{procedencia} del valor el criterio que gobierna el
+r\'egimen de recuperaci\'on--- ni una aplicaci\'on de ese esquema a un corpus
+documental abierto de normativa institucional en un sistema en operaci\'on en
+Argentina.
 
 % ============================= 3. CORPUS =============================
-\section{El corpus}
+\section{Metodolog\'ia}
+\label{sec:metodologia}
+
+\subsection{Construcci\'on del corpus}
 \label{sec:corpus}
 
-\subsection{Origen e ingesta}
+La Figura~\ref{fig:pipeline} resume el flujo desde el portal hasta los artefactos
+de b\'usqueda. El m\'odulo de publicaci\'on documental (MPD) de SUDOCU expone los
+actos publicados; la etapa de ingesta consume la API REST del portal ---la misma
+que utiliza su interfaz--- y produce, por un lado, el \emph{cat\'alogo}: los
+metadatos desglosados de cada acto (tipo, c\'odigo, n\'umero, fecha, t\'itulo,
+\'organo emisor), su identificador interno y una URL permanente al PDF oficial;
+por el otro, los PDF. La completitud se verifica contra el total que el portal
+declara por carpeta: 21.344 actos en once carpetas, con cobertura desde abril
+de 2024.
 
-La UNLu publica sus actos administrativos en un portal SUDOCU, sistema de
-gesti\'on documental desarrollado por la Universidad Nacional de General Sarmiento
-y adoptado por el sistema universitario nacional. Una primera recolecci\'on por
-interfaz obtuvo 19.959 documentos en PDF; la recolecci\'on definitiva se hace
-contra la API del propio portal ---la misma que su interfaz usa por dentro--- y
-obtiene, por cada acto, sus metadatos desglosados (tipo, c\'odigo, n\'umero, fecha,
-t\'itulo, \'organo emisor), su identificador interno y una URL permanente al PDF
-oficial. El cat\'alogo completo re\'une \textbf{21.344} actos en once carpetas, y
-la completitud se afirma contra el total que el portal declara por carpeta, no se
-supone. Tras depurar actos duplicados y reparar identidades degradadas con el
-cat\'alogo, el \'indice servido contiene \textbf{21.364} documentos y
-\textbf{151.696} fragmentos.
+\begin{figure}[H]
+\centering
+\includegraphics[angle=-90, width=\textwidth]{figs/pipeline-design.pdf}
+\caption{Arquitectura de construcci\'on del corpus.}
+\label{fig:pipeline}
+\end{figure}
 
-El corpus abarca desde abril de 2024, fecha de puesta en producci\'on del portal.
-El digesto hist\'orico anterior, de aproximadamente 120.000 documentos, tiene otra
-fisonom\'ia y no est\'a incorporado a\'un.
+% \begin{figure}[H]
+% \centering
+% \resizebox{\textwidth}{!}{%
+% \begin{tikzpicture}[
+%   caja/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
+%                inner sep=4pt, minimum height=8mm, minimum width=22mm},
+%   dato/.style={font=\tiny\itshape},
+%   flecha/.style={-{Stealth[length=2mm]}, semithick}]
+% \node[caja] (mpd) at (0,0) {MPD\\ (SUDOCU)};
+% \node[caja] (ing) at (3.3,0) {Ingesta\\ (cliente API)};
+% \node[caja] (cat) at (7.1,0) {Cat\'alogo: 21.344 actos\\ metadatos + URL};
+% \node[caja] (pdf) at (0,-1.9) {PDF oficiales};
+% \node[caja] (par) at (3.3,-1.9) {Parser estructural};
+% \node[caja] (chk) at (7.1,-1.9) {Fragmentos:\\ 151.696};
+% \node[caja] (emb) at (7.1,-3.8) {Embeddings BGE-m3\\ 1.024 d, norma L2};
+% \node[caja] (idx) at (10.9,-3.8) {FAISS (denso, PI)\\ SQLite/FTS5 (l\'exico)\\ alineados por posici\'on};
+% \draw[flecha] (mpd) -- node[dato, above]{REST/JSON} (ing);
+% \draw[flecha] (ing) -- (cat);
+% \draw[flecha] (ing) -- (pdf);
+% \draw[flecha] (pdf) -- (par);
+% \draw[flecha] (par) -- node[dato, above]{unidades} (chk);
+% \draw[flecha] (cat) -- node[dato, right]{identidad} (chk);
+% \draw[flecha] (chk) -- (emb);
+% \draw[flecha] (emb) -- (idx);
+% \end{tikzpicture}}
+% \caption{Arquitectura de construcci\'on del corpus.}
+% \label{fig:pipeline}
+% \end{figure}
 
-\nota{JM: parrafo de origen reescrito para reflejar la recoleccion por API y la
-depuracion; revisar si el nivel de detalle te cierra.}
+El parser convierte cada PDF a texto estructurado y lo segmenta por unidad
+normativa ---Visto, Considerando, parte resolutiva, art\'iculos, anexos---: la
+unidad de recuperaci\'on coincide con la unidad citable, de modo que una
+respuesta puede referir el art\'iculo 2 de una disposici\'on y enlazar
+exactamente ese texto. Cada fragmento porta la identidad y la trazabilidad del acto ---c\'odigo,
+n\'umero, a\~no, fecha, identificadores del portal y URL permanente---, tomadas
+del cat\'alogo y no del PDF.
 
-\subsection{Uni\'on con los metadatos autoritativos}
-\label{sec:union}
 
-La uni\'on entre cada PDF y su fila de metadatos merece detalle porque expone un
-riesgo general de estas ingestas. El proceso de descarga renombra archivos de forma
-posicional, y verificamos que 1.780 archivos hab\'ian sido renumerados por fecha de
-creaci\'on, lo que romp\'ia silenciosamente la correspondencia posicional. Un
-sistema construido sobre esa uni\'on habr\'ia citado fechas y n\'umeros
-equivocados con total aplomo.
 
-Resolvimos la uni\'on por doble v\'ia: la posicional y la basada en el c\'odigo de
-acto impreso en el propio documento. Ante desacuerdo prevalece el c\'odigo, por ser
-la identidad del acto. El resultado, medido sobre el \'indice
-servido: el 81{,}6\% de los fragmentos con ambas v\'ias en acuerdo (confianza alta),
-el 18{,}4\% resuelto por una sola v\'ia (confianza media, marcada como tal), y los
-conflictos ---ambas v\'ias resolviendo a actos distintos--- excluidos por regla; el
-99{,}6\% de los fragmentos queda enlazado al PDF oficial.
+\subsection{Vectorizaci\'on e indexaci\'on}
+\label{sec:vectorizacion}
 
-\subsection{Fragmentaci\'on por unidad normativa}
-
-Un acto administrativo argentino tiene una estructura reconocible: Visto,
-Considerando, parte resolutiva, art\'iculos numerados, firmas y anexos.
-Fragmentamos siguiendo esa estructura en lugar de por ventanas de tama\~no fijo,
-de modo que cada fragmento sea una unidad citable. Se obtuvieron \textbf{140.902}
-fragmentos (7,1 por documento), de los cuales \textbf{51.901} corresponden a
-art\'iculos.
-
-Esta decisi\'on tiene una consecuencia pr\'actica: la unidad de cita coincide con
-la unidad de recuperaci\'on, de modo que una respuesta puede referir
-\emph{``art\'iculo 2 de la disposici\'on X''} y enlazar exactamente a ese texto.
-
-\subsection{Un l\'imite estructural: la vigencia}
-\label{sec:vigencia}
-
-La Universidad \textbf{no lleva registro de qu\'e norma deroga o modifica a
-cu\'al}. Ese dato no existe en ning\'un sistema institucional. El campo de estado
-que publica el portal no representa vigencia.
-
-La consecuencia es directa y no admite soluci\'on t\'ecnica desde este corpus:
-ning\'un sistema construido sobre \'el puede afirmar que una norma est\'e vigente.
-Puede decir qu\'e dispuso un acto y en qu\'e fecha; no puede decir que siga en
-vigor. Optamos por hacerlo expl\'icito en la interfaz, en la documentaci\'on y en
-las instrucciones dadas al modelo generador, que tiene prohibido afirmar vigencia.
-Lo reportamos como hallazgo: es una caracter\'istica del estado de digitalizaci\'on
-de la normativa universitaria, no una limitaci\'on de la implementaci\'on.
+Los \emph{embeddings} se calculan con BGE-m3~\cite{chen2024bge}, modelo
+multiling\"ue de recuperaci\'on entrenado contrastivamente sobre pares masivos,
+con soporte de representaci\'on densa, dispersa y multivector; se emplea la
+representaci\'on densa, de 1.024 dimensiones y normalizada L2, de modo que el
+producto interno equivale a la similitud coseno y el \'indice puede ser exacto y
+plano. Se vectorizan los 151.696 fragmentos del corpus (7,1 por documento;
+55.929 art\'iculos). La ventana de 8.192
+tokens admite fragmentos largos sin truncamiento. Cada fragmento se codifica con
+un encabezado sint\'etico ---t\'itulo del acto y cita citable, antepuestos al
+cuerpo---: un condicionamiento de contexto documental sobre la representaci\'on
+local que mitiga la p\'erdida de contexto inherente a la fragmentaci\'on,
+en l\'inea con la concatenaci\'on de t\'itulo y pasaje de los recuperadores
+densos~\cite{karpukhin2020dpr}. Los artefactos de b\'usqueda son un
+\'indice FAISS~\cite{douze2024faiss} de producto interno y una base SQLite con el
+texto, los metadatos y un \'indice l\'exico FTS5\footnote{\url{https://sqlite.org/fts5.html}},
+alineados por posici\'on y verificados tras cada reconstrucci\'on; el reemplazo es at\'omico y la API recarga el \'indice sin
+interrumpir el servicio. La operaci\'on completa ---cat\'alogo, descarga,
+vectorizaci\'on, indexaci\'on--- se ejecuta desde el panel de administraci\'on del
+propio sistema, con registro de corridas, y la actualizaci\'on peri\'odica
+reutiliza el mismo camino de forma incremental.
 
 % ============================ 4. SISTEMA ============================
-\section{El sistema}
+\subsection{Recuperaci\'on h\'ibrida}
 \label{sec:sistema}
 
-\subsection{Recuperaci\'on h\'ibrida}
-
-Combinamos una se\~nal densa y una l\'exica. La densa usa BGE-m3~\cite{chen2024bge}
-(1.024 dimensiones) sobre los 140.902 fragmentos. La l\'exica es una
-implementaci\'on propia de BM25~\cite{robertson2009bm25} con un tokenizador que
-\emph{preserva los identificadores normativos}: expresiones como
-\texttt{RESHCS-LUJ: 0000042-24}, \texttt{528/2025} o \texttt{DISPCD-CB} se
-mantienen como unidades en lugar de partirse, porque son justamente lo que la
-se\~nal densa no distingue. Las dos listas se fusionan con \emph{reciprocal rank
-fusion}~\cite{cormack2009rrf}.
-
+La recuperaci\'on combina la b\'usqueda por \emph{embeddings} de la
+Secci\'on~\ref{sec:vectorizacion} con recuperaci\'on l\'exica: una
+implementaci\'on propia de BM25~\cite{robertson2009bm25}
+($k_1{=}1{,}5$, $b{=}0{,}75$) cuyo tokenizador \emph{preserva los identificadores
+normativos} ---expresiones como \texttt{RESHCS-LUJ: 0000042-24}, \texttt{528/2025}
+o \texttt{DISPCD-CB} se mantienen como unidades--- porque son exactamente lo que
+los \emph{embeddings} no distinguen. Los dos \emph{rankings} se fusionan por
+\emph{reciprocal rank fusion} (RRF)~\cite{cormack2009rrf}, que asigna a cada
+documento la suma de los rec\'iprocos de su posici\'on en cada \emph{ranking}:
+\begin{equation}
+\mathrm{RRF}(d) = \sum_{r \in \{\mathrm{emb},\,\mathrm{BM25}\}} \frac{1}{K + \mathrm{rango}_r(d)},
+\qquad K = 60,
+\label{eq:rrf}
+\end{equation}
+donde $\mathrm{rango}_r(d)$ es la posici\'on del documento $d$ en el
+\emph{ranking} $r$ y la constante $K$ amortigua la diferencia entre las primeras
+posiciones. Fusionar por posiciones, y no por puntajes, evita calibrar
+magnitudes de naturaleza distinta ---similitud coseno y puntaje BM25---.
 Cuando la consulta nombra un acto concreto, la b\'usqueda se restringe a los
 documentos que llevan ese n\'umero. La fusi\'on por s\'i sola no lo garantiza: un
-documento con dos se\~nales tibias supera a uno con una se\~nal decisiva. Adem\'as,
+documento con posiciones intermedias en ambos \emph{rankings} supera a uno que
+encabeza uno solo. Adem\'as,
 el n\'umero solo no alcanza, porque cada tipo de acto lleva numeraci\'on propia y
 un mismo n\'umero existe en decenas de c\'odigos distintos.
 
-\subsection{Estado de di\'alogo}
+\subsection{Estado de di\'alogo con procedencia}
+\label{sec:estado}
 
-El estado tiene dos ranuras:
+En cada turno, la consulta se reescribe como una consulta autocontenida,
+condicionada a los \'ultimos intercambios mediante un modelo de lenguaje con
+salida estructurada; la b\'usqueda opera sobre la consulta reescrita, y el estado
+de di\'alogo complementa esa reescritura con la informaci\'on que el texto no
+transporta.
 
-\begin{itemize}
-\item \textbf{entidad}: el sujeto del que se viene hablando (persona, carrera,
-departamento, \'organo). Cardinalidad uno, sem\'antica de reemplazo.
-\item \textbf{actos}: los actos administrativos mencionados. Conjunto que acumula.
-\end{itemize}
+El estado mantiene dos \emph{slots}. El primero, \emph{entidad}, registra el
+sujeto de la conversaci\'on ---una persona, una carrera, una dependencia, un
+\'organo---, con cardinalidad uno y sem\'antica de reemplazo. El segundo,
+\emph{actos}, acumula el conjunto de actos administrativos mencionados. El
+criterio de admisi\'on fue restrictivo: un \emph{slot} se justifica \'unicamente
+si transporta entre turnos informaci\'on que el texto de la consulta actual no
+contiene.
 
-El criterio para admitir una ranura fue restrictivo: \emph{una ranura se justifica
-solo si transporta entre turnos informaci\'on que el texto de la consulta actual no
-tiene}. Un filtro temporal, por ejemplo, no lo cumple: cuando el a\~no es
-pertinente el usuario suele reescribirlo, y arrastrarlo desde turnos anteriores
-hace m\'as da\~no que bien.
+El estado es visible sobre el campo de escritura y editable: quien consulta puede
+corregir la entidad, descartar un acto o reincorporarlo. Lo descartado permanece
+visible, atenuado, dado que la inspecci\'on de lo inferido es condici\'on para su
+control. Cuando una entidad fijada no aparece en la consulta con la que se
+buscar\'a, el sistema declara la discrepancia en la interfaz en lugar de
+resolverla de manera impl\'icita.
 
-\subsection{Procedencia y peso}
-\label{sec:procedencia}
-
-Cada valor del estado lleva su \textbf{procedencia}, y de ella se deriva su peso:
-
-\begin{center}
-\begin{tabular}{lcl}
-\toprule
-Procedencia & Peso & Significado \\
-\midrule
-sistema & 0,5 & inferido por el modelo a partir de la conversaci\'on \\
-usuario & 1,0 & fijado expl\'icitamente por quien consulta \\
-descartado & 0,0 & apagado por el usuario; permanece visible \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-El peso entra como bonificaci\'on aditiva sobre el puntaje ya fusionado:
+\label{sec:procedencia}Cada valor del estado registra, adem\'as, su
+\emph{procedencia}, de la que se deriva su peso en la recuperaci\'on: un valor
+inferido por el modelo a partir de la conversaci\'on pesa 0,5; uno fijado
+expl\'icitamente por quien consulta pesa 1,0 y deja de ser sobrescrito por la
+inferencia en los turnos siguientes; uno descartado pesa 0. El peso entra como
+bonificaci\'on aditiva sobre el puntaje fusionado:
 
 \begin{equation}
 \mathrm{puntaje}(d) = \mathrm{RRF}(d) + \sum_{s \in S} w_s \cdot \mathbb{1}[\,d \models s\,] \cdot u
 \label{eq:puntaje}
 \end{equation}
 
-donde $S$ es el conjunto de ranuras activas, $w_s$ el peso derivado de la
-procedencia y $u = 1/(K+1)$ la unidad de bonificaci\'on, es decir, lo que vale
-encabezar una de las dos se\~nales. Expresarla en unidades de RRF evita una
-constante arbitraria y acota el efecto: una ranura empuja, pero no puede sustituir
-a la relevancia sem\'antica, que suma por las dos se\~nales.
+donde $S$ es el conjunto de \emph{slots} activos, $w_s$ el peso derivado de la
+procedencia y $u = 1/(K+1)$ la unidad de bonificaci\'on, equivalente a encabezar
+uno de los dos \emph{rankings}. Expresarla en unidades de RRF evita una
+constante arbitraria y acota el efecto: un \emph{slot} desplaza el ordenamiento,
+pero no sustituye a la relevancia, que aporta por ambos \emph{rankings}. La
+correcci\'on del usuario opera as\'i como una observaci\'on de mayor confianza
+que la inferencia del propio sistema: duplica el peso del valor en la
+Ecuaci\'on~\ref{eq:puntaje} y fija su persistencia.
 
-Ninguna ranura excluye documentos. Un valor mal inferido degrada el orden pero no
-puede vaciar el resultado, que es el modo de falla que vuelve inutilizable a un
-filtro duro.
-
-\subsection{Estado visible y editable}
-
-El estado se muestra sobre el campo de escritura y es editable: se puede corregir
-la entidad, descartar un acto y volver a incorporarlo. Lo descartado no se borra,
-se muestra atenuado, porque saber qu\'e infiri\'o el sistema es parte de poder
-controlarlo.
-
-Editar tiene dos efectos, y esa es la instanciaci\'on concreta del aporte descrito
-en la Secci\'on~\ref{sec:procedencia}: el valor pasa a pesar el doble en la
-Ecuaci\'on~\ref{eq:puntaje}, y el modelo deja de sobrescribirlo en los turnos
-siguientes. Adem\'as, cuando el usuario fij\'o una entidad y la consulta con la que
-se buscar\'a no la menciona, el sistema lo declara en la interfaz en lugar de
-resolver la discrepancia en silencio.
+Ning\'un \emph{slot} excluye documentos: un valor mal inferido degrada el
+ordenamiento pero no puede anular el conjunto de resultados, el modo de falla
+caracter\'istico de los filtros estrictos.
 
 % ========================== 5. EVALUACION ==========================
-\section{Protocolo de evaluaci\'on}
+\subsection{Generaci\'on}
+
+La respuesta se redacta con un modelo de lenguaje que recibe la consulta, el
+contexto recuperado ---fragmentos con su cita--- y la instrucci\'on de respaldar
+cada afirmaci\'on con el identificador del acto correspondiente, sin afirmar
+nada que el contexto no contenga. El componente es intercambiable: el sistema
+admite cualquier \emph{endpoint} compatible con la API de OpenAI ---servicios en
+la nube o modelos de pesos abiertos servidos localmente (vLLM, Ollama)--- y se
+configura desde el panel de administraci\'on, sin reiniciar el servicio. Sobre
+la misma recuperaci\'on, el sistema expone modos de salida invocables por
+comandos (\texttt{/lista}, \texttt{/ficha}, \texttt{/comparar},
+\texttt{/novedades}, \texttt{/resumen}) que reconfiguran la selecci\'on de
+contexto y la instrucci\'on de generaci\'on: inventarios por tema, dossier de un
+acto ---incluida la relaci\'on inversa de qu\'e actos lo mencionan, que el portal
+no ofrece---, comparaci\'on entre dos actos, novedades por ventana temporal y
+s\'intesis narrada.
+
+\subsection{Protocolo de evaluaci\'on}
 \label{sec:evaluacion}
 
-\subsection{Evaluaci\'on autom\'atica de la recuperaci\'on}
-\label{sec:autoeval}
+Ante la ausencia de un conjunto anotado sobre este corpus, la
+recuperaci\'on se eval\'ua con consultas sint\'eticas construidas por muestreo
+estratificado por secci\'on del portal y tipo de acto, de tres clases: por
+\emph{identificador} ($n=30$; plantillas deterministas sobre el c\'odigo del
+acto), por \emph{contenido} ($n=131$; generadas con un modelo de lenguaje a
+partir de un fragmento, sin nombrar el n\'umero del acto, con un control de
+calidad autom\'atico que descart\'o el 34{,}5\%) y \emph{conversacionales} de dos
+turnos ($n=58$; el segundo turno es una repregunta el\'iptica). La relevancia se
+decide a nivel de acto ---el sistema cita y enlaza actos completos--- y se
+reportan Recall@$k$, MRR@10~\cite{voorhees1999trec} y
+nDCG@10~\cite{jarvelin2002cumulated}. La fidelidad de las citas se verifica de
+forma determinista: todo acto citado en una respuesta debe estar entre lo
+recuperado, y la atribuci\'on a una persona nombrada debe estar contenida en el
+fragmento citado\footnote{En todos los experimentos el modelo generador de
+respuestas fue \texttt{gpt-4o-mini} a temperatura 0.}.
 
-No existe un conjunto anotado de consultas sobre este corpus. Construimos tres
-conjuntos con verdad de referencia, por muestreo estratificado de fragmentos por
-secci\'on del portal y tipo de acto ---sin estratificar, el conjunto queda dominado
-por las secciones grandes y no informa sobre las dem\'as---:
-
-\textbf{Consultas por identificador} ($n=30$). Se toma un documento y se
-pregunta por su c\'odigo y n\'umero, con plantillas fijas y sin intervenci\'on de
-ning\'un modelo. El documento correcto se conoce de antemano, de modo que las
-m\'etricas son deterministas y no intervienen juicios.
-
-\textbf{Consultas por contenido} ($n=131$). Se genera con un modelo de lenguaje,
-a partir de un fragmento, la consulta que har\'ia quien necesita esa informaci\'on
-sin tener el documento delante, con dos restricciones: no nombrar el n\'umero del
-acto y no copiar frases textuales. Cada par pasa por un control de calidad
-autom\'atico ---un segundo pase que decide, con el fragmento y la consulta a la
-vista, si el primero responde a la segunda--- y lo que no pasa se descarta y se
-reporta (34{,}5\% descartado). Es la construcci\'on habitual cuando no hay
-anotaci\'on disponible, y su limitaci\'on debe declararse: mide la recuperaci\'on
-contra un sustituto de la necesidad de informaci\'on, no contra la necesidad real.
-Por eso la validaci\'on con evaluadores del dominio (Secci\'on~\ref{sec:humana})
-no es complementaria sino necesaria: mide otra cosa.
-
-\textbf{Consultas conversacionales} ($n=58$: 29 tem\'aticas y 29 ancladas en un acto). Dos turnos generados desde un
-mismo fragmento: el primero establece el tema y el segundo es una repregunta que
-no se sostiene sola (``\emph{¿y de qu\'e a\~no es?}''). Son el banco de prueba de
-los mecanismos de estado de la Secci\'on~\ref{sec:procedencia}.
-
-La relevancia se decide a nivel \emph{acto}: recuperar cualquier fragmento del
-acto del que sali\'o la consulta cuenta como acierto, porque el sistema cita y
-enlaza actos completos. Reportamos Recall@$k$, MRR@10 y nDCG@10.
-
-\subsection{Ablaci\'on}
-
-Sobre las consultas simples ablamos las se\~nales de recuperaci\'on: denso solo,
-l\'exico solo y la fusi\'on h\'ibrida con anclaje de identificadores. Sobre las
-conversacionales ablamos un mecanismo de estado por vez a partir de la
-configuraci\'on completa ---reescritura de la repregunta, ranura de entidad,
-ranura de actos---, m\'as las dos condiciones extremas: el segundo turno sin
-ning\'un estado, y el estado con la entidad \emph{corregida}, en la que la ranura
-pesa como fijada por el usuario. Esta \'ultima simula la correcci\'on humana bajo
-el supuesto de que la inferencia era correcta; donde no lo era, el peso doble
-castiga, y ese costo tambi\'en se reporta. Es la comparaci\'on que sostiene el
-aporte sobre procedencia.
-
-\paragraph{Reranking.} Medimos adem\'as si un \emph{cross-encoder} aporta sobre el
-orden del h\'ibrido: el sistema recupera su top-50 y un reranker de la misma familia
-que el codificador denso (BGE-reranker-v2-m3) lo reordena, sin poder traer documentos
-nuevos. Eso a\'isla la pregunta relevante ---¿el orden es el cuello de botella?---
-de la cobertura, que se mide aparte.
-
-\subsection{Fidelidad de las citas}
-
-Dos verificaciones deterministas, sin juez: (i) todo acto citado en la respuesta
-debe estar entre lo recuperado ---citar algo no recuperado equivale a inventarlo---
-y (ii) en consultas sobre personas, el fragmento citado debe contener efectivamente
-el nombre de la persona a la que se le atribuye algo.
-
-\subsection{Validaci\'on con evaluadores del dominio}
-\label{sec:humana}
-
-Las m\'etricas autom\'aticas no responden la pregunta que decide la adopci\'on: si una
-persona del dominio se apoyar\'ia en las respuestas. Tres evaluadores con distinta
-relaci\'on con la normativa ---un estudiante, un docente de la Divisi\'on Matem\'atica y
-un jefe de divisi\'on con rol de gesti\'on--- completan un \'unico cuestionario sobre la
-configuraci\'on completa del sistema (la ganadora de la evaluaci\'on autom\'atica):
-diez consultas fijas con sus respuestas congeladas ---id\'enticas entre evaluadores, lo
-que permite reportar acuerdo--- y tres consultas propias de su trabajo, hechas en vivo.
-Cada respuesta se punt\'ua en escala Likert de 1 a 5 en cuatro dimensiones (utilidad,
-fidelidad a las citas, completitud y claridad), con marca expl\'icita de contenido
-incorrecto; un bloque final punt\'ua confianza, ventaja sobre el m\'etodo actual de
-b\'usqueda y disposici\'on a que la Universidad lo ofrezca abiertamente.
-
-\begin{table}[H]
-\centering\small
-\caption{Validaci\'on con evaluadores: mediana (m\'in--m\'ax) por dimensi\'on sobre los
-\'items fijos, y bloque global.}
-\label{tab:jueces}
-\begin{tabular}{lrrr}
-\toprule
- & E1 (estudiante) & E2 (docente) & E3 (gesti\'on) \\
-\midrule
-Utilidad     & \pend & \pend & \pend \\
-Fidelidad    & \pend & \pend & \pend \\
-Completitud  & \pend & \pend & \pend \\
-Claridad     & \pend & \pend & \pend \\
-\midrule
-Confianza    & \pend & \pend & \pend \\
-Ventaja      & \pend & \pend & \pend \\
-Adopci\'on   & \pend & \pend & \pend \\
-\bottomrule
-\end{tabular}
-\end{table}
+\label{sec:humana}El juicio humano complementa las m\'etricas autom\'aticas:
+tres evaluadores de perfiles distintos ---estudiante, docencia y gesti\'on---
+completan un cuestionario \'unico con quince respuestas fijas del sistema
+---id\'enticas entre jueces, lo que permite reportar acuerdo--- y tres consultas
+propias realizadas en vivo, puntuadas de 1 a 5 en utilidad, fidelidad,
+completitud y claridad, con un bloque final de confianza, ventaja percibida y
+disposici\'on a la adopci\'on.
 
 % ========================= 6. RESULTADOS =========================
-\section{Resultados}
+\section{Experimentos y resultados}
 \label{sec:resultados}
 
-\nota{Los numeros de recuperacion, procedencia y citas son mediciones reales sobre
-el indice depurado (agosto 2026). Quedan pendientes solo la tabla de jueces y las
-dos cifras del parrafo de reranking.}
-
-\subsection{Recuperaci\'on y ablaci\'on}
+La evaluaci\'on autom\'atica se centra en la recuperaci\'on: la
+Tabla~\ref{tab:ablacion} compara los componentes aislados, la fusi\'on h\'ibrida
+y el sistema completo sobre los tres tipos de consulta del protocolo.
 
 \begin{table}[H]
-\centering\small
-\caption{Recuperaci\'on por tipo de consulta: cada se\~nal sola y la fusi\'on
-h\'ibrida con anclaje de identificadores.}
+\centering\scriptsize
+\caption{Recuperaci\'on por tipo de consulta. En las conversacionales, todas
+las configuraciones salvo el sistema completo operan sobre el segundo turno
+crudo.}
 \label{tab:ablacion}
 \setlength{\tabcolsep}{5pt}
-\begin{tabular}{lrrrrrr}
+\begin{tabular}{lrrrrrrrrr}
 \toprule
- & \multicolumn{3}{c}{Identificador} & \multicolumn{3}{c}{Contenido} \\
-\cmidrule(lr){2-4}\cmidrule(l){5-7}
-Configuraci\'on & R@5 & MRR@10 & nDCG@10 & R@5 & MRR@10 & nDCG@10 \\
+ & \multicolumn{3}{c}{Identificador} & \multicolumn{3}{c}{Contenido} & \multicolumn{3}{c}{Conversacional} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(l){8-10}
+Configuraci\'on & R@5 & MRR & nDCG & R@5 & MRR & nDCG & R@5 & MRR & nDCG \\
 \midrule
-Denso solo          & 0.100 & 0.075 & 0.081 & 0.779 & 0.645 & 0.689 \\
-L\'exico solo       & 0.833 & 0.683 & 0.757 & 0.786 & 0.682 & 0.715 \\
-H\'ibrido (sistema) & \textbf{1.000} & \textbf{1.000} & \textbf{1.000} & \textbf{0.824} & \textbf{0.721} & \textbf{0.753} \\
+Solo \emph{embeddings} & 0.10 & 0.08 & 0.08 & 0.78 & 0.65 & 0.69 & 0.10 & 0.08 & 0.09 \\
+Solo BM25              & 0.83 & 0.68 & 0.76 & 0.79 & 0.68 & 0.72 & 0.09 & 0.08 & 0.08 \\
+H\'ibrido (sin estado) & 1.00 & 1.00 & 1.00 & 0.82 & 0.72 & 0.75 & 0.12 & 0.08 & 0.09 \\
+H\'ibrido $+$ estado & \textbf{1.00} & \textbf{1.00} & \textbf{1.00} & \textbf{0.82} & \textbf{0.72} & \textbf{0.75} & \textbf{0.93} & \textbf{0.88} & \textbf{0.90} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-El reranking no aporta: reordenar el top-50 del h\'ibrido con el cross-encoder
-deja las m\'etricas iguales o peores (R@1 global 0{,}677 contra 0{,}702 del
-h\'ibrido, y en identificadores cae de 1{,}000 a 0{,}967),
-y en las consultas por identificador las \emph{empeora}, porque el reranker punt\'ua
-por contenido y desconoce el anclaje exacto que esas consultas necesitan. A cambio
-multiplica el costo por consulta. La fusi\'on RRF con anclaje de identificadores ya
-resuelve el ordenamiento en este dominio, y el resultado ---negativo--- evita cargar
-al sistema desplegado con un componente que no paga su latencia.
+Ninguno de los dos componentes alcanza por s\'i solo: los \emph{embeddings} no
+distinguen identificadores normativos y BM25, aun preserv\'andolos, no ordena la
+sem\'antica de las consultas por contenido tan bien como la fusi\'on; el
+h\'ibrido con anclaje resuelve por completo los identificadores y conserva la
+ventaja en las de contenido. La columna conversacional muestra el papel del
+estado: sobre el segundo turno crudo ninguna configuraci\'on recupera (R@5 de
+0{,}09 a 0{,}12) y el sistema completo alcanza 0{,}93, con la reescritura
+condicionada al historial como mecanismo determinante; los \emph{slots} no desplazan estas
+m\'etricas, y su funci\'on es dar a quien consulta un mecanismo de correcci\'on
+cuya prioridad garantiza la procedencia. Un \emph{cross-encoder}
+(BGE-reranker-v2-m3) reordenando el top-50 del h\'ibrido no mejora las
+m\'etricas (R@1 global de 0{,}68 contra 0{,}70) y empeora los identificadores:
+el ordenamiento no es el cuello de botella de este dominio. La
+verificaci\'on determinista de citas sobre 60 respuestas ancla el 97{,}0\% de
+los actos citados en lo recuperado, con atribuci\'on de personas correcta en 23
+de 24 casos.
 
-\subsection{Procedencia del estado}
-
-La Tabla~\ref{tab:procedencia} a\'isla cada mecanismo de estado sobre las consultas
-conversacionales, separadas en dos poblaciones: las tem\'aticas, donde el primer
-turno establece un tema, y las ancladas en un acto, donde el primer turno lo nombra
-por su n\'umero y el segundo es puramente el\'iptico
-(``\emph{¿y de qu\'e fecha es?}'').
-
-Tres lecturas se sostienen sobre esa tabla. Primera: sin ning\'un mecanismo, la
-repregunta el\'iptica es irrecuperable ---en las ancladas en un acto no se
-recupera nada, porque el turno no contiene ni el tema ni el n\'umero---. Segunda:
-la \emph{reescritura} de la consulta con el historial es el mecanismo dominante en
-di\'alogos de dos turnos: al reponer el sujeto omitido, la consulta reescrita
-vuelve a ser autocontenida, y sobre ella el anclaje de identificadores y la
-recuperaci\'on h\'ibrida hacen el resto. Tercera: cuando la reescritura ya repuso
-el sujeto, las ranuras no mueven las m\'etricas de este conjunto; su papel
-observable es el de \emph{seguro}, no el de motor. La ranura de actos sostiene la
-continuidad cuando la conversaci\'on sigue sobre normativa ya citada, y la
-garant\'ia de entidad interviene en el caso exacto en que la recuperaci\'on se fue
-de tema, que es el mecanismo detr\'as de la verificaci\'on de atribuci\'on de la
-Secci\'on~\ref{sec:resultcitas}. Esta lectura es consistente con el dise\~no: en
-di\'alogos cortos con consultas reescritas autocontenidas hay poco margen para que
-un sesgo suave reordene el tope del ranking, y el valor de la procedencia se juega
-en el r\'egimen de interacci\'on ---qu\'e puede fijar quien consulta y qu\'e deja
-de ser sobrescrito--- m\'as que en el delta de recuperaci\'on de un turno.
+La validaci\'on humana complementa esas m\'etricas. Los quince \'items fijos
+cubren los tres tipos de consulta del protocolo sobre secciones diversas del
+corpus, con respuestas verificables en uno o dos actos; cada juez agrega tres
+consultas propias de su actividad, realizadas en vivo. La
+Tabla~\ref{tab:jueces} resume los puntajes.
 
 \begin{table}[H]
 \centering\small
-\caption{Consultas conversacionales: ablaci\'on de los mecanismos de estado y
-efecto de la procedencia, por poblaci\'on. La configuraci\'on completa usa la
-consulta reescrita, la ranura de entidad y la de actos con pesos de inferencia.}
-\label{tab:procedencia}
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{lrrrrrr}
+\caption{Validaci\'on con evaluadores: media $\pm$ desv\'io est\'andar por
+dimensi\'on sobre los \'items fijos (tres jueces) y bloque global.}
+\label{tab:jueces}
+\begin{tabular}{lc}
 \toprule
- & \multicolumn{3}{c}{Tem\'aticas} & \multicolumn{3}{c}{Ancladas en un acto} \\
-\cmidrule(lr){2-4}\cmidrule(l){5-7}
-Condici\'on & R@5 & MRR@10 & nDCG@10 & R@5 & MRR@10 & nDCG@10 \\
+Dimensi\'on & Media $\pm$ DE \\
 \midrule
-Sin estado (turno 2 solo)   & 0.241 & 0.149 & 0.173 & 0.000 & 0.000 & 0.000 \\
-$-$ reescritura             & 0.241 & 0.185 & 0.223 & 0.069 & 0.025 & 0.050 \\
-$-$ ranura entidad          & 0.862 & 0.756 & 0.790 & 1.000 & 1.000 & 1.000 \\
-$-$ ranura actos            & 0.862 & 0.757 & 0.791 & 1.000 & 1.000 & 1.000 \\
-Completa (estado inferido)  & \textbf{0.862} & \textbf{0.757} & \textbf{0.791} & \textbf{1.000} & \textbf{1.000} & \textbf{1.000} \\
-Estado corregido (peso usuario) & 0.862 & 0.757 & 0.791 & 1.000 & 1.000 & 1.000 \\
+Utilidad     & \pend \\
+Fidelidad    & \pend \\
+Completitud  & \pend \\
+Claridad     & \pend \\
+\midrule
+Confianza    & \pend \\
+Ventaja      & \pend \\
+Adopci\'on   & \pend \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Fidelidad de las citas}
-\label{sec:resultcitas}
-
-\begin{table}[H]
-\centering\small
-\caption{Verificaci\'on autom\'atica de citas y atribuci\'on sobre respuestas
-generadas por el sistema completo.}
-\label{tab:citas}
-\begin{tabular}{lrr}
-\toprule
-Verificaci\'on & Cantidad & \% \\
-\midrule
-Actos citados en las respuestas           & 133 & -- \\
-Anclados en lo recuperado                 & 129 & 97{,}0\% \\
-Sueltos (sin fuente detr\'as)             & 4 & 3{,}0\% \\
-Atribuci\'on de entidad nombrada correcta & 23/24 & 95{,}8\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\nota{Queda para discutir si sumamos un conjunto de consultas sin respuesta posible
-(actos inexistentes) para medir la tasa de ``no s\'e'': el protocolo actual no lo
-incluye.}
-
-\subsection{Portabilidad verificada en una segunda universidad}
-\label{sec:portabilidad}
-
-\nota{JM: subseccion nueva --- propone mover la portabilidad de trabajo futuro a
-resultado, con la instancia UNSL como evidencia. Si no te cierra, se vuelve al
-enunciado anterior.}
-
-Verificamos la portabilidad contra el portal SUDOCU de la Universidad Nacional de
-San Luis. La sonda de tres pedidos dictamin\'o compatibilidad sin cambios; el
-recolector descubri\'o autom\'aticamente sus 15 carpetas p\'ublicas ---la UNSL
-publica por facultad, la UNLu por tipo de acto--- y una instancia completa del
-asistente, con la marca y el esquema de colores de esa universidad, se construy\'o
-desde su propio panel de administraci\'on sobre un corpus declarado de 72.816
-actos, sin recompilar ni bifurcar el c\'odigo. Dos diferencias reales se
-absorbieron en el c\'odigo com\'un (la clave del c\'odigo de acto en el objeto del
-listado y el nombre de las carpetas); la \'unica adaptaci\'on que qued\'o para
-configuraci\'on por universidad es la limpieza del membrete de sus PDF, cuyo
-esqueleto estructural (Visto, Considerando, parte resolutiva, art\'iculos) se
-detect\'o id\'entico en una muestra piloto de 20 documentos.
-
-\subsection{Validaci\'on con evaluadores}
-
-Los resultados del cuestionario se vuelcan en la Tabla~\ref{tab:jueces}
-(Secci\'on~\ref{sec:humana}). \nota{Completar cuando los tres jueces entreguen la
-planilla.}
+\label{sec:portabilidad}Si bien la evaluaci\'on se realiz\'o sobre la
+instalaci\'on de la UNLu ---donde se cuenta con mayor conocimiento del corpus y
+acceso a los evaluadores---, la portabilidad se verific\'o contra el portal
+SUDOCU de la Universidad Nacional de San Luis. Se gener\'o una
+personalizaci\'on con los datos de esa universidad ---identidad institucional,
+esquema de colores y URL de su portal--- que permiti\'o construir una instancia
+completa desde el propio panel de administraci\'on: el proceso de ingesta
+comprob\'o la compatibilidad de la instalaci\'on con tres solicitudes de solo
+lectura, descubri\'o autom\'aticamente sus 15 carpetas p\'ublicas ---72.816
+actos declarados--- y descarg\'o de forma escalonada, para no saturar el
+servidor de origen, los 26.282 documentos de tres carpetas, incluido el
+Rectorado, la mayor del portal.
 
 % ======================== 7. CONCLUSIONES ========================
 \section{Conclusiones y trabajo futuro}
 \label{sec:conclusiones}
 
-Presentamos un asistente conversacional de consulta normativa desplegado sobre el
-digesto de la UNLu, con 21.364 actos y 151.696 fragmentos depurados ---sin actos
-duplicados y con la identidad de cada fragmento tomada del cat\'alogo del portal---,
-recuperaci\'on h\'ibrida y trazabilidad completa desde cada afirmaci\'on hasta el
-documento publicado.
+Se present\'o un sistema real de consulta conversacional de normativa
+universitaria, en operaci\'on sobre el corpus completo de la UNLu y con una
+segunda instancia sobre el portal de la UNSL. Los aportes: un estado de
+di\'alogo cuya \emph{procedencia} determina el peso de cada valor en la
+recuperaci\'on ---visible, editable y con su efecto medido por ablaci\'on---;
+una recuperaci\'on h\'ibrida con anclaje de identificadores normativos que
+resuelve por completo la consulta por identificador y encabeza la tem\'atica;
+una arquitectura de ingesta, indexaci\'on y operaci\'on \'integramente
+autoadministrada, portable entre instalaciones de SUDOCU a costo de
+configuraci\'on ---un dise\~no pensado para el sistema universitario
+argentino---; y trazabilidad verificada de cada afirmaci\'on hasta el documento
+oficial publicado.
 
-El aporte central es tratar la \emph{procedencia} de un valor del estado de
-di\'alogo como se\~nal de confianza que determina su peso en la recuperaci\'on.
-Lo que el sistema infiere refuerza d\'ebilmente; lo que el usuario fija ---viendo y
-editando ese estado--- pesa m\'as y no es sobrescrito. \nota{Cerrar con la magnitud
-del efecto una vez medido.}
+Como trabajo futuro se propone, por un lado, la incorporaci\'on del sistema al
+sistema universitario argentino ---despliegue en nuevas instalaciones de SUDOCU
+y evaluaci\'on con jueces de cada instituci\'on--- y, por el otro, completar el
+corpus de la UNLu con el digesto heredado del sistema anterior, de
+aproximadamente 120.000 documentos y otra fisonom\'ia. A ello se suma la explotaci\'on de los
+v\'inculos textuales entre actos que el sistema ya extrae ---las menciones
+expl\'icitas de modificaci\'on, derogaci\'on o referencia que un acto hace de
+otro--- hacia una representaci\'on estructurada del corpus normativo, que
+habilitar\'ia consultas hoy fuera de alcance: la cronolog\'ia normativa de un
+tema, la trayectoria de una norma a trav\'es de sus modificaciones y la
+navegaci\'on por relaciones entre actos.
 
-Reportamos adem\'as un hallazgo sobre el corpus que excede a este sistema: la
-ausencia de registro institucional de derogaciones impide afirmar vigencia. Es una
-limitaci\'on del estado de digitalizaci\'on de la normativa universitaria, y
-creemos que declararla es preferible a que un asistente proyecte una certeza que
-los datos no sostienen.
 
-Como trabajo futuro: incorporar el digesto hist\'orico anterior a abril de 2024
----unos 120.000 documentos de otra fisonom\'ia--- y validar la portabilidad
-ejecutando la ingesta sobre el portal de otra universidad nacional. Distinguimos
-dos afirmaciones que suelen confundirse: que la \emph{ingesta} funcione en otra
-instalaci\'on es barato de verificar; que las \emph{respuestas} sean buenas exige
-personas que conozcan esa normativa. Solo reclamamos la primera.
-
-\subsubsection*{Agradecimientos.} \nota{Completar.}
+\subsubsection*{Agradecimientos.}
+Esta investigaci\'on se desarroll\'o en el marco de un proyecto apoyado por la
+iniciativa IPAC (C\'omputo de Alto Desempe\~no Argentina), bajo la convocatoria
+PCI-146 (Proyectos de C\'omputo Intensivo), un programa nacional de
+asignaci\'on de recursos de c\'omputo de alto rendimiento. Los autores
+agradecen asimismo al Sistema Nacional de C\'omputo de Alto Desempe\~no
+(SNCAD), a la infraestructura Clementina XXI, a la SICyT y a su equipo
+t\'ecnico por el apoyo en la ejecuci\'on de los experimentos.
 
 \bibliographystyle{splncs03}
 \bibliography{References}

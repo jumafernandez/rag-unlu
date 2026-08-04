@@ -7,6 +7,13 @@ Anand, A., et~al.: Context aware query rewriting for text rankers using {LLM}.
   In: Gen-IR Workshop at SIGIR (2023), plantea Commit / Edit / Explore sobre la
   intencion inferida
 
+\bibitem{budzianowski2018multiwoz}
+Budzianowski, P., Wen, T.H., Tseng, B.H., Casanueva, I., Ultes, S., Ramadan,
+  O., Ga{\v s}i{\'c}, M.: {MultiWOZ} -- {A} large-scale multi-domain
+  {W}izard-of-{O}z dataset for task-oriented dialogue modelling. In:
+  Proceedings of the 2018 Conference on Empirical Methods in Natural Language
+  Processing (EMNLP). pp. 5016--5026 (2018)
+
 \bibitem{chen2024bge}
 Chen, J., Xiao, S., Zhang, P., Luo, K., Lian, D., Liu, Z.: {BGE} m3-embedding:
   Multi-lingual, multi-functionality, multi-granularity text embeddings through
@@ -22,10 +29,31 @@ Crompton, H., Burke, D.: Artificial intelligence in higher education: the state
   of the field. International Journal of Educational Technology in Higher
   Education  20, ~22 (2023)
 
+\bibitem{douze2024faiss}
+Douze, M., Guzhva, A., Deng, C., Johnson, J., Szilvasy, G., Mazar{\'e}, P.E.,
+  Lomeli, M., Hosseini, L., J{\'e}gou, H.: The {Faiss} library. arXiv preprint
+  arXiv:2401.08281  (2024)
+
+\bibitem{gao2024survey}
+Gao, Y., Xiong, Y., Gao, X., Jia, K., Pan, J., Bi, Y., Dai, Y., Sun, J., Wang,
+  M., Wang, H.: Retrieval-augmented generation for large language models: A
+  survey. arXiv preprint arXiv:2312.10997  (2023)
+
 \bibitem{george2023managing}
 George, B., Wooden, O.: Managing the strategic transformation of higher
   education through artificial intelligence. Administrative Sciences  13(9),
   196 (2023)
+
+\bibitem{jarvelin2002cumulated}
+J{\"a}rvelin, K., Kek{\"a}l{\"a}inen, J.: Cumulated gain-based evaluation of
+  {IR} techniques. ACM Transactions on Information Systems  20(4),  422--446
+  (2002)
+
+\bibitem{karpukhin2020dpr}
+Karpukhin, V., O{\u g}uz, B., Min, S., Lewis, P., Wu, L., Edunov, S., Chen, D.,
+  Yih, W.t.: Dense passage retrieval for open-domain question answering. In:
+  Proceedings of the 2020 Conference on Empirical Methods in Natural Language
+  Processing (EMNLP). pp. 6769--6781 (2020)
 
 \bibitem{kemper2024rarec}
 Kemper, S., Cui, J., Dicarlantonio, K., Lin, K., Tang, D., Korikov, A., Sanner,
@@ -55,6 +83,11 @@ Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: {SOVITE}: Towards
   of UIST (2020), muestra intent y valores de slot y permite repararlos por
   manipulacion directa
 
+\bibitem{magesh2024hallucination}
+Magesh, V., Surani, F., Dahl, M., Suzgun, M., Manning, C.D., Ho, D.E.:
+  Hallucination-free? {A}ssessing the reliability of leading {AI} legal
+  research tools. Journal of Empirical Legal Studies  22(2),  216--242 (2025)
+
 \bibitem{manku2022shoptalk}
 Manku, G.S., et~al.: {ShopTalk}: A system for conversational faceted search.
   In: SIGIR Workshop on eCommerce (2022), convierte el estado de dialogo en
@@ -74,6 +107,10 @@ Robertson, S., Zaragoza, H.: The probabilistic relevance framework: {BM25} and
 Thulke, D., Daheim, N., Dugast, C., Ney, H.: Efficient retrieval augmented
   generation from unstructured knowledge for task-oriented dialog. In: AAAI
   Workshop on DSTC9 (2021)
+
+\bibitem{voorhees1999trec}
+Voorhees, E.M.: The {TREC}-8 question answering track report. In: Proceedings
+  of the Eighth Text REtrieval Conference (TREC-8) (1999)
 
 \bibitem{williams2013pomdp}
 Williams, J., Raux, A., Ramachandran, D., Black, A.: The dialog state tracking

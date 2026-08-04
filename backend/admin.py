@@ -239,7 +239,8 @@ def generacion_por_omision():
 def leer_generacion():
     omision = generacion_por_omision()
     guardado = leer_ajuste('generacion', {}) or {}
-    return {**omision, **{k: v for k, v in guardado.items() if k in omision}}
+    # La clave jamás sale de acá: ni al panel ni al estado. Solo se informa si existe.
+    return {**omision, **{k: v for k, v in guardado.items() if k in omision and k != 'clave'}}
 
 
 def guardar_generacion(valores, por):
@@ -263,8 +264,21 @@ def guardar_generacion(valores, por):
         if not 0 <= temperatura <= 2:
             raise ValueError('temperatura: entre 0 y 2')
         limpio['temperatura'] = temperatura
+    if 'clave' in valores:
+        # SOLO escritura: se guarda si viene no vacía y jamás se devuelve por la API.
+        # Vacía significa "no tocar la actual", no "borrar": borrar es quitar el ajuste.
+        clave = str(valores['clave']).strip()
+        if clave:
+            if len(clave) < 8:
+                raise ValueError('clave: demasiado corta')
+            limpio['clave'] = clave[:400]
     guardar_ajuste('generacion', {**(leer_ajuste('generacion', {}) or {}), **limpio}, por)
     return leer_generacion()
+
+
+def clave_llm():
+    """La clave para el LLM: la del panel manda; la del entorno es el respaldo."""
+    return (leer_ajuste('generacion', {}) or {}).get('clave') or os.environ.get('OPENAI_API_KEY')
 
 
 def leer_institucion():
@@ -387,7 +401,7 @@ def estado(ix=None, ruta_indice='indice'):
     g = leer_generacion()
     datos['generacion'] = {'modelo': g['modelo'],
                            'base_url': g['base_url'] or None,
-                           'clave_configurada': bool(os.environ.get('OPENAI_API_KEY'))}
+                           'clave_configurada': bool(clave_llm())}
 
     # --- uso ---
     try:

@@ -772,11 +772,11 @@ export default function App() {
             <h3>Ajustes personales</h3>
             <label htmlFor="tono-usuario">Tono de las respuestas</label>
             <p className="ajustes-nota">
-              Cómo querés que te escriba: más formal, más llano, con ejemplos… Cambia la
-              redacción, no el contenido: las citas a la normativa siguen igual.
+              Definí la personalidad del asistente: más directo, que utilice ejemplos,
+              lenguaje técnico, etc.
             </p>
             <textarea id="tono-usuario" rows={3} maxLength={400}
-                      placeholder="Por ejemplo: «explicámelo simple, sin jerga administrativa»"
+                      placeholder="Por ejemplo: «Sé directo y dame ejemplos concretos»"
                       value={tono}
                       onChange={(e) => setTono(e.target.value)} />
             {tonoEstado && <p className="ajustes-estado">{tonoEstado}</p>}

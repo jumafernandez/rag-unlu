@@ -292,13 +292,11 @@ parece floja, puntuala bajo — eso es exactamente lo que necesitamos saber.
 
 ## Ítem 15
 
-**Primera consulta:** ¿Qué trata la disposición sobre la renuncia de un docente en el Departamento de Ciencias Sociales?
-
-**Repregunta (la que se evalúa):** ¿Y de qué año es la renuncia de Alfredo Juan Bacigaluppi?
+**Consulta:** ¿De qué año es la renuncia de Alfredo Juan Bacigaluppi?
 
 **Respuesta del sistema:**
 
-> La renuncia del docente Alfredo Juan Bacigaluppi es a partir del 1º de agosto de 2024 (Disposición CS 50/2024 — Artículo 1).
+> La renuncia de Alfredo Juan Bacigaluppi es a partir del 1º de agosto de 2024 (Disposición CS 50/2024 — Visto).
 
 **Acto a verificar:** Disposicion CS 50/2024
 

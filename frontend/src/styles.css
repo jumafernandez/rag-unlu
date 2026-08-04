@@ -1949,3 +1949,24 @@ button, .sidebar-action {
 .sesion-ajustes { line-height: 0; }
 .skills-item.sel { background: var(--fondo-marca); }
 .skills-item.sel code { text-decoration: underline; }
+
+/* "Clave de API": dato de solo lectura con caja de campo, no texto flotando —
+   mismo alto, borde y padding que un input deshabilitado, alineado a la grilla. */
+.admin-dato {
+  border: 1px solid var(--borde);
+  border-radius: 4px;
+  background: var(--fondo);
+  padding: 0 12px;
+  color: var(--texto-suave);
+}
+
+/* Los inputs se anclan al pie de su celda: un label que quiebra a dos líneas ya no
+   empuja su campo fuera de la fila de los vecinos. */
+.admin-campo { display: flex; flex-direction: column; }
+.admin-campo label { flex: 1; }
+.admin-campo .admin-entrada, .admin-campo .admin-dato { margin-top: auto; }
+/* Notas que caben en una línea: sin el tope de 70ch. */
+.admin-nota-ancha { max-width: none; }
+/* Las notas del panel usan todo el ancho: el tope de 70ch las dejaba en media pantalla
+   contra tablas y campos que sí llegan al borde. */
+.admin-nota { max-width: none; }

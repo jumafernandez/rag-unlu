@@ -90,7 +90,7 @@ def cliente_llm():
     from openai import OpenAI
     g = config_gen()
     base = g.get('base_url') or None
-    clave = os.environ.get('OPENAI_API_KEY') or ('sin-clave' if base else None)
+    clave = admin.clave_llm() or ('sin-clave' if base else None)
     return OpenAI(base_url=base, api_key=clave), g
 
 @contextlib.asynccontextmanager
@@ -1361,7 +1361,7 @@ def generacion_leer(authorization: Optional[str] = Header(None)):
     return {'generacion': admin.leer_generacion(),
             'por_omision': admin.generacion_por_omision(),
             # Solo SI hay clave, nunca la clave: una credencial no pasa por el panel.
-            'clave_configurada': bool(os.environ.get('OPENAI_API_KEY'))}
+            'clave_configurada': bool(admin.clave_llm())}
 
 
 @app.put('/admin/generacion')

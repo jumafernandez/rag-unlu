@@ -590,11 +590,9 @@ function Generacion({ alFallar }) {
 
   return (
     <>
-      <p className="admin-nota">
-        El modelo de lenguaje que redacta las respuestas. Sirve cualquier endpoint
-        compatible con la API de OpenAI: la nube, un vLLM en un servidor propio, un Ollama.
-        La clave NO se configura acá: vive en el entorno del servidor y el panel solo
-        informa si está.
+      <p className="admin-nota admin-nota-ancha">
+        LLM para la generación: Acepta cualquier endpoint compatible con la API de
+        OpenAI (OpenAI, vLLM, Ollama, etc).
       </p>
 
       <div className="admin-campos">
@@ -612,18 +610,19 @@ function Generacion({ alFallar }) {
                  onChange={(e) => setValores((v) => ({ ...v, base_url: e.target.value }))} />
         </div>
         <div className="admin-campo">
-          <label htmlFor="g-temp">Temperatura (0 = reproducible, recomendado en normativa)</label>
+          <label htmlFor="g-temp"
+                 title="0 = respuestas reproducibles, recomendado en normativa">Temperatura</label>
           <input id="g-temp" type="number" min="0" max="2" step="0.1" className="admin-entrada"
                  value={valores.temperatura}
                  onChange={(e) => setValores((v) => ({ ...v, temperatura: e.target.value }))} />
         </div>
         <div className="admin-campo">
-          <label>Clave de API</label>
-          <p className="admin-dato">
-            {datos.clave_configurada
-              ? "Configurada en el entorno del servidor."
-              : "NO está configurada: las consultas devuelven fuentes sin respuesta redactada."}
-          </p>
+          <label htmlFor="g-clave">Clave de API</label>
+          <input id="g-clave" type="password" className="admin-entrada"
+                 autoComplete="new-password"
+                 placeholder={datos.clave_configurada ? "••••••••  (configurada)" : "sin configurar"}
+                 value={valores.clave || ""}
+                 onChange={(e) => setValores((v) => ({ ...v, clave: e.target.value }))} />
         </div>
       </div>
 
