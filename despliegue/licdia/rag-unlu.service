@@ -1,0 +1,22 @@
+[Unit]
+Description=ChatDigesto UNLu (RAG del digesto)
+After=network.target
+
+[Service]
+User=ragunlu
+WorkingDirectory=/opt/rag-unlu
+Environment=OMP_NUM_THREADS=2
+# El modelo ya está en la caché local (se copia por rsync); sin estas variables
+# sentence-transformers consulta Hugging Face al arrancar y se cuelga sin Internet.
+Environment=HF_HOME=/opt/rag-unlu/.cache/huggingface
+Environment=HF_HUB_OFFLINE=1
+Environment=TRANSFORMERS_OFFLINE=1
+# Si la VM sale a Internet vía proxy institucional, descomentar y completar
+# (lo usan el cliente de OpenAI y la validación de sesiones de Google):
+# Environment=HTTPS_PROXY=http://COMPLETAR:3128
+ExecStart=/opt/rag-unlu/.venv/bin/python -m uvicorn backend.api:app --host 127.0.0.1 --port 8000 --log-level warning
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

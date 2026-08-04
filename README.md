@@ -64,7 +64,8 @@ mismos scripts:
 | `scrapers/` | Recolección por API del portal + sonda de portabilidad |
 | `pipeline/` | Chunking, embeddings, índice, catálogo, orquestador |
 | `extractor/` | Parser PDF→Markdown de los becarios (subtree, ver CREDITS.md) |
-| `evaluacion/` | Consultas sintéticas, ablación, fidelidad de citas, cuestionario humano |
+| `evaluacion/` | Evaluación humana: cuestionario, planilla y respuestas de los jueces |
+| `evaluacion_automatica/` | Consultas sintéticas, ablación, fidelidad de citas |
 | `instalaciones/` | Una carpeta por universidad: solo configuración |
 | `papers/` | CACIC 2026 |
 | `docs/` | Despliegue, administración, uso, recolección, privacidad |

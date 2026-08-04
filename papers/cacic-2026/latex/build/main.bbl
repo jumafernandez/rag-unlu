@@ -6,13 +6,13 @@
 Anand, A., et~al.: Context aware query rewriting for text rankers using {LLM}. In: Gen-IR Workshop at SIGIR (2023)
 
 \bibitem{budzianowski2018multiwoz}
-Budzianowski, P., Wen, T.H., Tseng, B.H., Casanueva, I., Ultes, S., Ramadan, O., Ga{\v s}i{\'c}, M.: {MultiWOZ} -- {A} large-scale multi-domain {W}izard-of-{O}z dataset for task-oriented dialogue modelling. In: Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 5016--5026 (2018)
+Budzianowski, P., Wen, T.H., Tseng, B.H., Casanueva, I., Ultes, S., Ramadan, O., Ga{\v s}i{\'c}, M.: {MultiWOZ} -- {A} large-scale multi-domain {W}izard-of-{O}z dataset for task-oriented dialogue modelling. In: Proc. 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 5016--5026 (2018)
 
 \bibitem{chen2024bge}
 Chen, J., Xiao, S., Zhang, P., Luo, K., Lian, D., Liu, Z.: {BGE} m3-embedding: Multi-lingual, multi-functionality, multi-granularity text embeddings through self-knowledge distillation. arXiv preprint arXiv:2402.03216  (2024)
 
 \bibitem{cormack2009rrf}
-Cormack, G.V., Clarke, C.L.A., Buettcher, S.: Reciprocal rank fusion outperforms condorcet and individual rank learning methods. In: Proceedings of SIGIR (2009)
+Cormack, G.V., Clarke, C.L.A., Buettcher, S.: Reciprocal rank fusion outperforms condorcet and individual rank learning methods. In: Proc. SIGIR (2009)
 
 \bibitem{crompton2023state}
 Crompton, H., Burke, D.: Artificial intelligence in higher education: the state of the field. International Journal of Educational Technology in Higher Education  20, ~22 (2023)
@@ -30,22 +30,22 @@ George, B., Wooden, O.: Managing the strategic transformation of higher educatio
 J{\"a}rvelin, K., Kek{\"a}l{\"a}inen, J.: Cumulated gain-based evaluation of {IR} techniques. ACM Transactions on Information Systems  20(4),  422--446 (2002)
 
 \bibitem{karpukhin2020dpr}
-Karpukhin, V., O{\u g}uz, B., Min, S., Lewis, P., Wu, L., Edunov, S., Chen, D., Yih, W.t.: Dense passage retrieval for open-domain question answering. In: Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 6769--6781 (2020)
+Karpukhin, V., O{\u g}uz, B., Min, S., Lewis, P., Wu, L., Edunov, S., Chen, D., Yih, W.t.: Dense passage retrieval for open-domain question answering. In: Proc. 2020 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 6769--6781 (2020)
 
 \bibitem{kemper2024rarec}
-Kemper, S., Cui, J., Dicarlantonio, K., Lin, K., Tang, D., Korikov, A., Sanner, S.: Retrieval-augmented conversational recommendation with prompt-based semi-structured natural language state tracking. In: Proceedings of SIGIR (2024)
+Kemper, S., Cui, J., Dicarlantonio, K., Lin, K., Tang, D., Korikov, A., Sanner, S.: Retrieval-augmented conversational recommendation with prompt-based semi-structured natural language state tracking. In: Proc. SIGIR (2024)
 
 \bibitem{koenemann1996case}
 Koenemann, J., Belkin, N.J.: A case for interaction: A study of interactive information retrieval behavior and effectiveness  (1996)
 
 \bibitem{kulesza2015principles}
-Kulesza, T., Burnett, M., Wong, W.K., Stumpf, S.: Principles of explanatory debugging to personalize interactive machine learning. In: Proceedings of IUI (2015)
+Kulesza, T., Burnett, M., Wong, W.K., Stumpf, S.: Principles of explanatory debugging to personalize interactive machine learning. In: Proc. IUI (2015)
 
 \bibitem{lewis2020rag}
-Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., K{\"u}ttler, H., Lewis, M., Yih, W.t., Rockt{\"a}schel, T., Riedel, S., Kiela, D.: Retrieval-augmented generation for knowledge-intensive {NLP} tasks. In: Advances in Neural Information Processing Systems (NeurIPS) (2020)
+Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., K{\"u}ttler, H., Lewis, M., Yih, W.t., Rockt{\"a}schel, T., Riedel, S., Kiela, D.: Retrieval-augmented generation for knowledge-intensive {NLP} tasks. In: Proc. NeurIPS (2020)
 
 \bibitem{li2020sovite}
-Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: {SOVITE}: Towards automated discovery of conversational breakdowns and repairs. In: Proceedings of UIST (2020)
+Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: {SOVITE}: Towards automated discovery of conversational breakdowns and repairs. In: Proc. UIST (2020)
 
 \bibitem{magesh2024hallucination}
 Magesh, V., Surani, F., Dahl, M., Suzgun, M., Manning, C.D., Ho, D.E.: Hallucination-free? {A}ssessing the reliability of leading {AI} legal research tools. Journal of Empirical Legal Studies  22(2),  216--242 (2025)
@@ -63,10 +63,10 @@ Robertson, S., Zaragoza, H.: The probabilistic relevance framework: {BM25} and b
 Thulke, D., Daheim, N., Dugast, C., Ney, H.: Efficient retrieval augmented generation from unstructured knowledge for task-oriented dialog. In: AAAI Workshop on DSTC9 (2021)
 
 \bibitem{voorhees1999trec}
-Voorhees, E.M.: The {TREC}-8 question answering track report. In: Proceedings of the Eighth Text REtrieval Conference (TREC-8) (1999)
+Voorhees, E.M.: The {TREC}-8 question answering track report. In: Proc. Eighth Text REtrieval Conference (TREC-8) (1999)
 
 \bibitem{williams2013pomdp}
-Williams, J., Raux, A., Ramachandran, D., Black, A.: The dialog state tracking challenge. In: Proceedings of the SIGDIAL Conference (2013)
+Williams, J., Raux, A., Ramachandran, D., Black, A.: The dialog state tracking challenge. In: Proc. SIGDIAL Conference (2013)
 
 \bibitem{young2013pomdp}
 Young, S., Ga{\v{s}}i{\'c}, M., Thomson, B., Williams, J.D.: {POMDP}-based statistical spoken dialog systems: A review. Proceedings of the IEEE  101(5),  1160--1179 (2013)

@@ -21,9 +21,9 @@ Métricas: Recall@1, Recall@5, Recall@8, MRR@10 y nDCG@10 (con un solo relevante
 nDCG@10 = 1/log2(1+rango)). Se informan globales y por tipo de consulta.
 
 Uso:
-    OMP_NUM_THREADS=1 python -m evaluacion.correr_evaluacion \
-        --consultas evaluacion/consultas.jsonl \
-        --salida evaluacion/resultados.json
+    OMP_NUM_THREADS=1 python -m evaluacion_automatica.correr_evaluacion \
+        --consultas evaluacion_automatica/consultas.jsonl \
+        --salida evaluacion_automatica/resultados.json
 """
 import argparse
 import collections

@@ -25,8 +25,8 @@ si el fragmento la responde. Lo que no pasa, se descarta y queda contado. Sin es
 el set hereda las alucinaciones del generador y la evaluación mide ruido.
 
 Uso:
-    python -m evaluacion.generar_consultas --n 200 --salida evaluacion/consultas.jsonl
-    python -m evaluacion.generar_consultas --n 20 --sin-conversacionales   # prueba corta
+    python -m evaluacion_automatica.generar_consultas --n 200 --salida evaluacion_automatica/consultas.jsonl
+    python -m evaluacion_automatica.generar_consultas --n 20 --sin-conversacionales   # prueba corta
 """
 import argparse
 import collections

@@ -24,6 +24,8 @@
 \AtBeginEnvironment{thebibliography}{\footnotesize\setlength{\itemsep}{1pt}}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 \usepackage{float}
 
 % Marcador de valor pendiente de medicion. Todo numero que todavia no se midio va
@@ -71,10 +73,10 @@ esa base, el sistema mantiene un estado de di\'alogo con dos \emph{slots} ---la
 entidad en discusi\'on y los actos mencionados--- cuyo peso en la recuperaci\'on
 lo determina la \emph{procedencia} de cada valor: lo que el sistema infiere
 pondera d\'ebilmente; lo que el usuario fija, visible y editable en la interfaz,
-prevalece y no se sobrescribe. En la evaluaci\'on, la fusi\'on resuelve por
-completo las consultas por identificador (R@5 de 1{,}00) y el procesamiento
-conversacional lleva la repregunta el\'iptica de 0{,}12 a 0{,}93; el 97{,}0\%
-de los actos citados en las respuestas queda anclado en el material recuperado.
+prevalece y no se sobrescribe. En la evaluaci\'on, el anclaje resuelve por
+completo las consultas por identificador (R@5 de 1{,}00), el procesamiento
+conversacional lleva la repregunta el\'iptica de 0{,}12 a 0{,}93 y el 97{,}0\%
+de los actos citados tiene correspondencia verificada con lo recuperado.
 La portabilidad se verific\'o construyendo una segunda instancia sobre el portal
 de la Universidad Nacional de San Luis, con el mismo c\'odigo y solo
 configuraci\'on.
@@ -106,7 +108,7 @@ acto que la contiene.
 
 Este trabajo presenta un sistema de generaci\'on aumentada por recuperaci\'on
 (RAG)~\cite{lewis2020rag}\footnote{Instancia de demostraci\'on:
-\pend[: URL institucional].} sobre el m\'odulo de publicaci\'on documental de SUDOCU,
+\url{https://licdia.unlu.edu.ar/rag-unlu}.} sobre el m\'odulo de publicaci\'on documental de SUDOCU,
 implementado y evaluado sobre la totalidad de los actos publicados por la
 Universidad Nacional de Luj\'an (21.344 documentos) y desplegado adem\'as sobre
 m\'as de 26.000 documentos de una segunda universidad nacional (San Luis). El
@@ -432,8 +434,10 @@ tres evaluadores de perfiles distintos ---estudiante, docencia y gesti\'on---
 completan un cuestionario \'unico con quince respuestas fijas del sistema
 ---id\'enticas entre jueces, lo que permite reportar acuerdo--- y tres consultas
 propias realizadas en vivo, puntuadas de 1 a 5 en utilidad, fidelidad,
-completitud y claridad, con un bloque final de confianza, ventaja percibida y
-disposici\'on a la adopci\'on.
+completitud y claridad\footnote{El cuestionario y los \'items evaluados
+est\'an disponibles en el repositorio del sistema:
+\url{https://github.com/jumafernandez/rag-unlu} (directorio
+\texttt{evaluacion/}).}.
 
 % ========================= 6. RESULTADOS =========================
 \section{Experimentos y resultados}
@@ -504,23 +508,61 @@ Tabla~\ref{tab:jueces} resume los puntajes.
 \begin{table}[H]
 \centering\small
 \caption{Validaci\'on con evaluadores: media $\pm$ desv\'io est\'andar por
-dimensi\'on sobre los \'items fijos (tres jueces) y bloque global.}
+dimensi\'on sobre los \'items fijos (tres jueces). Los segmentos indican
+$\pm$1 DE.}
 \label{tab:jueces}
+\begin{minipage}[c]{0.40\textwidth}
+\centering
 \begin{tabular}{lc}
 \toprule
 Dimensi\'on & Media $\pm$ DE \\
 \midrule
-Utilidad     & \pend \\
-Fidelidad    & \pend \\
-Completitud  & \pend \\
-Claridad     & \pend \\
-\midrule
-Confianza    & \pend \\
-Ventaja      & \pend \\
-Adopci\'on   & \pend \\
+Utilidad     & 4,47 $\pm$ 1,11 \\
+Fidelidad    & 4,73 $\pm$ 0,58 \\
+Completitud  & 4,53 $\pm$ 0,78 \\
+Claridad     & 4,77 $\pm$ 0,50 \\
 \bottomrule
 \end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.56\textwidth}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=4.3cm,
+  ybar, bar width=10pt,
+  ymin=1, ymax=5.7,
+  ytick={1,2,3,4,5},
+  ymajorgrids, grid style={dashed,black!15},
+  axis x line*=bottom, axis y line*=left,
+  symbolic x coords={Utilidad,Fidelidad,Completitud,Claridad},
+  xtick={Utilidad,Fidelidad,Completitud,Claridad},
+  enlarge x limits=0.15,
+  x tick label style={rotate=22,anchor=east,font=\scriptsize},
+  y tick label style={font=\scriptsize},
+]
+\addplot[ybar,bar shift=0pt,bar width=16pt,draw=black,fill=black!25,
+  error bars/.cd,y dir=both,y explicit,error mark=|,
+  error bar style={black},error mark options={black,mark size=3.5pt,line width=0.7pt}] coordinates {
+  (Utilidad,4.47) +- (0,1.11)
+  (Fidelidad,4.73) +- (0,0.58)
+  (Completitud,4.53) +- (0,0.78)
+  (Claridad,4.77) +- (0,0.50)
+};
+\end{axis}
+\end{tikzpicture}
+\end{minipage}
 \end{table}
+
+Las cuatro dimensiones superan 4,4 sobre 5. Fidelidad (4,73 $\pm$ 0,58) y
+claridad (4,77 $\pm$ 0,50) concentran los puntajes m\'as altos y los menores
+desv\'ios, en l\'inea con la verificaci\'on determinista de citas: las
+observaciones de los jueces refieren principalmente omisiones de detalle ---un
+identificador no citado, el \'organo firmante ausente--- antes que afirmaciones
+contrarias a las fuentes. La mayor dispersi\'on corresponde a utilidad ($\pm$
+1,11) y se concentra en los \'items en los que el corpus no contiene normativa
+espec\'ifica para la consulta y el sistema respondi\'o con material adyacente en
+lugar de declarar la ausencia; los jueces coincidieron en penalizar ese
+comportamiento, que constituye la principal l\'inea de mejora observada.
 
 \label{sec:portabilidad}Si bien la evaluaci\'on se realiz\'o sobre la
 instalaci\'on de la UNLu ---donde se cuenta con mayor conocimiento del corpus y
@@ -576,7 +618,8 @@ iniciativa IPAC (C\'omputo de Alto Desempe\~no Argentina), convocatoria PCI-146
 (Proyectos de C\'omputo Intensivo). Los autores agradecen asimismo al Sistema
 Nacional de C\'omputo de Alto Desempe\~no (SNCAD), a la infraestructura
 Clementina XXI, a la SICyT y a su equipo t\'ecnico por el apoyo en la
-ejecuci\'on de los experimentos.
+ejecuci\'on de los experimentos, y al CIDETIC (UNLu) por los recursos de
+infraestructura provistos para el despliegue institucional del sistema.
 
 \bibliographystyle{splncs03}
 \bibliography{References}

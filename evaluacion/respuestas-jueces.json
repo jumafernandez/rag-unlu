@@ -1,0 +1,342 @@
+[
+ {
+  "juez": 1,
+  "items": [
+   {
+    "item": 1,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 2,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 4,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 3,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 4,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 3,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 5,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 6,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 7,
+    "utilidad": 3,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 8,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 9,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 10,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 11,
+    "utilidad": 5,
+    "fidelidad": 4,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "El nombre de la asignatura a la que esta dirigida el taller es incorrecto, deberia decir \"Anatomía y Fisiología\nHumana\""
+   },
+   {
+    "item": 12,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 13,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 14,
+    "utilidad": 2,
+    "fidelidad": 4,
+    "completitud": 4,
+    "claridad": 4,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 15,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   }
+  ],
+  "consultas_propias": [
+   {
+    "id": "P1",
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": "Quiero saber cual es el programa de la asignatura \"Introducción general a la Bioinformática\""
+   },
+   {
+    "id": "P2",
+    "utilidad": 3,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 1,
+    "incorrecto": false,
+    "detalle": "¿Cuales son las equivalencias entre las materias del plan de estudio 17.14 de la licenciatura en sistemas de informacion y el plan anterior?"
+   },
+   {
+    "id": "P3",
+    "utilidad": 2,
+    "fidelidad": 5,
+    "completitud": 3,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": "¿que materias son necesarias para obtener el titulo analista programador universitario en el plan de estudio 17.14 de licenciatura en sistemas de informacion?"
+   }
+  ],
+  "comentario": "Creo que es una herramienta muy util para la universidad debido a la facilidad para buscar distintas fuentes sobre un tema en especifico"
+ },
+ {
+  "juez": 2,
+  "items": [
+   {
+    "item": 1,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "No brinda bien el codigo del documento referenciado."
+   },
+   {
+    "item": 2,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 3,
+    "utilidad": 3,
+    "fidelidad": 3,
+    "completitud": 4,
+    "claridad": 3,
+    "incorrecto": true,
+    "detalle": "En la respuesta de si se sigue manteniendo en el cargo Carlos, no especifica si se mantiene o no / ¿Qué cargo mantiene Carlos Fernando Torres? ¿En que año es la disposición en el que se le otorga el puesto?"
+   },
+   {
+    "item": 4,
+    "utilidad": 5,
+    "fidelidad": 4,
+    "completitud": 5,
+    "claridad": 4,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 5,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 6,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 4,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 7,
+    "utilidad": 1,
+    "fidelidad": 5,
+    "completitud": 3,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "Se pide información sobre segundo semestre de un año, pero devuelve información sobre otro período en lugar de solo responder que no encuentra al respecto. / ¿Hay información sobre contratación de profesores para el taller de vóley en Luján durante el segundo semestre de 2026?"
+   },
+   {
+    "item": 8,
+    "utilidad": 5,
+    "fidelidad": 3,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "Asume el departamento del cargo interino de Gotte, no mencionado en el documento."
+   },
+   {
+    "item": 9,
+    "utilidad": 4,
+    "fidelidad": 4,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "La consulta pide solo estudiantes, y lista tanto estudiantes como profesores incorporados."
+   },
+   {
+    "item": 10,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 11,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "Falta detalles sobre docentes y el programa analítico."
+   },
+   {
+    "item": 12,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 4,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 13,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "En la respuesta falta el ente firmante (LA DIRECCIÓN GENERAL DE ASUNTOS ACADÉMICOS), que lo menciona el documento. Solamente eso."
+   },
+   {
+    "item": 14,
+    "utilidad": 2,
+    "fidelidad": 5,
+    "completitud": 2,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "Muestra info de cada varios programas, pero no los detalles."
+   },
+   {
+    "item": 15,
+    "utilidad": 4,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   }
+  ],
+  "consultas_propias": [
+   {
+    "id": "P1",
+    "utilidad": 4,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 4,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "id": "P2",
+    "utilidad": 1,
+    "fidelidad": 5,
+    "completitud": 2,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "Se buscaba obtener las unidades y temas que se darían en la materia Sistemas Operativos. En lugar de eso, respondió solo objetivos y contenidos minimos sin detallar."
+   },
+   {
+    "id": "P3",
+    "utilidad": 3,
+    "fidelidad": 1,
+    "completitud": 3,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "Da pautas generales de cómo tramitar equivalencias entre carreras, pero no indicaciones exactas como departamentos a los que consultar. El contenido de la respuesta no se encontró en los documentos referenciados."
+   }
+  ],
+  "comentario": "En general logra estructurar bien las respuestas, haciendolas claras y fáciles de leer. Cuando se trata de consultas no especificas inventa sobre la marcha a respuesta."
+ }
+]

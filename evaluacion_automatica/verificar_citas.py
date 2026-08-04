@@ -17,9 +17,9 @@ Los identificadores citados se extraen con el mismo patrón que usa la recuperac
 el anclaje exacto, así que las dos partes del sistema hablan el mismo idioma.
 
 Uso:
-    OMP_NUM_THREADS=1 python -m evaluacion.verificar_citas \
-        --consultas evaluacion/consultas.jsonl --muestra 50 \
-        --salida evaluacion/citas.json
+    OMP_NUM_THREADS=1 python -m evaluacion_automatica.verificar_citas \
+        --consultas evaluacion_automatica/consultas.jsonl --muestra 50 \
+        --salida evaluacion_automatica/citas.json
 """
 import argparse
 import json

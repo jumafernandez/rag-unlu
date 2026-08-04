@@ -12,8 +12,8 @@ Modelo: BAAI/bge-reranker-v2-m3, el compañero natural del BGE-m3 que genera los
 (misma familia, multilingüe, contexto largo). Se baja de HuggingFace la primera vez.
 
 Uso:
-    OMP_NUM_THREADS=1 python -m evaluacion.reranking \
-        --consultas evaluacion/consultas.jsonl --salida evaluacion/reranking.json
+    OMP_NUM_THREADS=1 python -m evaluacion_automatica.reranking \
+        --consultas evaluacion_automatica/consultas.jsonl --salida evaluacion_automatica/reranking.json
 """
 import argparse
 import collections
@@ -25,7 +25,7 @@ import time
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 
-from evaluacion.correr_evaluacion import cargar_env, metricas, rango_del_relevante
+from evaluacion_automatica.correr_evaluacion import cargar_env, metricas, rango_del_relevante
 
 CANDIDATOS = 50
 K_EVAL = 10

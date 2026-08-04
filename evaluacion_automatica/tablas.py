@@ -6,8 +6,8 @@ pegar a mano en las tablas correspondientes. La decisión es deliberada: los nú
 entran al paper pasando por los ojos de alguien, no por un script.
 
 Uso:
-    python -m evaluacion.tablas --resultados evaluacion/resultados.json \
-                                --citas evaluacion/citas.json
+    python -m evaluacion_automatica.tablas --resultados evaluacion_automatica/resultados.json \
+                                --citas evaluacion_automatica/citas.json
 """
 import argparse
 import json

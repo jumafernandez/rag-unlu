@@ -22,7 +22,7 @@ export const INSTITUCION = {
   logo: null,
 };
 
-export const LOGO_POR_OMISION = "/logo-unlu-96.png";
+export const LOGO_POR_OMISION = `${import.meta.env.BASE_URL}logo-unlu-96.png`;
 
 /** Textos que nombran a la institución, derivados de los campos configurables. */
 export const textos = (inst) => ({

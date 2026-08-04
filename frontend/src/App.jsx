@@ -7,7 +7,8 @@ import { INSTITUCION, LOGO_POR_OMISION, textos } from "./config";
 import {
   consultarEnFlujo, leerSesion, cerrarSesion, listarConversaciones, adoptarConversacion,
   leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje, salud,
-  adminSoy, leerTema, leerInstitucion, URL_LOGO, leerPreferencias, guardarPreferencias
+  adminSoy, leerTema, leerInstitucion, URL_LOGO, leerPreferencias, guardarPreferencias,
+  API_BASE
 } from "./api";
 
 function PencilIcon() {
@@ -301,7 +302,7 @@ export default function App() {
           titulo: f.titulo,
           confianza: f.metadata_confianza,
           pdf: f.source_pdf,
-          url: f.url_ver || f.url_documento,
+          url: f.url_ver ? `${API_BASE}${f.url_ver}` : f.url_documento,
           partes: []
         });
       }

@@ -12,7 +12,12 @@
 // producción el backend sirve estos mismos archivos, así que la API está en el mismo
 // origen y alcanza con rutas relativas: eso hace que funcione igual en localhost, detrás
 // de un túnel o en un despliegue, sin recompilar. VITE_API_URL sigue mandando si está.
-const BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8000" : "");
+// En producción la API vive en el mismo origen Y la misma subruta que el front:
+// BASE_URL la inyecta Vite según --base (es "/" en raíz, "/rag-unlu/" bajo subruta).
+const BASE = import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:8000" : import.meta.env.BASE_URL.replace(/\/$/, ""));
+// Exportada para construir URLs de recursos servidos por la API (PDFs de /ver).
+export const API_BASE = BASE;
 const CLAVE_TOKEN = "chatdigesto_sesion";
 
 export function guardarSesion(datos) {
@@ -35,6 +40,8 @@ function cabeceras() {
   const s = leerSesion();
   return {
     "Content-Type": "application/json",
+    // Evita la página intersticial de ngrok cuando la API se consume vía túnel.
+    "ngrok-skip-browser-warning": "1",
     ...(s?.token ? { Authorization: `Bearer ${s.token}` } : {})
   };
 }

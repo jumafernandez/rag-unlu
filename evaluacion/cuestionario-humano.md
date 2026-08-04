@@ -308,12 +308,6 @@ Entrá al sistema y hacé **tres consultas reales de tu trabajo o estudio** — 
 verdad querrías saber. Puntualas igual que las anteriores en la planilla (filas P1–P3),
 anotando la consulta que hiciste.
 
-## Bloque final (una sola vez)
+## Comentario libre (opcional)
 
-Puntuá de 1 a 5 tu acuerdo con cada frase:
-
-1. **Confianza**: "Me apoyaría en este sistema para consultas de mi trabajo/estudio."
-2. **Ventaja**: "Me resulta mejor que la forma en que hoy busco normativa."
-3. **Adopción**: "Recomendaría que la Universidad lo ofrezca abiertamente."
-
-Comentario libre (opcional): qué te sorprendió, qué le falta, qué no le creíste.
+Qué te sorprendió, qué le falta, qué no le creíste.
