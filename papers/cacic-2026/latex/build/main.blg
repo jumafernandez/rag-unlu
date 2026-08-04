@@ -6,27 +6,27 @@ Database file #1: References.bib
 Warning--empty journal in koenemann1996case
 You've used 23 entries,
             2785 wiz_defined-function locations,
-            706 strings with 9611 characters,
-and the built_in function-call counts, 13401 in all, are:
-= -- 1039
+            702 strings with 9342 characters,
+and the built_in function-call counts, 13313 in all, are:
+= -- 1027
 > -- 576
 < -- 16
 + -- 240
 - -- 212
-* -- 873
-:= -- 1799
+* -- 865
+:= -- 1795
 add.period$ -- 24
 call.type$ -- 23
-change.case$ -- 201
+change.case$ -- 197
 chr.to.int$ -- 0
 cite$ -- 24
-duplicate$ -- 1168
-empty$ -- 1101
+duplicate$ -- 1156
+empty$ -- 1097
 format.name$ -- 234
-if$ -- 2821
+if$ -- 2801
 int.to.chr$ -- 0
 int.to.str$ -- 23
-missing$ -- 264
+missing$ -- 260
 newline$ -- 74
 num.names$ -- 46
 pop$ -- 510
@@ -35,8 +35,8 @@ purify$ -- 150
 quote$ -- 0
 skip$ -- 319
 stack$ -- 0
-substring$ -- 580
-swap$ -- 633
+substring$ -- 572
+swap$ -- 625
 text.length$ -- 16
 text.prefix$ -- 0
 top$ -- 0
@@ -44,5 +44,5 @@ type$ -- 92
 warning$ -- 1
 while$ -- 94
 width$ -- 25
-write$ -- 222
+write$ -- 218
 (There was 1 warning)

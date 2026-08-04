@@ -82,6 +82,8 @@ INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/graphics/mathcolor.ltx
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/graphics/mathcolor.ltx
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/multirow/multirow.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/multirow/multirow.sty
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/etoolbox/etoolbox.sty
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/etoolbox/etoolbox.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/pgf/basiclayer/pgf.sty
@@ -256,12 +258,6 @@ INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm1
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr9.tfm
-INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
-INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
-INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
-INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmtt9.tfm
-INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmbx9.tfm
-INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmri9.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/rm-lmr9.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/rm-lmr6.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/lmmi9.tfm
@@ -272,6 +268,12 @@ INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam1
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmtt9.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmbx9.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmri9.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr12.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmbx12.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmr7.tfm

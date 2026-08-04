@@ -4,8 +4,7 @@
 
 \bibitem{anand2023context}
 Anand, A., et~al.: Context aware query rewriting for text rankers using {LLM}.
-  In: Gen-IR Workshop at SIGIR (2023), plantea Commit / Edit / Explore sobre la
-  intencion inferida
+  In: Gen-IR Workshop at SIGIR (2023)
 
 \bibitem{budzianowski2018multiwoz}
 Budzianowski, P., Wen, T.H., Tseng, B.H., Casanueva, I., Ultes, S., Ramadan,
@@ -63,8 +62,7 @@ Kemper, S., Cui, J., Dicarlantonio, K., Lin, K., Tang, D., Korikov, A., Sanner,
 
 \bibitem{koenemann1996case}
 Koenemann, J., Belkin, N.J.: A case for interaction: A study of interactive
-  information retrieval behavior and effectiveness  (1996), distingue sistemas
-  opacos, transparentes y penetrables
+  information retrieval behavior and effectiveness  (1996)
 
 \bibitem{kulesza2015principles}
 Kulesza, T., Burnett, M., Wong, W.K., Stumpf, S.: Principles of explanatory
@@ -80,8 +78,7 @@ Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N.,
 \bibitem{li2020sovite}
 Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: {SOVITE}: Towards
   automated discovery of conversational breakdowns and repairs. In: Proceedings
-  of UIST (2020), muestra intent y valores de slot y permite repararlos por
-  manipulacion directa
+  of UIST (2020)
 
 \bibitem{magesh2024hallucination}
 Magesh, V., Surani, F., Dahl, M., Suzgun, M., Manning, C.D., Ho, D.E.:
@@ -90,8 +87,7 @@ Magesh, V., Surani, F., Dahl, M., Suzgun, M., Manning, C.D., Ho, D.E.:
 
 \bibitem{manku2022shoptalk}
 Manku, G.S., et~al.: {ShopTalk}: A system for conversational faceted search.
-  In: SIGIR Workshop on eCommerce (2022), convierte el estado de dialogo en
-  consulta textual mas restricciones de faceta
+  In: SIGIR Workshop on eCommerce (2022)
 
 \bibitem{pang2025exploring}
 Pang, W., Wei, Z.: Exploring the transformative potential of artificial

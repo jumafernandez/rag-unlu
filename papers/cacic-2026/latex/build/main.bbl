@@ -3,7 +3,7 @@
 \providecommand{\urlprefix}{URL }
 
 \bibitem{anand2023context}
-Anand, A., et~al.: Context aware query rewriting for text rankers using {LLM}. In: Gen-IR Workshop at SIGIR (2023), plantea Commit / Edit / Explore sobre la intencion inferida
+Anand, A., et~al.: Context aware query rewriting for text rankers using {LLM}. In: Gen-IR Workshop at SIGIR (2023)
 
 \bibitem{budzianowski2018multiwoz}
 Budzianowski, P., Wen, T.H., Tseng, B.H., Casanueva, I., Ultes, S., Ramadan, O., Ga{\v s}i{\'c}, M.: {MultiWOZ} -- {A} large-scale multi-domain {W}izard-of-{O}z dataset for task-oriented dialogue modelling. In: Proceedings of the 2018 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 5016--5026 (2018)
@@ -36,7 +36,7 @@ Karpukhin, V., O{\u g}uz, B., Min, S., Lewis, P., Wu, L., Edunov, S., Chen, D., 
 Kemper, S., Cui, J., Dicarlantonio, K., Lin, K., Tang, D., Korikov, A., Sanner, S.: Retrieval-augmented conversational recommendation with prompt-based semi-structured natural language state tracking. In: Proceedings of SIGIR (2024)
 
 \bibitem{koenemann1996case}
-Koenemann, J., Belkin, N.J.: A case for interaction: A study of interactive information retrieval behavior and effectiveness  (1996), distingue sistemas opacos, transparentes y penetrables
+Koenemann, J., Belkin, N.J.: A case for interaction: A study of interactive information retrieval behavior and effectiveness  (1996)
 
 \bibitem{kulesza2015principles}
 Kulesza, T., Burnett, M., Wong, W.K., Stumpf, S.: Principles of explanatory debugging to personalize interactive machine learning. In: Proceedings of IUI (2015)
@@ -45,13 +45,13 @@ Kulesza, T., Burnett, M., Wong, W.K., Stumpf, S.: Principles of explanatory debu
 Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., K{\"u}ttler, H., Lewis, M., Yih, W.t., Rockt{\"a}schel, T., Riedel, S., Kiela, D.: Retrieval-augmented generation for knowledge-intensive {NLP} tasks. In: Advances in Neural Information Processing Systems (NeurIPS) (2020)
 
 \bibitem{li2020sovite}
-Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: {SOVITE}: Towards automated discovery of conversational breakdowns and repairs. In: Proceedings of UIST (2020), muestra intent y valores de slot y permite repararlos por manipulacion directa
+Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: {SOVITE}: Towards automated discovery of conversational breakdowns and repairs. In: Proceedings of UIST (2020)
 
 \bibitem{magesh2024hallucination}
 Magesh, V., Surani, F., Dahl, M., Suzgun, M., Manning, C.D., Ho, D.E.: Hallucination-free? {A}ssessing the reliability of leading {AI} legal research tools. Journal of Empirical Legal Studies  22(2),  216--242 (2025)
 
 \bibitem{manku2022shoptalk}
-Manku, G.S., et~al.: {ShopTalk}: A system for conversational faceted search. In: SIGIR Workshop on eCommerce (2022), convierte el estado de dialogo en consulta textual mas restricciones de faceta
+Manku, G.S., et~al.: {ShopTalk}: A system for conversational faceted search. In: SIGIR Workshop on eCommerce (2022)
 
 \bibitem{pang2025exploring}
 Pang, W., Wei, Z.: Exploring the transformative potential of artificial intelligence in university academic management. Education Journal  8(3),  97--103 (2025)

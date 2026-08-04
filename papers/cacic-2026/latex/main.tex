@@ -20,6 +20,8 @@
 \usepackage{url}
 \usepackage{xcolor}
 \usepackage{multirow}
+\usepackage{etoolbox}
+\AtBeginEnvironment{thebibliography}{\footnotesize\setlength{\itemsep}{1pt}}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
 \usepackage{float}
@@ -38,17 +40,19 @@
 %     en la recuperacion de normativa universitaria
 %   - Quien fijo el valor importa: procedencia del estado de dialogo en un
 %     asistente de consulta normativa
-\title{Un RAG portable sobre SUDOCU: consulta conversacional de la normativa
-de las universidades nacionales aplicando estados de di\'alogo con procedencia}
+\title{Un RAG portable sobre SUDOCU: consulta conversacional de normativa
+universitaria mediante estados de di\'alogo con procedencia}
 \titlerunning{Un RAG portable sobre SUDOCU}
 
 \author{Juan Manuel Fern\'andez\inst{1} \and
         Francisco Tamasi\inst{1} \and
         Sebasti\'an Marchetti\inst{1} \and
-        Mario Oloriz\inst{1}}
+        Mario Oloriz\inst{1} \and
+        Marcelo Errecalde\inst{2}}
 \authorrunning{J. M. Fern\'andez et al.}
-\institute{Universidad Nacional de Luj\'an, Luj\'an, Argentina\\
-\email{\{jmfernandez,ftamasi,smarchetti, moloriz\}@unlu.edu.ar}}
+\institute{LICDIA, Universidad Nacional de Luj\'an, Luj\'an, Argentina \and
+LIDIC, Universidad Nacional de San Luis, San Luis, Argentina\\
+\email{\{jmfernandez,ftamasi,smarchetti,moloriz\}@unlu.edu.ar, merreca@unsl.edu.ar}}
 
 \maketitle
 \thispagestyle{empty}
@@ -59,7 +63,7 @@ portales que la publican solo admiten b\'usqueda por atributos del acto:
 localizar qu\'e norma regula una situaci\'on exige conocer de antemano el acto
 que la contiene. Se presenta un sistema de generaci\'on aumentada por
 recuperaci\'on (RAG) sobre el m\'odulo de publicaci\'on documental de SUDOCU,
-desplegado sobre los 21.364 actos administrativos de la Universidad Nacional de
+desplegado sobre los 21.344 actos administrativos de la Universidad Nacional de
 Luj\'an, segmentados por unidad normativa en 151.696 fragmentos. La
 recuperaci\'on combina \emph{embeddings} multiling\"ues con un \'indice l\'exico
 que preserva los identificadores normativos, fusionados por posici\'on. Sobre
@@ -75,8 +79,7 @@ La portabilidad se verific\'o construyendo una segunda instancia sobre el portal
 de la Universidad Nacional de San Luis, con el mismo c\'odigo y solo
 configuraci\'on.
 
-\keywords{Generaci\'on aumentada por recuperaci\'on, Estado de di\'alogo,
-Documentos normativos, Metadatos estructurados, Sistemas desplegados.}
+\keywords{RAG, SUDOCU, Estado de di\'alogo, Normativa universitaria.}
 \end{abstract}
 
 % ============================== 1. INTRO ==============================
@@ -102,9 +105,10 @@ localizar qu\'e norma regula una situaci\'on concreta exige conocer de antemano 
 acto que la contiene.
 
 Este trabajo presenta un sistema de generaci\'on aumentada por recuperaci\'on
-(RAG)~\cite{lewis2020rag} sobre el m\'odulo de publicaci\'on documental de SUDOCU,
+(RAG)~\cite{lewis2020rag}\footnote{Instancia de demostraci\'on:
+\pend[: URL institucional].} sobre el m\'odulo de publicaci\'on documental de SUDOCU,
 implementado y evaluado sobre la totalidad de los actos publicados por la
-Universidad Nacional de Luj\'an (21.364 documentos) y desplegado adem\'as sobre
+Universidad Nacional de Luj\'an (21.344 documentos) y desplegado adem\'as sobre
 m\'as de 26.000 documentos de una segunda universidad nacional (San Luis). El
 sistema responde en lenguaje natural y cita los fragmentos normativos que
 sustentan cada afirmaci\'on, con trazabilidad hasta el documento oficial
@@ -134,9 +138,10 @@ normativa universitaria, con trazabilidad desde cada afirmaci\'on hasta el
 documento publicado, fragmentaci\'on por unidad normativa seg\'un la forma
 jur\'idica del acto administrativo argentino, y operaci\'on
 ---cat\'alogo, descarga, vectorizaci\'on, indexaci\'on--- \'integramente
-autoadministrada; (ii) un estado de di\'alogo cuya \emph{procedencia} determina el
-r\'egimen de recuperaci\'on, visible y editable por quien consulta, con
-ablaci\'on de cada mecanismo; y (iii)
+autoadministrada; (ii) un estado de di\'alogo que
+conserva los referentes de la conversaci\'on, expone la interpretaci\'on del
+sistema y admite correcci\'on directa, donde la \emph{procedencia} de cada valor
+determina su peso en la recuperaci\'on; y (iii)
 portabilidad verificada: una segunda instancia opera sobre el portal SUDOCU de
 otra universidad nacional con el mismo c\'odigo y solo configuraci\'on
 (Secci\'on~\ref{sec:portabilidad}).
@@ -290,7 +295,7 @@ local que mitiga la p\'erdida de contexto inherente a la fragmentaci\'on,
 en l\'inea con la concatenaci\'on de t\'itulo y pasaje de los recuperadores
 densos~\cite{karpukhin2020dpr}. Los artefactos de b\'usqueda son un
 \'indice FAISS~\cite{douze2024faiss} de producto interno y una base SQLite con el
-texto, los metadatos y un \'indice l\'exico FTS5\footnote{\url{https://sqlite.org/fts5.html}},
+texto, los metadatos y un \'indice l\'exico FTS5\footnote{\url{https://sqlite.org/fts5.html}, consultado en agosto de 2026.},
 alineados por posici\'on y verificados tras cada reconstrucci\'on; el reemplazo es at\'omico y la API recarga el \'indice sin
 interrumpir el servicio. La operaci\'on completa ---cat\'alogo, descarga,
 vectorizaci\'on, indexaci\'on--- se ejecuta desde el panel de administraci\'on del
@@ -329,11 +334,13 @@ un mismo n\'umero existe en decenas de c\'odigos distintos.
 \subsection{Estado de di\'alogo con procedencia}
 \label{sec:estado}
 
-En cada turno, la consulta se reescribe como una consulta autocontenida,
-condicionada a los \'ultimos intercambios mediante un modelo de lenguaje con
-salida estructurada; la b\'usqueda opera sobre la consulta reescrita, y el estado
-de di\'alogo complementa esa reescritura con la informaci\'on que el texto no
-transporta.
+En cada turno, una \'unica pasada de un modelo de lenguaje sobre los \'ultimos
+intercambios produce conjuntamente una consulta autocontenida y una salida
+estructurada con los referentes detectados. La consulta reescrita repone la
+informaci\'on omitida en las repreguntas el\'ipticas, mientras que esos mismos
+referentes actualizan los \emph{slots} del estado de di\'alogo y permanecen
+disponibles para su inspecci\'on, correcci\'on y ponderaci\'on durante los
+turnos siguientes.
 
 El estado mantiene dos \emph{slots}. El primero, \emph{entidad}, registra el
 sujeto de la conversaci\'on ---una persona, una carrera, una dependencia, un
@@ -343,8 +350,10 @@ criterio de admisi\'on fue restrictivo: un \emph{slot} se justifica \'unicamente
 si transporta entre turnos informaci\'on que el texto de la consulta actual no
 contiene.
 
-El estado es visible sobre el campo de escritura y editable: quien consulta puede
-corregir la entidad, descartar un acto o reincorporarlo. Lo descartado permanece
+Los \emph{slots} se muestran sobre el campo de escritura desde la primera
+recuperaci\'on y permanecen visibles durante la conversaci\'on. El estado es
+editable: quien consulta puede corregir la entidad, descartar un acto o
+reincorporarlo. Lo descartado permanece
 visible, atenuado, dado que la inspecci\'on de lo inferido es condici\'on para su
 control. Cuando una entidad fijada no aparece en la consulta con la que se
 buscar\'a, el sistema declara la discrepancia en la interfaz en lugar de
@@ -375,6 +384,11 @@ Ning\'un \emph{slot} excluye documentos: un valor mal inferido degrada el
 ordenamiento pero no puede anular el conjunto de resultados, el modo de falla
 caracter\'istico de los filtros estrictos.
 
+El estado cumple as\'i tres funciones: conserva los referentes que resuelven la
+elipsis, expone la interpretaci\'on que el sistema mantiene y admite su
+correcci\'on directa; la procedencia de cada valor determina su peso y su
+persistencia en la recuperaci\'on.
+
 % ========================== 5. EVALUACION ==========================
 \subsection{Generaci\'on}
 
@@ -402,15 +416,16 @@ estratificado por secci\'on del portal y tipo de acto, de tres clases: por
 \emph{identificador} ($n=30$; plantillas deterministas sobre el c\'odigo del
 acto), por \emph{contenido} ($n=131$; generadas con un modelo de lenguaje a
 partir de un fragmento, sin nombrar el n\'umero del acto, con un control de
-calidad autom\'atico que descart\'o el 34{,}5\%) y \emph{conversacionales} de dos
+calidad autom\'atico ---un segundo pase que juzga si el fragmento responde la
+consulta--- que descart\'o el 34{,}5\%) y \emph{conversacionales} de dos
 turnos ($n=58$; el segundo turno es una repregunta el\'iptica). La relevancia se
 decide a nivel de acto ---el sistema cita y enlaza actos completos--- y se
 reportan Recall@$k$, MRR@10~\cite{voorhees1999trec} y
 nDCG@10~\cite{jarvelin2002cumulated}. La fidelidad de las citas se verifica de
 forma determinista: todo acto citado en una respuesta debe estar entre lo
 recuperado, y la atribuci\'on a una persona nombrada debe estar contenida en el
-fragmento citado\footnote{En todos los experimentos el modelo generador de
-respuestas fue \texttt{gpt-4o-mini} a temperatura 0.}.
+fragmento citado\footnote{Tanto la generaci\'on de consultas sint\'eticas como la de
+respuestas us\'o \texttt{gpt-4o-mini} a temperatura 0.}.
 
 \label{sec:humana}El juicio humano complementa las m\'etricas autom\'aticas:
 tres evaluadores de perfiles distintos ---estudiante, docencia y gesti\'on---
@@ -434,8 +449,7 @@ y el sistema completo sobre los tres tipos de consulta del protocolo.
 las configuraciones salvo el sistema completo operan sobre el segundo turno
 crudo.}
 \label{tab:ablacion}
-\setlength{\tabcolsep}{5pt}
-\begin{tabular}{lrrrrrrrrr}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lrrrrrrrrr@{}}
 \toprule
  & \multicolumn{3}{c}{Identificador} & \multicolumn{3}{c}{Contenido} & \multicolumn{3}{c}{Conversacional} \\
 \cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(l){8-10}
@@ -443,22 +457,37 @@ Configuraci\'on & R@5 & MRR & nDCG & R@5 & MRR & nDCG & R@5 & MRR & nDCG \\
 \midrule
 Solo \emph{embeddings} & 0.10 & 0.08 & 0.08 & 0.78 & 0.65 & 0.69 & 0.10 & 0.08 & 0.09 \\
 Solo BM25              & 0.83 & 0.68 & 0.76 & 0.79 & 0.68 & 0.72 & 0.09 & 0.08 & 0.08 \\
-H\'ibrido (sin estado) & 1.00 & 1.00 & 1.00 & 0.82 & 0.72 & 0.75 & 0.12 & 0.08 & 0.09 \\
+H\'ibrido              & 1.00 & 1.00 & 1.00 & 0.82 & 0.72 & 0.75 & 0.12 & 0.08 & 0.09 \\
 H\'ibrido $+$ estado & \textbf{1.00} & \textbf{1.00} & \textbf{1.00} & \textbf{0.82} & \textbf{0.72} & \textbf{0.75} & \textbf{0.93} & \textbf{0.88} & \textbf{0.90} \\
 \bottomrule
-\end{tabular}
+\end{tabular*}
 \end{table}
 
 Ninguno de los dos componentes alcanza por s\'i solo: los \emph{embeddings} no
 distinguen identificadores normativos y BM25, aun preserv\'andolos, no ordena la
 sem\'antica de las consultas por contenido tan bien como la fusi\'on; el
-h\'ibrido con anclaje resuelve por completo los identificadores y conserva la
-ventaja en las de contenido. La columna conversacional muestra el papel del
+h\'ibrido resuelve por completo las consultas por identificador y conserva la
+ventaja en las de contenido. El resultado perfecto de la primera columna se
+explica por el anclaje de identificadores que integran las configuraciones
+h\'ibridas: cuando la consulta nombra un acto, la b\'usqueda se restringe a los
+documentos que llevan ese identificador, y el acto correcto encabeza el
+\emph{ranking} con independencia de la fusi\'on; sin esa restricci\'on, la
+fusi\'on por posiciones no lo garantiza. En las consultas conversacionales
+ancladas en un acto, esa misma restricci\'on se habilita porque el estado repone
+el identificador omitido en la consulta reescrita: la composici\'on de ambos
+mecanismos explica el 1{,}00 de esa poblaci\'on. La columna conversacional muestra el papel del
 estado: sobre el segundo turno crudo ninguna configuraci\'on recupera (R@5 de
 0{,}09 a 0{,}12) y el sistema completo alcanza 0{,}93, con la reescritura
-condicionada al historial como mecanismo determinante; los \emph{slots} no desplazan estas
-m\'etricas, y su funci\'on es dar a quien consulta un mecanismo de correcci\'on
-cuya prioridad garantiza la procedencia. Un \emph{cross-encoder}
+condicionada al historial como mecanismo determinante; los \emph{slots}, cuyos
+valores ya est\'an repuestos en la consulta reescrita, conservan su funci\'on de
+correcci\'on con prioridad garantizada por la procedencia. En la evaluaci\'on
+de procedencia, la condici\'on de \emph{estado corregido} ---la entidad fijada
+con el peso de una correcci\'on humana--- sostiene los valores de la
+configuraci\'on completa (R@5 de 0{,}93; 0{,}86 y 1{,}00 por poblaci\'on), y la
+remoci\'on individual de cada \emph{slot} no los altera: m\'as all\'a de las
+m\'etricas de recuperaci\'on, la ventaja de la procedencia es habilitar la
+correcci\'on humana con prioridad y persistencia garantizadas, una propiedad
+del r\'egimen de interacci\'on que el ordenamiento no captura. Un \emph{cross-encoder}
 (BGE-reranker-v2-m3) reordenando el top-50 del h\'ibrido no mejora las
 m\'etricas (R@1 global de 0{,}68 contra 0{,}70) y empeora los identificadores:
 el ordenamiento no es el cuello de botella de este dominio. La
@@ -495,8 +524,8 @@ Adopci\'on   & \pend \\
 
 \label{sec:portabilidad}Si bien la evaluaci\'on se realiz\'o sobre la
 instalaci\'on de la UNLu ---donde se cuenta con mayor conocimiento del corpus y
-acceso a los evaluadores---, la portabilidad se verific\'o contra el portal
-SUDOCU de la Universidad Nacional de San Luis. Se gener\'o una
+acceso a los evaluadores---, la portabilidad t\'ecnica del pipeline se
+verific\'o contra el portal SUDOCU de la Universidad Nacional de San Luis. Se gener\'o una
 personalizaci\'on con los datos de esa universidad ---identidad institucional,
 esquema de colores y URL de su portal--- que permiti\'o construir una instancia
 completa desde el propio panel de administraci\'on: el proceso de ingesta
@@ -520,8 +549,13 @@ resuelve por completo la consulta por identificador y encabeza la tem\'atica;
 una arquitectura de ingesta, indexaci\'on y operaci\'on \'integramente
 autoadministrada, portable entre instalaciones de SUDOCU a costo de
 configuraci\'on ---un dise\~no pensado para el sistema universitario
-argentino---; y trazabilidad verificada de cada afirmaci\'on hasta el documento
-oficial publicado.
+argentino---; y correspondencia verificada entre las citas y el material recuperado, con
+enlace de cada cita al documento oficial publicado.
+
+Entre las limitaciones: la evaluaci\'on se apoya en consultas sint\'eticas sin
+revisi\'on manual, con relevancia referida al acto de origen de cada consulta,
+y la evidencia sobre la UNSL se limita a la portabilidad t\'ecnica del
+pipeline.
 
 Como trabajo futuro se propone, por un lado, la incorporaci\'on del sistema al
 sistema universitario argentino ---despliegue en nuevas instalaciones de SUDOCU
@@ -538,12 +572,11 @@ navegaci\'on por relaciones entre actos.
 
 \subsubsection*{Agradecimientos.}
 Esta investigaci\'on se desarroll\'o en el marco de un proyecto apoyado por la
-iniciativa IPAC (C\'omputo de Alto Desempe\~no Argentina), bajo la convocatoria
-PCI-146 (Proyectos de C\'omputo Intensivo), un programa nacional de
-asignaci\'on de recursos de c\'omputo de alto rendimiento. Los autores
-agradecen asimismo al Sistema Nacional de C\'omputo de Alto Desempe\~no
-(SNCAD), a la infraestructura Clementina XXI, a la SICyT y a su equipo
-t\'ecnico por el apoyo en la ejecuci\'on de los experimentos.
+iniciativa IPAC (C\'omputo de Alto Desempe\~no Argentina), convocatoria PCI-146
+(Proyectos de C\'omputo Intensivo). Los autores agradecen asimismo al Sistema
+Nacional de C\'omputo de Alto Desempe\~no (SNCAD), a la infraestructura
+Clementina XXI, a la SICyT y a su equipo t\'ecnico por el apoyo en la
+ejecuci\'on de los experimentos.
 
 \bibliographystyle{splncs03}
 \bibliography{References}
