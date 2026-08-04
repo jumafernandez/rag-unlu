@@ -82,7 +82,7 @@ def a_markdown(jueces):
         L.append(f'| {d.capitalize()} | {st.mean(v):.2f} ± {st.stdev(v):.2f} |')
     for j in jueces:
         L += ['', f'## Juez {j["juez"]}', '',
-              '| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Incorrecto? | Detalle |',
+              '| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |',
               '|---|---|---|---|---|---|---|']
         for i in j['items']:
             L.append(f'| {i["item"]} | {i["utilidad"]} | {i["fidelidad"]} | '
@@ -90,7 +90,7 @@ def a_markdown(jueces):
                      f'{"SÍ" if i["incorrecto"] else "no"} | {i["detalle"] or ""} |')
         L += ['', 'Consultas propias (la columna Detalle registra la consulta '
               'realizada o la observación del juez):', '',
-              '| | Utilidad | Fidelidad | Completitud | Claridad | ¿Incorrecto? | Detalle |',
+              '| | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |',
               '|---|---|---|---|---|---|---|']
         for i in j['consultas_propias']:
             L.append(f'| {i["id"]} | {i["utilidad"]} | {i["fidelidad"]} | '

@@ -13,7 +13,7 @@ Instrumento: [cuestionario-humano.md](cuestionario-humano.md) · Ítems evaluado
 
 ## Juez 1
 
-| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Incorrecto? | Detalle |
+| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
 |---|---|---|---|---|---|---|
 | 1 | 5 | 5 | 5 | 5 | no |  |
 | 2 | 5 | 5 | 4 | 4 | no |  |
@@ -34,7 +34,7 @@ Humana" |
 
 Consultas propias (la columna Detalle registra la consulta realizada o la observación del juez):
 
-| | Utilidad | Fidelidad | Completitud | Claridad | ¿Incorrecto? | Detalle |
+| | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
 |---|---|---|---|---|---|---|
 | P1 | 5 | 5 | 5 | 5 | no | Quiero saber cual es el programa de la asignatura "Introducción general a la Bioinformática" |
 | P2 | 3 | 5 | 4 | 1 | no | ¿Cuales son las equivalencias entre las materias del plan de estudio 17.14 de la licenciatura en sistemas de informacion y el plan anterior? |
@@ -44,7 +44,7 @@ Comentario libre: *Creo que es una herramienta muy util para la universidad debi
 
 ## Juez 2
 
-| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Incorrecto? | Detalle |
+| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
 |---|---|---|---|---|---|---|
 | 1 | 5 | 5 | 5 | 5 | SÍ | No brinda bien el codigo del documento referenciado. |
 | 2 | 5 | 5 | 5 | 5 | no |  |
@@ -64,7 +64,7 @@ Comentario libre: *Creo que es una herramienta muy util para la universidad debi
 
 Consultas propias (la columna Detalle registra la consulta realizada o la observación del juez):
 
-| | Utilidad | Fidelidad | Completitud | Claridad | ¿Incorrecto? | Detalle |
+| | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
 |---|---|---|---|---|---|---|
 | P1 | 4 | 5 | 5 | 4 | no |  |
 | P2 | 1 | 5 | 2 | 5 | SÍ | Se buscaba obtener las unidades y temas que se darían en la materia Sistemas Operativos. En lugar de eso, respondió solo objetivos y contenidos minimos sin detallar. |
