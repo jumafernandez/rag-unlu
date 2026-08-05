@@ -338,5 +338,422 @@
    }
   ],
   "comentario": "En general logra estructurar bien las respuestas, haciendolas claras y fáciles de leer. Cuando se trata de consultas no especificas inventa sobre la marcha a respuesta."
+ },
+ {
+  "juez": 3,
+  "items": [
+   {
+    "item": 1,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": "textual"
+   },
+   {
+    "item": 2,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 3,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": "asignaturas"
+   },
+   {
+    "item": 4,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 5,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": "fecha de emision"
+   },
+   {
+    "item": 6,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 7,
+    "utilidad": 2,
+    "fidelidad": 2,
+    "completitud": 4,
+    "claridad": 4,
+    "incorrecto": true,
+    "detalle": "se pregunto por el segundo semetre y brinda del primero"
+   },
+   {
+    "item": 8,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 9,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 10,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 11,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 12,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 13,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 14,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 15,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   }
+  ],
+  "consultas_propias": [],
+  "comentario": null
+ },
+ {
+  "juez": 4,
+  "items": [
+   {
+    "item": 2,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 3,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 2,
+    "incorrecto": true,
+    "detalle": "poca la claridad que tiene debido a que se va por las ramas y no es concisa la respuesta cuando la pregunta espera una respuesta  que pide esplayarse"
+   },
+   {
+    "item": 4,
+    "utilidad": 2,
+    "fidelidad": 5,
+    "completitud": 2,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "La dispo consta de 10 paginas, pero a nivel de utilidad solo se menciona las primeras 2 paginas y no esplaya el resto de las paginas."
+   },
+   {
+    "item": 5,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "Es util y claro, pero no hay mucho que consultar, y omite información."
+   },
+   {
+    "item": 6,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 7,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": true,
+    "detalle": "te indica que no posee informacion y luego te la trae."
+   },
+   {
+    "item": 8,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 9,
+    "utilidad": 4,
+    "fidelidad": 3,
+    "completitud": 3,
+    "claridad": 3,
+    "incorrecto": true,
+    "detalle": "Mezcla los dos articulos 1"
+   },
+   {
+    "item": 10,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 11,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 12,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 13,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 14,
+    "utilidad": 3,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 15,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   }
+  ],
+  "consultas_propias": [],
+  "comentario": null
+ },
+ {
+  "juez": 5,
+  "items": [
+   {
+    "item": 1,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 2,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 3,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 3,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 4,
+    "utilidad": 4,
+    "fidelidad": 5,
+    "completitud": 3,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 5,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 6,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 7,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 8,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 9,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 10,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 11,
+    "utilidad": 3,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 12,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 13,
+    "utilidad": 5,
+    "fidelidad": 5,
+    "completitud": 5,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 14,
+    "utilidad": 4,
+    "fidelidad": 5,
+    "completitud": 3,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   },
+   {
+    "item": 15,
+    "utilidad": 4,
+    "fidelidad": 5,
+    "completitud": 4,
+    "claridad": 5,
+    "incorrecto": false,
+    "detalle": null
+   }
+  ],
+  "consultas_propias": [],
+  "comentario": "En la mayoría de las respuestas va al grano y eso lo destaco. Hubo algunas excepciones donde me hubiera gustado que se explaye más, pero nada que impida su correcto funcionamiento."
  }
 ]

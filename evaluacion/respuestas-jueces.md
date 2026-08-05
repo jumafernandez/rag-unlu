@@ -1,15 +1,15 @@
 # Respuestas de la evaluación con jueces
 
-Instrumento: [cuestionario-humano.md](cuestionario-humano.md) · Ítems evaluados: [items-congelados.json](items-congelados.json) · Datos crudos: [respuestas-jueces.json](respuestas-jueces.json) · Planillas originales (anonimizadas): [juez 1](planilla-juez-1.xlsx), [juez 2](planilla-juez-2.xlsx)
+Instrumento: [cuestionario-humano.md](cuestionario-humano.md) · Ítems evaluados: [items-congelados.json](items-congelados.json) · Datos crudos: [respuestas-jueces.json](respuestas-jueces.json) · Planillas originales (anonimizadas): [juez 1](planilla-juez-1.xlsx), [juez 2](planilla-juez-2.xlsx), [juez 3](planilla-juez-3.xlsx), [juez 4](planilla-juez-4.xlsx), [juez 5](planilla-juez-5.xlsx)
 
-## Resumen — ítems fijos (2 jueces, n=30 por dimensión)
+## Resumen — ítems fijos (5 jueces, n=74 por dimensión)
 
 | Dimensión | Media ± DE |
 |---|---|
-| Utilidad | 4.47 ± 1.11 |
-| Fidelidad | 4.73 ± 0.58 |
-| Completitud | 4.53 ± 0.78 |
-| Claridad | 4.77 ± 0.50 |
+| Utilidad | 4.59 ± 0.92 |
+| Fidelidad | 4.82 ± 0.56 |
+| Completitud | 4.57 ± 0.74 |
+| Claridad | 4.80 ± 0.57 |
 
 ## Juez 1
 
@@ -71,3 +71,79 @@ Consultas propias (la columna Detalle registra la consulta realizada o la observ
 | P3 | 3 | 1 | 3 | 5 | SÍ | Da pautas generales de cómo tramitar equivalencias entre carreras, pero no indicaciones exactas como departamentos a los que consultar. El contenido de la respuesta no se encontró en los documentos referenciados. |
 
 Comentario libre: *En general logra estructurar bien las respuestas, haciendolas claras y fáciles de leer. Cuando se trata de consultas no especificas inventa sobre la marcha a respuesta.*
+
+## Juez 3
+
+| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
+|---|---|---|---|---|---|---|
+| 1 | 5 | 5 | 4 | 5 | no | textual |
+| 2 | 5 | 5 | 5 | 5 | no |  |
+| 3 | 5 | 5 | 4 | 5 | no | asignaturas |
+| 4 | 5 | 5 | 5 | 5 | no |  |
+| 5 | 5 | 5 | 4 | 5 | no | fecha de emision |
+| 6 | 5 | 5 | 5 | 5 | no |  |
+| 7 | 2 | 2 | 4 | 4 | SÍ | se pregunto por el segundo semetre y brinda del primero |
+| 8 | 5 | 5 | 5 | 5 | no |  |
+| 9 | 5 | 5 | 5 | 5 | no |  |
+| 10 | 5 | 5 | 5 | 5 | no |  |
+| 11 | 5 | 5 | 5 | 5 | no |  |
+| 12 | 5 | 5 | 5 | 5 | no |  |
+| 13 | 5 | 5 | 5 | 5 | no |  |
+| 14 | 5 | 5 | 5 | 5 | no |  |
+| 15 | 5 | 5 | 5 | 5 | no |  |
+
+Consultas propias (la columna Detalle registra la consulta realizada o la observación del juez):
+
+| | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
+|---|---|---|---|---|---|---|
+
+## Juez 4
+
+| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
+|---|---|---|---|---|---|---|
+| 2 | 5 | 5 | 5 | 5 | no |  |
+| 3 | 5 | 5 | 5 | 2 | SÍ | poca la claridad que tiene debido a que se va por las ramas y no es concisa la respuesta cuando la pregunta espera una respuesta  que pide esplayarse |
+| 4 | 2 | 5 | 2 | 5 | SÍ | La dispo consta de 10 paginas, pero a nivel de utilidad solo se menciona las primeras 2 paginas y no esplaya el resto de las paginas. |
+| 5 | 5 | 5 | 4 | 5 | SÍ | Es util y claro, pero no hay mucho que consultar, y omite información. |
+| 6 | 5 | 5 | 5 | 5 | no |  |
+| 7 | 5 | 5 | 5 | 5 | SÍ | te indica que no posee informacion y luego te la trae. |
+| 8 | 5 | 5 | 5 | 5 | no |  |
+| 9 | 4 | 3 | 3 | 3 | SÍ | Mezcla los dos articulos 1 |
+| 10 | 5 | 5 | 5 | 5 | no |  |
+| 11 | 5 | 5 | 5 | 5 | no |  |
+| 12 | 5 | 5 | 5 | 5 | no |  |
+| 13 | 5 | 5 | 5 | 5 | no |  |
+| 14 | 3 | 5 | 4 | 5 | no |  |
+| 15 | 5 | 5 | 5 | 5 | no |  |
+
+Consultas propias (la columna Detalle registra la consulta realizada o la observación del juez):
+
+| | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
+|---|---|---|---|---|---|---|
+
+## Juez 5
+
+| Ítem | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
+|---|---|---|---|---|---|---|
+| 1 | 5 | 5 | 4 | 5 | no |  |
+| 2 | 5 | 5 | 5 | 5 | no |  |
+| 3 | 5 | 5 | 5 | 3 | no |  |
+| 4 | 4 | 5 | 3 | 5 | no |  |
+| 5 | 5 | 5 | 5 | 5 | no |  |
+| 6 | 5 | 5 | 5 | 5 | no |  |
+| 7 | 5 | 5 | 5 | 5 | no |  |
+| 8 | 5 | 5 | 5 | 5 | no |  |
+| 9 | 5 | 5 | 5 | 5 | no |  |
+| 10 | 5 | 5 | 5 | 5 | no |  |
+| 11 | 3 | 5 | 4 | 5 | no |  |
+| 12 | 5 | 5 | 5 | 5 | no |  |
+| 13 | 5 | 5 | 5 | 5 | no |  |
+| 14 | 4 | 5 | 3 | 5 | no |  |
+| 15 | 4 | 5 | 4 | 5 | no |  |
+
+Consultas propias (la columna Detalle registra la consulta realizada o la observación del juez):
+
+| | Utilidad | Fidelidad | Completitud | Claridad | ¿Algo incorrecto? | Detalle |
+|---|---|---|---|---|---|---|
+
+Comentario libre: *En la mayoría de las respuestas va al grano y eso lo destaco. Hubo algunas excepciones donde me hubiera gustado que se explaye más, pero nada que impida su correcto funcionamiento.*

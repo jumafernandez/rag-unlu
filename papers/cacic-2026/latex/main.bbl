@@ -3,8 +3,8 @@
 \providecommand{\urlprefix}{URL }
 
 \bibitem{anand2023context}
-Anand, A., et~al.: Context aware query rewriting for text rankers using {LLM}.
-  In: Gen-IR Workshop at SIGIR (2023)
+Anand, A., V, V., Setty, V., Anand, A.: Context aware query rewriting for text
+  rankers using {LLM}. arXiv preprint arXiv:2308.16753  (2023)
 
 \bibitem{budzianowski2018multiwoz}
 Budzianowski, P., Wen, T.H., Tseng, B.H., Casanueva, I., Ultes, S., Ramadan,
@@ -14,14 +14,15 @@ Budzianowski, P., Wen, T.H., Tseng, B.H., Casanueva, I., Ultes, S., Ramadan,
   5016--5026 (2018)
 
 \bibitem{chen2024bge}
-Chen, J., Xiao, S., Zhang, P., Luo, K., Lian, D., Liu, Z.: {BGE} m3-embedding:
-  Multi-lingual, multi-functionality, multi-granularity text embeddings through
-  self-knowledge distillation. arXiv preprint arXiv:2402.03216  (2024)
+Chen, J., Xiao, S., Zhang, P., Luo, K., Lian, D., Liu, Z.: {M3}-embedding:
+  Multi-linguality, multi-functionality, multi-granularity text embeddings
+  through self-knowledge distillation. In: Findings of the Association for
+  Computational Linguistics: {ACL} 2024. pp. 2318--2335 (2024)
 
 \bibitem{cormack2009rrf}
 Cormack, G.V., Clarke, C.L.A., Buettcher, S.: Reciprocal rank fusion
-  outperforms condorcet and individual rank learning methods. In: Proc. SIGIR
-  (2009)
+  outperforms condorcet and individual rank learning methods. In: Proc. SIGIR.
+  pp. 758--759 (2009)
 
 \bibitem{crompton2023state}
 Crompton, H., Burke, D.: Artificial intelligence in higher education: the state
@@ -61,7 +62,8 @@ Kemper, S., Cui, J., Dicarlantonio, K., Lin, K., Tang, D., Korikov, A., Sanner,
 
 \bibitem{koenemann1996case}
 Koenemann, J., Belkin, N.J.: A case for interaction: A study of interactive
-  information retrieval behavior and effectiveness  (1996)
+  information retrieval behavior and effectiveness. In: Proc. CHI. pp. 205--212
+  (1996)
 
 \bibitem{kulesza2015principles}
 Kulesza, T., Burnett, M., Wong, W.K., Stumpf, S.: Principles of explanatory
@@ -74,9 +76,9 @@ Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N.,
   tasks. In: Proc. NeurIPS (2020)
 
 \bibitem{li2020sovite}
-Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: {SOVITE}: Towards
-  automated discovery of conversational breakdowns and repairs. In: Proc. UIST
-  (2020)
+Li, T.J.J., Chen, J., Xia, H., Mitchell, T.M., Myers, B.A.: Multi-modal repairs
+  of conversational breakdowns in task-oriented dialogs. In: Proc. UIST. pp.
+  1094--1107 (2020)
 
 \bibitem{magesh2024hallucination}
 Magesh, V., Surani, F., Dahl, M., Suzgun, M., Manning, C.D., Ho, D.E.:
@@ -84,8 +86,10 @@ Magesh, V., Surani, F., Dahl, M., Suzgun, M., Manning, C.D., Ho, D.E.:
   research tools. Journal of Empirical Legal Studies  22(2),  216--242 (2025)
 
 \bibitem{manku2022shoptalk}
-Manku, G.S., et~al.: {ShopTalk}: A system for conversational faceted search.
-  In: SIGIR Workshop on eCommerce (2022)
+Manku, G., Lee-Thorp, J., Kanagal, B., Ainslie, J., Feng, J., Pearson, Z.,
+  Anjorin, E., Gandhe, S., Eckstein, I., Rosswog, J., Sanghai, S., Pohl, M.,
+  Adams, L., Sivakumar, D.: {ShopTalk}: A system for conversational faceted
+  search. In: SIGIR Workshop on eCommerce (2022)
 
 \bibitem{pang2025exploring}
 Pang, W., Wei, Z.: Exploring the transformative potential of artificial
@@ -97,10 +101,15 @@ Robertson, S., Zaragoza, H.: The probabilistic relevance framework: {BM25} and
   beyond. Foundations and Trends in Information Retrieval  3(4),  333--389
   (2009)
 
+\bibitem{shuster2021retrieval}
+Shuster, K., Poff, S., Chen, M., Kiela, D., Weston, J.: Retrieval augmentation
+  reduces hallucination in conversation. In: Findings of the Association for
+  Computational Linguistics: EMNLP 2021. pp. 3784--3803 (2021)
+
 \bibitem{thulke2021dstc9}
 Thulke, D., Daheim, N., Dugast, C., Ney, H.: Efficient retrieval augmented
-  generation from unstructured knowledge for task-oriented dialog. In: AAAI
-  Workshop on DSTC9 (2021)
+  generation from unstructured knowledge for task-oriented dialog. In: {DSTC9}
+  Workshop at {AAAI-21} (2021)
 
 \bibitem{voorhees1999trec}
 Voorhees, E.M.: The {TREC}-8 question answering track report. In: Proc. Eighth

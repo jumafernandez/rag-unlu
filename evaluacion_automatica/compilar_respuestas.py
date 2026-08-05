@@ -20,7 +20,8 @@ def hoja_con_datos(wb):
     def llenas(ws):
         return sum(1 for fila in ws.iter_rows(min_row=2)
                    for c in fila if c.value is not None and c.column > 2)
-    hojas = [wb[h] for h in wb.sheetnames if h.startswith('Juez')]
+    hojas = [wb[h] for h in wb.sheetnames if h.startswith('Juez')] or \
+        [wb[h] for h in wb.sheetnames if h != 'Instrucciones']
     return max(hojas, key=llenas)
 
 
@@ -38,8 +39,10 @@ def fila_a_item(ws, f):
 def copia_anonima(ruta, n, destino):
     wb = openpyxl.load_workbook(ruta)
     for h in wb.sheetnames:
-        if h.startswith('Juez') and str(wb[h].cell(1, 2).value or '').strip():
-            wb[h].cell(1, 2).value = f'Juez {n}'
+        ws = wb[h]
+        if str(ws.cell(1, 1).value or '').startswith('Juez (nombre)') and \
+                str(ws.cell(1, 2).value or '').strip():
+            ws.cell(1, 2).value = f'Juez {n}'
     # Los metadatos del archivo también identifican (autor de Excel).
     wb.properties.creator = None
     wb.properties.lastModifiedBy = None
@@ -52,8 +55,12 @@ def compilar(rutas):
         ws = hoja_con_datos(openpyxl.load_workbook(ruta, data_only=True))
         j = {'juez': n, 'items': [], 'consultas_propias': [], 'comentario': None}
         for f in range(4, 19):
-            j['items'].append({'item': int(ws.cell(f, 1).value), **fila_a_item(ws, f)})
+            if ws.cell(f, 2).value is None:  # ítem sin responder
+                continue
+            j['items'].append({'item': int(float(ws.cell(f, 1).value)), **fila_a_item(ws, f)})
         for f in range(19, 22):
+            if ws.cell(f, 2).value is None:  # juez que no hizo consultas propias
+                continue
             j['consultas_propias'].append({'id': str(ws.cell(f, 1).value), **fila_a_item(ws, f)})
         for f in range(22, ws.max_row + 1):
             if str(ws.cell(f, 1).value or '').startswith('Comentario'):
@@ -75,7 +82,7 @@ def a_markdown(jueces):
          + ', '.join(f'[juez {j["juez"]}](planilla-juez-{j["juez"]}.xlsx)' for j in jueces),
          '',
          f'## Resumen — ítems fijos ({len(jueces)} jueces, '
-         f'n={15 * len(jueces)} por dimensión)', '',
+         f'n={sum(len(j["items"]) for j in jueces)} por dimensión)', '',
          '| Dimensión | Media ± DE |', '|---|---|']
     for d in DIMS:
         v = [i[d] for j in jueces for i in j['items']]

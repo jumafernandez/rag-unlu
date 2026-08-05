@@ -5,6 +5,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass{llncs}
 \pagestyle{empty}
+% El espacio sobrante de una página corta va al pie, no estirado en el medio.
+\raggedbottom
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -113,7 +115,7 @@ implementado y evaluado sobre la totalidad de los actos publicados por la
 Universidad Nacional de Luján (21.344 documentos) y desplegado además sobre
 más de 26.000 documentos de una segunda universidad nacional (San Luis). El
 sistema responde en lenguaje natural y cita los fragmentos normativos que
-sustentan cada afirmación, con trazabilidad hasta el documento oficial
+sustentan sus afirmaciones, con trazabilidad hasta el documento oficial
 publicado.
 
 A su vez, la consulta de normativa es conversacional ---se pregunta por un tema,
@@ -136,7 +138,7 @@ usuario se trata como una observación de mayor confianza que la inferencia del
 propio sistema.
 
 Las contribuciones son: (i) un sistema desplegado de consulta conversacional de
-normativa universitaria, con trazabilidad desde cada afirmación hasta el
+normativa universitaria, con trazabilidad desde las afirmaciones hasta el
 documento publicado, fragmentación por unidad normativa según la forma
 jurídica del acto administrativo argentino, y operación
 ---catálogo, descarga, vectorización, indexación--- íntegramente
@@ -172,10 +174,10 @@ sistema desplegado de consulta normativa para la gestión universitaria.
 
 La generación aumentada por recuperación acopla un modelo de lenguaje con un
 índice de búsqueda: la respuesta se redacta condicionada a fragmentos
-recuperados del corpus, lo que reduce la fabricación de contenido y habilita la
+recuperados del corpus, lo que reduce las alucinaciones~\cite{shuster2021retrieval} y habilita la
 cita de fuentes~\cite{lewis2020rag,gao2024survey}. El enfoque se aplicó a
 dominios legales y regulatorios, donde la exigencia de respaldo documental es
-mayor que en dominio abierto: la evaluación empírica de herramientas
+mayor que en un dominio abierto: la evaluación empírica de herramientas
 comerciales de investigación jurídica asistida registra tasas de
 alucinación significativas incluso con recuperación
 aumentada~\cite{magesh2024hallucination}.
@@ -430,10 +432,10 @@ fragmento citado\footnote{Tanto la generación de consultas sintéticas como la 
 respuestas usó \texttt{gpt-4o-mini} a temperatura 0.}.
 
 \label{sec:humana}El juicio humano complementa las métricas automáticas:
-tres evaluadores de perfiles distintos ---estudiante, docencia y gestión---
-completan un cuestionario único con quince respuestas fijas del sistema
----idénticas entre jueces, lo que permite reportar acuerdo--- y tres consultas
-propias realizadas en vivo, puntuadas de 1 a 5 en utilidad, fidelidad,
+cinco evaluadores ---dos estudiantes, un docente, un evaluador externo a la
+institución y un integrante del área de gestión--- completan un cuestionario
+único con quince respuestas fijas del sistema ---idénticas entre jueces, lo
+que permite reportar acuerdo---, puntuadas de 1 a 5 en utilidad, fidelidad,
 completitud y claridad\footnote{El cuestionario y los ítems evaluados
 están disponibles en el repositorio del sistema:
 \url{https://github.com/jumafernandez/rag-unlu} (directorio
@@ -459,9 +461,9 @@ crudo.}
 \cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(l){8-10}
 Configuración & R@5 & MRR & nDCG & R@5 & MRR & nDCG & R@5 & MRR & nDCG \\
 \midrule
-Solo \emph{embeddings} & 0.10 & 0.08 & 0.08 & 0.78 & 0.65 & 0.69 & 0.10 & 0.08 & 0.09 \\
-Solo BM25              & 0.83 & 0.68 & 0.76 & 0.79 & 0.68 & 0.72 & 0.09 & 0.08 & 0.08 \\
-Híbrido              & 1.00 & 1.00 & 1.00 & 0.82 & 0.72 & 0.75 & 0.12 & 0.08 & 0.09 \\
+Solo \emph{embeddings} & 0.10 & 0.08 & 0.08 & 0.78 & 0.64 & 0.69 & 0.10 & 0.08 & 0.09 \\
+Solo BM25              & 0.83 & 0.68 & 0.76 & 0.79 & 0.68 & 0.71 & 0.09 & 0.08 & 0.08 \\
+Híbrido              & 1.00 & 1.00 & 1.00 & 0.82 & 0.72 & 0.75 & 0.12 & 0.07 & 0.09 \\
 Híbrido $+$ estado & \textbf{1.00} & \textbf{1.00} & \textbf{1.00} & \textbf{0.82} & \textbf{0.72} & \textbf{0.75} & \textbf{0.93} & \textbf{0.88} & \textbf{0.90} \\
 \bottomrule
 \end{tabular*}
@@ -484,14 +486,7 @@ estado: sobre el segundo turno crudo ninguna configuración recupera (R@5 de
 0{,}09 a 0{,}12) y el sistema completo alcanza 0{,}93, con la reescritura
 condicionada al historial como mecanismo determinante; los \emph{slots}, cuyos
 valores ya están repuestos en la consulta reescrita, conservan su función de
-corrección con prioridad garantizada por la procedencia. En la evaluación
-de procedencia, la condición de \emph{estado corregido} ---la entidad fijada
-con el peso de una corrección humana--- sostiene los valores de la
-configuración completa (R@5 de 0{,}93; 0{,}86 y 1{,}00 por población), y la
-remoción individual de cada \emph{slot} no los altera: más allá de las
-métricas de recuperación, la ventaja de la procedencia es habilitar la
-corrección humana con prioridad y persistencia garantizadas, una propiedad
-del régimen de interacción que el ordenamiento no captura. Un \emph{cross-encoder}
+corrección con prioridad garantizada por la procedencia. Un \emph{cross-encoder}
 (BGE-reranker-v2-m3) reordenando el top-50 del híbrido no mejora las
 métricas (R@1 global de 0{,}68 contra 0{,}70) y empeora los identificadores:
 el ordenamiento no es el cuello de botella de este dominio. La
@@ -499,16 +494,16 @@ verificación determinista de citas sobre 60 respuestas ancla el 97{,}0\% de
 los actos citados en lo recuperado, con atribución de personas correcta en 23
 de 24 casos.
 
-La validación humana complementa esas métricas. Los quince ítems fijos
-cubren los tres tipos de consulta del protocolo sobre secciones diversas del
-corpus, con respuestas verificables en uno o dos actos; cada juez agrega tres
-consultas propias de su actividad, realizadas en vivo. La
-Tabla~\ref{tab:jueces} resume los puntajes.
+Por su parte, la Tabla~\ref{tab:jueces} resume los puntajes de la validación
+humana que complementa esas métricas: los quince ítems fijos cubren los tres tipos de
+consulta del protocolo sobre secciones diversas del corpus, con respuestas
+verificables en uno o dos actos; dos de los evaluadores realizaron además
+consultas propias de su actividad.\nopagebreak
 
-\begin{table}[H]
+\nopagebreak\begin{table}[H]
 \centering\small
 \caption{Validación con evaluadores: media $\pm$ desvío estándar por
-dimensión sobre los ítems fijos (tres jueces). Los segmentos indican
+dimensión sobre los ítems fijos (cinco jueces). Los segmentos indican
 $\pm$1 DE.}
 \label{tab:jueces}
 \begin{minipage}[c]{0.40\textwidth}
@@ -517,10 +512,10 @@ $\pm$1 DE.}
 \toprule
 Dimensión & Media $\pm$ DE \\
 \midrule
-Utilidad     & 4,47 $\pm$ 1,11 \\
-Fidelidad    & 4,73 $\pm$ 0,58 \\
-Completitud  & 4,53 $\pm$ 0,78 \\
-Claridad     & 4,77 $\pm$ 0,50 \\
+Utilidad     & 4,59 $\pm$ 0,92 \\
+Fidelidad    & 4,82 $\pm$ 0,56 \\
+Completitud  & 4,57 $\pm$ 0,74 \\
+Claridad     & 4,80 $\pm$ 0,57 \\
 \bottomrule
 \end{tabular}
 \end{minipage}\hfill
@@ -528,7 +523,7 @@ Claridad     & 4,77 $\pm$ 0,50 \\
 \centering
 \begin{tikzpicture}
 \begin{axis}[
-  width=\linewidth, height=4.3cm,
+  width=\linewidth, height=3.7cm,
   ybar, bar width=10pt,
   ymin=1, ymax=5.7,
   ytick={1,2,3,4,5},
@@ -543,23 +538,23 @@ Claridad     & 4,77 $\pm$ 0,50 \\
 \addplot[ybar,bar shift=0pt,bar width=16pt,draw=black,fill=black!25,
   error bars/.cd,y dir=both,y explicit,error mark=|,
   error bar style={black},error mark options={black,mark size=3.5pt,line width=0.7pt}] coordinates {
-  (Utilidad,4.47) +- (0,1.11)
-  (Fidelidad,4.73) +- (0,0.58)
-  (Completitud,4.53) +- (0,0.78)
-  (Claridad,4.77) +- (0,0.50)
+  (Utilidad,4.59) +- (0,0.92)
+  (Fidelidad,4.82) +- (0,0.56)
+  (Completitud,4.57) +- (0,0.74)
+  (Claridad,4.80) +- (0,0.57)
 };
 \end{axis}
 \end{tikzpicture}
 \end{minipage}
 \end{table}
 
-Las cuatro dimensiones superan 4,4 sobre 5. Fidelidad (4,73 $\pm$ 0,58) y
-claridad (4,77 $\pm$ 0,50) concentran los puntajes más altos y los menores
+Las cuatro dimensiones superan 4,5 sobre 5. Fidelidad (4,82 $\pm$ 0,56) y
+claridad (4,80 $\pm$ 0,57) concentran los puntajes más altos y los menores
 desvíos, en línea con la verificación determinista de citas: las
 observaciones de los jueces refieren principalmente omisiones de detalle ---un
 identificador no citado, el órgano firmante ausente--- antes que afirmaciones
 contrarias a las fuentes. La mayor dispersión corresponde a utilidad ($\pm$
-1,11) y se concentra en los ítems en los que el corpus no contiene normativa
+0,92) y se concentra en los ítems en los que el corpus no contiene normativa
 específica para la consulta y el sistema respondió con material adyacente en
 lugar de declarar la ausencia; los jueces coincidieron en penalizar ese
 comportamiento, que constituye la principal línea de mejora observada.
@@ -595,9 +590,11 @@ argentino---; y correspondencia verificada entre las citas y el material recuper
 enlace de cada cita al documento oficial publicado.
 
 Entre las limitaciones: la evaluación se apoya en consultas sintéticas sin
-revisión manual, con relevancia referida al acto de origen de cada consulta,
-y la evidencia sobre la UNSL se limita a la portabilidad técnica del
-pipeline.
+revisión manual, con relevancia referida al acto de origen de cada consulta; la
+evidencia sobre la UNSL se limita a la portabilidad técnica del pipeline; y la
+validación con evaluadores ---cinco personas, en su mayoría vinculadas a la
+institución--- tiene carácter exploratorio y no constituye una medida de
+aceptación transferible a otras instalaciones.
 
 Como trabajo futuro se propone, por un lado, la incorporación del sistema al
 sistema universitario argentino ---despliegue en nuevas instalaciones de SUDOCU
