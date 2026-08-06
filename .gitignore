@@ -69,3 +69,6 @@ instalaciones/*/data/
 instalaciones/*/indice/
 instalaciones/*/logs/
 datos/chatdigesto.sqlite
+
+# Revisión de seguridad: describe debilidades no corregidas, no se publica.
+seguridad/

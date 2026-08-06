@@ -1970,3 +1970,16 @@ button, .sidebar-action {
 /* Las notas del panel usan todo el ancho: el tope de 70ch las dejaba en media pantalla
    contra tablas y campos que sí llegan al borde. */
 .admin-nota { max-width: none; }
+
+/* Serie diaria de consultas del panel de Uso. Barras simples: la pregunta que
+   responde ---¿se está usando y cuándo?--- no necesita ejes ni biblioteca. */
+.uso-serie {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 120px; padding: 8px 4px 0;
+  border-bottom: 1px solid var(--borde);
+  margin-bottom: 24px;
+}
+.uso-barra-envoltura { flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
+                       align-items: center; height: 100%; }
+.uso-barra { width: 100%; min-height: 2px; background: var(--marca); border-radius: 2px 2px 0 0; }
+.uso-barra-dia { font-size: 11px; color: var(--texto-tenue); margin-top: 4px; }

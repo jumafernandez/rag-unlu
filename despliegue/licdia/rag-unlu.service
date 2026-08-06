@@ -1,24 +1,59 @@
 [Unit]
-Description=ChatDigesto UNLu (RAG del digesto)
-After=network.target
+Description=ChatDigesto (RAG de normativa universitaria)
+After=network-online.target
+Wants=network-online.target
 
 [Service]
-User=administrador
-WorkingDirectory=/home/administrador/rag-unlu
+# Usuario de sistema dedicado, sin intérprete de comandos ni permisos de administración.
+# El servicio no necesita ninguno de los dos, y si algún día alguien lograra ejecutar
+# código en el proceso, el alcance de esa ejecución es lo que esta línea decide.
+User=ragunlu
+Group=ragunlu
+WorkingDirectory=/opt/rag-unlu
+
 Environment=OMP_NUM_THREADS=4
-# El modelo ya está en la caché local (copiada por rsync); sin estas variables
-# sentence-transformers consulta Hugging Face al arrancar y se cuelga sin Internet.
-Environment=HF_HOME=/home/administrador/rag-unlu/.cache/huggingface
+# El modelo está en la caché local; sin estas variables sentence-transformers
+# consulta Hugging Face al arrancar y se cuelga si la salida está restringida.
+Environment=HF_HOME=/opt/rag-unlu/.cache/huggingface
 Environment=HF_HUB_OFFLINE=1
 Environment=TRANSFORMERS_OFFLINE=1
-# La UNLu sale a Internet por proxy institucional (OpenAI, Google, portal).
-# Este es el respaldo de despliegue; el panel de Generación puede pisarlo.
+# Duración de la sesión. El token es autónomo y no se puede revocar de a uno: la
+# duración ES la ventana de exposición de una sesión filtrada.
+Environment=RAG_SESION_HORAS=48
+# La UNLu sale a Internet por proxy institucional (generación, Google, portal).
 Environment=HTTPS_PROXY=http://proxy.unlu.edu.ar:8080
 Environment=HTTP_PROXY=http://proxy.unlu.edu.ar:8080
 Environment=NO_PROXY=localhost,127.0.0.1
-ExecStart=/home/administrador/rag-unlu/.venv/bin/python -m uvicorn backend.api:app --host 127.0.0.1 --port 8000 --log-level warning
+
+ExecStart=/opt/rag-unlu/.venv/bin/python -m uvicorn backend.api:app \
+          --host 127.0.0.1 --port 8000 --log-level warning
 Restart=on-failure
 RestartSec=5
+
+# --- Endurecimiento ---
+# Todo el sistema de archivos queda de solo lectura salvo lo que se declara abajo:
+# el índice (se reconstruye y se reemplaza), los datos (base, marca, registros de
+# corridas), la caché del modelo (crea archivos de bloqueo aun estando sin conexión)
+# y data/, donde el pipeline deposita los PDF que descarga del portal. Sin esta
+# última, las operaciones del panel fallan al escribir y el motivo no es evidente.
+ProtectSystem=strict
+ReadWritePaths=/opt/rag-unlu/datos /opt/rag-unlu/indice /opt/rag-unlu/.cache /opt/rag-unlu/data
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target

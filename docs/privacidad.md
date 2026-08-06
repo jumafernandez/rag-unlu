@@ -44,12 +44,42 @@ Mitigaciones que sí están:
 - **Uso opcional.** Quien no quiera dejar registro, consulta sin iniciar sesión.
 - **Borrado a demanda.** Cada persona puede borrar sus conversaciones desde la interfaz.
 
+## Acceso al contenido de las conversaciones
+
+El panel de administración **no muestra el contenido de las consultas**. La vista de Uso
+informa agregados ---volumen por día, personas distintas, proporción de respuestas sin
+material citado, normativa más citada--- y ninguna consulta ni respuesta individual.
+
+La decisión tiene un motivo concreto: la condición de administrador se otorga con
+facilidad, y quien la tiene no necesita leer lo que preguntó otra persona para saber si el
+sistema funciona. Leer una conversación exige entrar a la máquina donde vive la base, que
+es un acto deliberado y con rastro, en lugar de una pestaña más del panel:
+
+```sql
+-- Una conversación completa, con quién la tuvo:
+SELECT u.correo, m.rol, datetime(m.momento,'unixepoch','localtime') AS cuando, m.texto
+FROM mensaje m
+JOIN conversacion c ON c.id = m.conversacion_id
+JOIN usuario u ON u.id = c.usuario_id
+WHERE c.id = ?
+ORDER BY m.id;
+
+-- Las consultas que no encontraron material, que es lo que conviene revisar:
+SELECT datetime(m.momento,'unixepoch','localtime') AS cuando,
+       (SELECT texto FROM mensaje p
+        WHERE p.conversacion_id = m.conversacion_id AND p.rol='user' AND p.id < m.id
+        ORDER BY p.id DESC LIMIT 1) AS consulta
+FROM mensaje m
+WHERE m.rol='assistant' AND (m.fuentes IS NULL OR m.fuentes IN ('','[]'))
+ORDER BY m.momento DESC LIMIT 30;
+```
+
 ## Qué queda pendiente de definir por la Universidad
 
 Son decisiones institucionales, no técnicas:
 
 - **Retención.** Por cuánto tiempo se conservan las conversaciones.
-- **Acceso.** Quién puede acceder a la base y con qué procedimiento.
+- **Procedimiento de acceso.** Con qué motivo y con qué registro se consulta la base.
 - **Aviso a la comunidad.** Que quien use el sistema sepa qué queda registrado.
 
 Estas definiciones importan porque el asistente se consulta sobre licencias, sumarios y

@@ -44,21 +44,51 @@ RE_HEADER = re.compile(r'^(#{1,3})\s+(.*)$')
 SECCIONES_IGNORADAS = {'firmas', 'hoja de firmas'}
 
 
-def tipo_de_seccion(titulo):
+def tipo_de_seccion(titulo, despues_de_firmas=False):
+    """Qué parte del acto es esta sección.
+
+    El segundo parámetro no es un detalle: los anexos casi nunca se anuncian. En el corpus
+    de la UNLu solo el 5% de los actos trae un encabezado "ANEXO"; en el resto el anexo
+    empieza después del bloque de firmas del acto y sus secciones ---"PROGRAMA OFICIAL",
+    "CONTENIDOS MÍNIMOS", "BIBLIOGRAFÍA"--- están al MISMO nivel que el visto y el
+    considerando. Por eso la frontera es el bloque de firmas y no la jerarquía de
+    encabezados: heredar del ancestro no funciona porque son hermanas, y heredar del último
+    tipo conocido etiquetaría el programa de una asignatura como articulado, que es peor
+    que dejarlo sin clasificar.
+    """
     t = titulo.strip().lower()
-    if t.startswith('artículo') or t.startswith('articulo'):
-        return 'articulo'
+    if t in SECCIONES_IGNORADAS:
+        return 'firmas'
     if t.startswith('anexo'):
         return 'anexo'
+    if despues_de_firmas:
+        # Ya terminó el acto: lo que sigue es el contenido que el articulado aprueba.
+        return 'ruido' if es_ruido(titulo) else 'anexo'
+    if t.startswith('artículo') or t.startswith('articulo'):
+        return 'articulo'
     if 'visto' in t:
         return 'visto'
     if 'considerando' in t:
         return 'considerando'
+    # Cada considerando de un acto administrativo empieza con "Que...". Cuando el
+    # documento los parte en secciones propias, el título que queda es esa palabra.
+    if t == 'que' or t.startswith('que '):
+        return 'considerando'
     if 'resolutiva' in t or 'dispositiva' in t:
         return 'parte_resolutiva'
-    if t in SECCIONES_IGNORADAS:
-        return 'firmas'
     return 'otra'
+
+
+# Encabezados que no son ni norma ni anexo: membretes que se repiten en cada página y
+# restos de la digitalización. Compiten en la recuperación sin aportar nada.
+RE_RUIDO = re.compile(
+    r'^(universidad nacional|rep[uú]blica argentina|p[aá]gina\s*\d|'
+    r'fecha\s*:|lugar de entrega\s*:|expediente\s*n?[°º]?\s*:|'
+    r'ap proveedor|\d+\s*/\s*\d+\s*$)', re.IGNORECASE)
+
+
+def es_ruido(titulo):
+    return bool(RE_RUIDO.match(titulo.strip()))
 
 
 def partir_markdown(md):
@@ -214,9 +244,15 @@ def main():
                 'url_documento', 'id_archivo', 'id_documento', 'fecha_acto',
                 'seccion_portal')}
 
+            despues_de_firmas = False
             for _, titulo, cuerpo in partir_markdown(md):
-                tipo = tipo_de_seccion(titulo)
-                if tipo == 'firmas' or len(cuerpo) < MIN_CARACTERES:
+                tipo = tipo_de_seccion(titulo, despues_de_firmas)
+                if tipo == 'firmas':
+                    # El primer bloque de firmas cierra el acto: lo que venga después es
+                    # anexo. Los bloques de firma siguientes son los del propio anexo.
+                    despues_de_firmas = True
+                    continue
+                if tipo == 'ruido' or len(cuerpo) < MIN_CARACTERES:
                     continue
                 for i, parte in enumerate(subdividir(cuerpo, a.max)):
                     if len(parte) < MIN_CARACTERES:

@@ -1,0 +1,36 @@
+#!/bin/bash
+# Despliegue de ChatDigesto en la VM. Se instala en /usr/local/sbin/desplegar-rag,
+# propiedad de root y sin permiso de escritura para nadie más, y se habilita en
+# sudoers para la cuenta de mantenimiento SIN contraseña.
+#
+# Por qué un script y no `sudo rsync`: un permiso para rsync es un permiso para
+# escribir cualquier archivo del sistema como root, porque los argumentos los elige
+# quien lo invoca. Acá no hay argumentos: los orígenes y los destinos están fijos,
+# y lo único que se puede hacer con este permiso es desplegar esta aplicación.
+#
+# El alcance real de este permiso: quien pueda escribir en la carpeta de preparación
+# consigue ejecutar código como `ragunlu`, el usuario del servicio. No como root.
+set -euo pipefail
+
+ORIGEN=/home/administrador/deploy-pendiente
+DESTINO=/opt/rag-unlu
+SERVICIO=rag-unlu
+
+[ -d "$ORIGEN" ] || { echo "no hay nada preparado en $ORIGEN"; exit 1; }
+
+# Solo estas tres partes se despliegan. El resto de la aplicación ---índice, datos,
+# entorno virtual, .env--- no se toca nunca desde acá: son estado, no código.
+for parte in backend frontend/dist docs; do
+    if [ -d "$ORIGEN/$parte" ]; then
+        install -d -o ragunlu -g ragunlu "$DESTINO/$(dirname "$parte")"
+        rsync -a --delete --chown=ragunlu:ragunlu "$ORIGEN/$parte/" "$DESTINO/$parte/"
+        echo "desplegado: $parte"
+    fi
+done
+
+# Las configuraciones de systemd y nginx quedan afuera a propósito: cambian el
+# entorno de ejecución del servicio y del servidor web, así que siguen requiriendo
+# una decisión humana y no viajan en un despliegue de código.
+
+systemctl restart "$SERVICIO"
+echo "servicio reiniciado; tarda alrededor de dos minutos en cargar índice y modelo"

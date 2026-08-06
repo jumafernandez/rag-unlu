@@ -15,8 +15,9 @@ import {
   adminEstado, adminDocumentos, adminAdmins, adminAgregarAdmin, adminQuitarAdmin,
   leerTema, guardarTema, leerInstitucion, guardarInstitucion, subirLogo, quitarLogo, URL_LOGO,
   adminCorridas, adminCorrida, adminLanzarCorrida, adminCancelarCorrida, adminRecargarIndice,
-  adminGeneracion, adminGuardarGeneracion, adminProbarGeneracion, adminUso, adminUsoConversacion
+  adminGeneracion, adminGuardarGeneracion, adminProbarGeneracion, adminUso
 } from "./api";
+import { LOGO_POR_OMISION } from "./config";
 
 const SECCIONES = [
   ["estado", "Estado"],
@@ -358,11 +359,15 @@ function Documentos({ alFallar }) {
 
   return (
     <>
-      <p className="admin-nota">
-        Lo que está efectivamente indexado, que es lo que el asistente puede responder — no
-        lo que alguna vez se recolectó. {d.documentos.toLocaleString("es-AR")} documentos.
-        {d.sin_seccion > 0 && ` ${d.sin_seccion.toLocaleString("es-AR")} sin sección asignada.`}
-      </p>
+      <div className="admin-tarjetas">
+        <Tarjeta titulo="Documentos indexados" valor={d.documentos.toLocaleString("es-AR")}
+                 pie="lo que el asistente puede responder" />
+        {d.sin_seccion > 0 && (
+          <Tarjeta titulo="Sin sección asignada"
+                   valor={d.sin_seccion.toLocaleString("es-AR")}
+                   pie="no se sabe de qué carpeta del portal vienen" />
+        )}
+      </div>
 
       <div className="admin-alternar">
         <button className={vista === "secciones" ? "activa" : ""}
@@ -444,11 +449,6 @@ function Apariencia({ alFallar }) {
 
   return (
     <>
-      <p className="admin-nota">
-        Todo lo que ata la aplicación a una institución. Estaba fijo en el código, así que
-        otra universidad tenía que recompilar para poner su nombre.
-      </p>
-
       <h3 className="admin-subtitulo">Identidad</h3>
       <div className="admin-campos">
         {CAMPOS_INSTITUCION.map(([clave, etiqueta, tipo]) => (
@@ -480,7 +480,7 @@ function Apariencia({ alFallar }) {
         logo propio se usa el que viene con la aplicación.
       </p>
       <div className="admin-logo">
-        <img src={hayLogo ? `${URL_LOGO}?v=${versionLogo}` : "/logo-unlu-96.png"}
+        <img src={hayLogo ? `${URL_LOGO}?v=${versionLogo}` : LOGO_POR_OMISION}
              alt="Logo actual" className="admin-logo-muestra" />
         <div className="admin-logo-acciones">
           <label className="sidebar-action admin-guardar admin-subir">
@@ -664,26 +664,24 @@ function Generacion({ alFallar }) {
 
 function Uso({ alFallar }) {
   const [datos, setDatos] = useState(null);
-  const [abierta, setAbierta] = useState(null);
-  const [conv, setConv] = useState(null);
 
   useEffect(() => { adminUso().then(setDatos).catch((e) => alFallar(e.message)); }, [alFallar]);
   if (!datos) return <p className="admin-cargando">Cargando…</p>;
 
-  const abrir = (id) => {
-    setAbierta(id); setConv(null);
-    adminUsoConversacion(id).then(setConv).catch((e) => alFallar(e.message));
-  };
-
   const r = datos.resumen;
+  const m = datos.metricas;
+  const pico = Math.max(1, ...m.por_dia.map((d) => d.consultas));
+  const sinMaterial = m.consultas ? Math.round((m.sin_fuentes / m.consultas) * 100) : 0;
+
   return (
     <>
-      <p className="admin-nota">
-        Qué se le pregunta al sistema y si las respuestas sirven. Es la única
-        realimentación real que hay: las valoraciones (👍/👎) salen de acá.
-      </p>
-
       <div className="admin-tarjetas">
+        <Tarjeta titulo="Consultas" valor={m.consultas.toLocaleString("es-AR")}
+                 pie={`en los últimos ${m.dias} días`} />
+        <Tarjeta titulo="Personas" valor={m.usuarios.toLocaleString("es-AR")}
+                 pie="con sesión iniciada" />
+        <Tarjeta titulo="Sin material" valor={`${sinMaterial}%`}
+                 pie="respuestas que no citaron normativa" />
         <Tarjeta titulo="Respuestas dadas" valor={r.respuestas.toLocaleString("es-AR")}
                  pie="desde el primer día" />
         <Tarjeta titulo="Valoradas útiles" valor={r.utiles.toLocaleString("es-AR")}
@@ -692,51 +690,29 @@ function Uso({ alFallar }) {
                  pie="pulgar abajo" />
       </div>
 
-      <h3 className="admin-subtitulo">Conversaciones recientes</h3>
-      <div className="admin-tabla-envoltura">
-        <table className="admin-tabla">
-          <thead>
-            <tr><th>Última actividad</th><th>Usuario</th><th>Título</th>
-                <th>Mensajes</th><th>👍</th><th>👎</th><th></th></tr>
-          </thead>
-          <tbody>
-            {datos.conversaciones.map((c) => (
-              <tr key={c.id} className={abierta === c.id ? "fila-activa" : ""}>
-                <td>{fecha(c.actualizada)}</td>
-                <td title={c.correo}>{c.nombre || c.correo}</td>
-                <td className="uso-titulo">{c.titulo}</td>
-                <td>{c.mensajes}</td>
-                <td>{c.utiles || ""}</td>
-                <td>{c.no_utiles || ""}</td>
-                <td><button className="history-accion" onClick={() => abrir(c.id)}>ver</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <h3 className="admin-subtitulo">Consultas por día</h3>
+      <div className="uso-serie">
+        {m.por_dia.map((d) => (
+          <div key={d.dia} className="uso-barra-envoltura" title={`${d.dia}: ${d.consultas}`}>
+            <div className="uso-barra" style={{ height: `${(d.consultas / pico) * 100}%` }} />
+            <span className="uso-barra-dia">{d.dia.slice(8)}</span>
+          </div>
+        ))}
       </div>
 
-      {abierta != null && (
-        <div className="corrida-log">
-          <div className="corrida-log-cabecera">
-            <strong>
-              {conv ? `${conv.titulo} — ${conv.nombre || conv.correo}` : "Cargando…"}
-            </strong>
-            <span>
-              <button className="history-accion" onClick={() => setAbierta(null)}>cerrar</button>
-            </span>
-          </div>
-          <div className="uso-conversacion">
-            {(conv?.mensajes || []).map((m, i) => (
-              <div key={i} className={`uso-mensaje ${m.rol}`}>
-                <div className="uso-mensaje-meta">
-                  {m.rol === "user" ? "Usuario" : "Asistente"} · {fecha(m.momento)}
-                  {m.util === 1 && " · 👍"}
-                  {m.util === 0 && " · 👎"}
-                </div>
-                <div className="uso-mensaje-texto">{m.texto}</div>
-              </div>
-            ))}
-          </div>
+      <h3 className="admin-subtitulo">Normativa más citada</h3>
+      {m.actos_citados.length === 0 ? (
+        <p className="admin-nota">Todavía no hay respuestas con fuentes citadas.</p>
+      ) : (
+        <div className="admin-tabla-envoltura">
+          <table className="admin-tabla">
+            <thead><tr><th>Acto</th><th>Veces citado</th></tr></thead>
+            <tbody>
+              {m.actos_citados.map((a) => (
+                <tr key={a.acto}><td>{a.acto}</td><td>{a.veces}</td></tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </>
@@ -754,11 +730,6 @@ function Administradores({ alFallar }) {
   if (!lista) return <p className="admin-cargando">Cargando…</p>;
   return (
     <>
-      <p className="admin-nota">
-        Solo se administran los administradores: el resto de las personas entra con su cuenta
-        de Google y no hay nada que dar de alta. Los que vienen del entorno no se pueden
-        quitar desde acá, para que el sistema no pueda quedarse sin ninguno.
-      </p>
 
       <table className="admin-tabla">
         <thead><tr><th>Correo</th><th>Origen</th><th></th></tr></thead>

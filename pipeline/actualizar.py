@@ -123,6 +123,109 @@ def recargar_api():
               flush=True)
 
 
+def reconstruir_todo(a, t0, comando_conciliar):
+    """Rehace el índice entero desde los actos ya procesados.
+
+    No es la rutina de mantenimiento: es la que corresponde cuando cambia algo que afecta a
+    TODO el corpus y no solo a lo nuevo ---el fragmentador, la forma de la cita, el modelo
+    de embeddings---. Ahí una fusión incremental no sirve, porque dejaría el corpus mitad
+    con un criterio y mitad con otro.
+
+    Vuelve a fragmentar y a vectorizar todo, y ADOPTA el resultado como índice en lugar de
+    fusionarlo. El índice anterior se conserva al lado, con su fecha: es la vuelta atrás si
+    la reconstrucción sale peor, y el punto de comparación para medirla.
+    """
+    import glob as _glob
+    import shutil
+
+    procesados = a.procesados if os.path.isabs(a.procesados) else os.path.join(RAIZ, a.procesados)
+    canonicos = _glob.glob(os.path.join(procesados, '**', '*_canonico.yaml'), recursive=True)
+    if not canonicos:
+        raise SystemExit(f'no hay actos procesados en {procesados}\n'
+                         'Indicá el directorio correcto con --procesados.')
+
+    sello = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+    tanda = os.path.join(RAIZ, 'data', 'tandas', f'{sello}-reconstruccion')
+    os.makedirs(tanda, exist_ok=True)
+    rel = os.path.relpath(tanda, RAIZ)
+    print(f'reconstrucción de {len(canonicos)} actos procesados', flush=True)
+    print(f'tanda: {tanda}', flush=True)
+
+    # La metadata autoritativa le da a cada fragmento su identidad, su título y su enlace
+    # permanente. Sin ella el índice se construye igual, pero las citas quedan mudas.
+    if a.metadata:
+        metadata = a.metadata if os.path.isabs(a.metadata) else os.path.join(RAIZ, a.metadata)
+        if not os.path.exists(metadata):
+            raise SystemExit(f'no existe la metadata indicada: {metadata}')
+        metadata = os.path.relpath(metadata, RAIZ)
+        print(f'metadata autoritativa: {metadata} (provista)', flush=True)
+    else:
+        metadata = os.path.join(rel, 'metadata.csv')
+        for d in DIRS_PDF:
+            if os.path.isdir(os.path.join(RAIZ, d)):
+                paso('metadata autoritativa',
+                     [PY, os.path.join(REPO, 'pipeline', 'metadata_desde_catalogo.py'),
+                      '--metadatos', METADATOS, '--pdfs', d,
+                      '--salida', metadata])
+                break
+        # Un cruce vacío no es un detalle: significa que los PDF no se llaman como el
+        # catálogo espera, y seguir produciría un índice sin códigos de acto ni enlaces,
+        # o sea peor que el que ya está sirviendo. Mejor frenar acá que descubrirlo
+        # después de horas de cómputo.
+        completo = os.path.join(RAIZ, metadata)
+        filas = sum(1 for _ in open(completo, encoding='utf-8')) - 1 if os.path.exists(completo) else 0
+        if filas <= 0:
+            raise SystemExit(
+                'la metadata autoritativa salió vacía: ningún PDF cruzó con el catálogo.\n'
+                'Suele pasar cuando el corpus llegó por una vía distinta a la del portal y '
+                'los archivos no se llaman igual.\n'
+                'Si ya tenés un CSV de metadata armado, pasalo con --metadata.')
+        print(f'metadata autoritativa: {filas} actos', flush=True)
+    orden = [PY, os.path.join(REPO, 'pipeline', 'chunkear.py'),
+             '--resultados', os.path.relpath(procesados, RAIZ),
+             '--salida', os.path.join(rel, 'chunks.jsonl')]
+    orden += ['--metadata', metadata]
+    paso('fragmentar todo', orden)
+
+    vectorizar = [PY, os.path.join(REPO, 'pipeline', 'embeddings.py'),
+                  '--chunks', os.path.join(rel, 'chunks.jsonl'),
+                  '--salida', os.path.join(rel, 'vectores')]
+    if a.modelo:
+        vectorizar += ['--modelo', a.modelo]
+    if a.dispositivo:
+        vectorizar += ['--dispositivo', a.dispositivo]
+    if a.batch:
+        vectorizar += ['--batch', str(a.batch)]
+    paso('vectorizar todo', vectorizar)
+
+    # Adopción con respaldo. El índice viejo no se borra: queda al lado, fechado.
+    indice = os.path.join(RAIZ, 'indice')
+    if os.path.isdir(indice):
+        respaldo = os.path.join(RAIZ, f'indice.previo-{sello}')
+        shutil.copytree(indice, respaldo,
+                        ignore=shutil.ignore_patterns('*.faiss', '*.sqlite'))
+        print(f'\níndice anterior respaldado en {os.path.basename(respaldo)}', flush=True)
+    os.makedirs(indice, exist_ok=True)
+    for nombre in ('chunks.jsonl', 'densos.npy', 'indice.json'):
+        shutil.copy(os.path.join(RAIZ, rel, 'vectores', nombre), os.path.join(indice, nombre))
+    print('=== índice adoptado desde la reconstrucción ===', flush=True)
+
+    # El catálogo puede no existir ---una instalación que armó su base por otra vía--- y
+    # eso no invalida la reconstrucción: lo que aporta es refrescar enlaces y estados, no
+    # el contenido. Se avisa y se sigue, en vez de abortar con el índice ya adoptado.
+    if os.path.exists(os.path.join(RAIZ, METADATOS)):
+        paso('refrescar metadata', [PY, '-m', 'pipeline.actualizar_metadata', '--aplicar'])
+    else:
+        print(f'\nsin catálogo en {METADATOS}: se omite el refresco de metadata', flush=True)
+
+    paso('reconstruir artefactos', [PY, '-m', 'pipeline.construir_indice'])
+
+    if os.path.exists(os.path.join(RAIZ, METADATOS)):
+        paso('conciliar', comando_conciliar)
+    recargar_api()
+    print(f'\n=== reconstrucción en {(time.time() - t0) / 60:.1f} min ===', flush=True)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -138,6 +241,29 @@ def main():
                    help='procesar a lo sumo N actos nuevos (para probar)')
     p.add_argument('--paciencia', type=int, default=25,
                    help='tolerancia del recolector a respuestas vacías del portal')
+    p.add_argument('--reconstruir', action='store_true',
+                   help='rehacer el índice COMPLETO desde los actos ya procesados, sin '
+                        'recolectar ni descargar. Es lo que corresponde cuando cambia el '
+                        'fragmentador o el modelo de embeddings.')
+    p.add_argument('--procesados', default='data/procesados',
+                   help='con --reconstruir: directorio de los actos ya procesados '
+                        '(*_canonico.yaml y *.md)')
+    p.add_argument('--metadata', default=None,
+                   help='con --reconstruir: CSV de metadata autoritativa ya armado. Si no '
+                        'se pasa, se genera desde el catálogo. Hace falta cuando los PDF '
+                        'no se llaman como el catálogo espera ---por ejemplo si el corpus '
+                        'llegó por otra vía--- y por lo tanto no cruzan por nombre.')
+    p.add_argument('--dispositivo', default=None,
+                   help='dónde calcular los embeddings: cpu, cuda, xpu, mps. Por omisión '
+                        'lo detecta solo.')
+    p.add_argument('--batch', type=int, default=None,
+                   help='tamaño de lote de los embeddings')
+    p.add_argument('--modelo', default=os.environ.get('RAG_MODELO_EMB'),
+                   help='modelo de embeddings: nombre en Hugging Face o ruta local. Por '
+                        'omisión toma RAG_MODELO_EMB, la misma variable que usa la API, '
+                        'para que el índice se construya con el modelo que después lo '
+                        'consulta. En una máquina sin salida a internet hay que apuntar a '
+                        'los pesos locales o el paso falla buscándolos afuera.')
     a = p.parse_args()
 
     t0 = time.time()
@@ -146,6 +272,10 @@ def main():
                          '--indice', 'indice/chunks.jsonl', '--log', LOG_DESCARGAS]
     for d in DIRS_PDF:
         comando_conciliar += ['--descargas', d]
+
+    if a.reconstruir:
+        reconstruir_todo(a, t0, comando_conciliar)
+        return
 
     if a.solo_indexar:
         paso('reconstruir artefactos', [PY, '-m', 'pipeline.construir_indice'])

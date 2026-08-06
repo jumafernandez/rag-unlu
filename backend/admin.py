@@ -507,26 +507,6 @@ def documentos_por_seccion(ix, limite=60):
 
 
 # ----------------------------------------------------------------- uso
-def uso_reciente(limite=60):
-    """Las conversaciones más recientes de todos los usuarios, para el panel.
-
-    Existe porque quien administra necesita saber qué se le pregunta al sistema y si las
-    respuestas sirven: es la única realimentación real que hay. El acceso es de
-    administradores y queda claro en la guía; no es un canal oculto.
-    """
-    with historial._candado:
-        filas = _bd().execute(
-            'SELECT c.id, c.titulo, c.actualizada, u.correo, u.nombre, '
-            '       COUNT(m.id) AS mensajes, '
-            '       SUM(CASE WHEN m.util = 1 THEN 1 ELSE 0 END) AS utiles, '
-            '       SUM(CASE WHEN m.util = 0 THEN 1 ELSE 0 END) AS no_utiles '
-            'FROM conversacion c '
-            'JOIN usuario u ON u.id = c.usuario_id '
-            'LEFT JOIN mensaje m ON m.conversacion_id = c.id '
-            'GROUP BY c.id ORDER BY c.actualizada DESC LIMIT ?', (limite,)).fetchall()
-    return [dict(f) for f in filas]
-
-
 def uso_resumen():
     with historial._candado:
         bd = _bd()
@@ -537,17 +517,61 @@ def uso_resumen():
     return {'respuestas': total or 0, 'utiles': utiles or 0, 'no_utiles': no_utiles or 0}
 
 
-def uso_conversacion(conversacion_id):
-    """Una conversación completa, sin filtrar por dueño: es la vista del administrador."""
+def uso_metricas(dias=14, muestra=500):
+    """Qué se le está preguntando al sistema y dónde no encuentra.
+
+    El resumen cuenta cuántas respuestas se dieron; esto responde la pregunta que sigue,
+    que es la que importa cuando el sistema se está probando: qué se preguntó, con qué
+    ritmo, y cuáles quedaron sin material. Una respuesta sin fuentes citadas es el único
+    indicio automático de que el corpus no tenía con qué responder ---o de que la
+    recuperación falló---, y es la señal más accionable que produce el sistema en uso.
+    """
+    import collections
+    import datetime
+
+    corte = int(time.time()) - dias * 86400
     with historial._candado:
         bd = _bd()
-        conv = bd.execute(
-            'SELECT c.id, c.titulo, c.creada, u.correo, u.nombre '
-            'FROM conversacion c JOIN usuario u ON u.id = c.usuario_id '
-            'WHERE c.id=?', (conversacion_id,)).fetchone()
-        if not conv:
-            return None
-        mensajes = bd.execute(
-            'SELECT rol, texto, momento, util FROM mensaje '
-            'WHERE conversacion_id=? ORDER BY id', (conversacion_id,)).fetchall()
-    return {**dict(conv), 'mensajes': [dict(m) for m in mensajes]}
+        consultas, usuarios = bd.execute(
+            "SELECT COUNT(*), COUNT(DISTINCT c.usuario_id) FROM mensaje m "
+            "JOIN conversacion c ON c.id = m.conversacion_id "
+            "WHERE m.rol='user' AND m.momento >= ?", (corte,)).fetchone()
+        sin_fuentes = bd.execute(
+            "SELECT COUNT(*) FROM mensaje WHERE rol='assistant' AND momento >= ? "
+            "AND (fuentes IS NULL OR fuentes = '' OR fuentes = '[]')", (corte,)).fetchone()[0]
+        por_dia = bd.execute(
+            "SELECT date(momento, 'unixepoch', 'localtime') AS dia, COUNT(*) AS n "
+            "FROM mensaje WHERE rol='user' AND momento >= ? "
+            "GROUP BY dia ORDER BY dia", (corte,)).fetchall()
+        citas = bd.execute(
+            "SELECT fuentes FROM mensaje WHERE rol='assistant' AND fuentes IS NOT NULL "
+            "ORDER BY id DESC LIMIT ?", (muestra,)).fetchall()
+
+    # Los actos más citados salen del JSON de fuentes: en SQL habría que desarmarlo a mano
+    # y acá es una vuelta de bucle.
+    conteo = collections.Counter()
+    for fila in citas:
+        try:
+            for f in json.loads(fila['fuentes']) or []:
+                cabeza = (f.get('cita') or '').split('—')[0].strip()
+                if cabeza:
+                    conteo[cabeza] += 1
+        except (ValueError, TypeError, AttributeError):
+            continue
+
+    # Se completan los días sin actividad: una serie con huecos se lee como si esos días
+    # no existieran, cuando lo que dicen es que no hubo consultas.
+    conteo_dia = {f['dia']: f['n'] for f in por_dia}
+    hoy = datetime.date.today()
+    serie = [{'dia': (hoy - datetime.timedelta(days=d)).isoformat(),
+              'consultas': conteo_dia.get((hoy - datetime.timedelta(days=d)).isoformat(), 0)}
+             for d in range(dias - 1, -1, -1)]
+
+    return {
+        'dias': dias,
+        'consultas': consultas or 0,
+        'usuarios': usuarios or 0,
+        'sin_fuentes': sin_fuentes or 0,
+        'por_dia': serie,
+        'actos_citados': [{'acto': a, 'veces': n} for a, n in conteo.most_common(10)],
+    }

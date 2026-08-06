@@ -187,7 +187,6 @@ export const adminProbarGeneracion = () =>
   pedir("/admin/generacion/probar", { method: "POST" });
 
 export const adminUso = () => pedir("/admin/uso");
-export const adminUsoConversacion = (id) => pedir(`/admin/uso/conversaciones/${id}`);
 export const leerPreferencias = () => pedir("/preferencias");
 export const guardarPreferencias = (tono) =>
   pedir("/preferencias", { method: "PUT", body: JSON.stringify({ tono }) });
