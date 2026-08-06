@@ -19,7 +19,8 @@ nginx ya sirviendo el dominio (verificado), ~6 GB de disco para código + índic
        python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
 3. Crear `/opt/rag-unlu/.env` (copiar de `.env.ejemplo` y completar claves;
-   `RAG_ADMINS=jumfernandez@gmail.com`).
+   en `RAG_ADMINS` va el correo institucional de quien vaya a administrar,
+   separando con comas si es más de uno).
 
 4. Servicio y proxy:
 
