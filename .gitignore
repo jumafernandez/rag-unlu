@@ -85,3 +85,11 @@ indice.previo-*/
 instalaciones/*/scrapers/metadatos*.csv
 instalaciones/*/scrapers/meta_*.csv
 instalaciones/*/scrapers/traza.jsonl
+
+# Copias .previo: las dejan los scripts del pipeline al reemplazar un archivo, y son la
+# versión anterior de un dato o de un fuente. Sirven en el disco, no en el historial.
+*.previo
+
+# Ningún CSV bajo scrapers/ es código: todos son catálogos, listados intermedios o mapeos
+# de la recolección. Se regeneran con la operación 1 del panel.
+scrapers/**/*.csv
