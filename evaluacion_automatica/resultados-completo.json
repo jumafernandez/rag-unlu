@@ -1,0 +1,2252 @@
+{
+ "resumen": {
+  "denso": {
+   "global": {
+    "n": 161,
+    "recall@1": 0.43478260869565216,
+    "recall@5": 0.6211180124223602,
+    "recall@8": 0.6459627329192547,
+    "mrr@10": 0.5107906930888297,
+    "ndcg@10": 0.5454178992707245,
+    "sin_encontrar": 56
+   },
+   "identificador": {
+    "n": 30,
+    "recall@1": 0.06666666666666667,
+    "recall@5": 0.1,
+    "recall@8": 0.1,
+    "mrr@10": 0.07777777777777778,
+    "ndcg@10": 0.08333333333333333,
+    "sin_encontrar": 27
+   },
+   "tematica": {
+    "n": 131,
+    "recall@1": 0.5190839694656488,
+    "recall@5": 0.7404580152671756,
+    "recall@8": 0.7709923664122137,
+    "mrr@10": 0.6099539561371623,
+    "ndcg@10": 0.6512387922334858,
+    "sin_encontrar": 29
+   }
+  },
+  "bm25": {
+   "global": {
+    "n": 161,
+    "recall@1": 0.5652173913043478,
+    "recall@5": 0.7453416149068323,
+    "recall@8": 0.7639751552795031,
+    "mrr@10": 0.6383022774327122,
+    "ndcg@10": 0.675997964437449,
+    "sin_encontrar": 33
+   },
+   "identificador": {
+    "n": 30,
+    "recall@1": 0.5333333333333333,
+    "recall@5": 0.7333333333333333,
+    "recall@8": 0.7666666666666667,
+    "mrr@10": 0.614074074074074,
+    "ndcg@10": 0.665611086965341,
+    "sin_encontrar": 5
+   },
+   "tematica": {
+    "n": 131,
+    "recall@1": 0.5725190839694656,
+    "recall@5": 0.7480916030534351,
+    "recall@8": 0.7633587786259542,
+    "mrr@10": 0.6438507209499577,
+    "ndcg@10": 0.6783766386677026,
+    "sin_encontrar": 28
+   }
+  },
+  "hibrido": {
+   "global": {
+    "n": 161,
+    "recall@1": 0.6583850931677019,
+    "recall@5": 0.8074534161490683,
+    "recall@8": 0.8136645962732919,
+    "mrr@10": 0.723464458247067,
+    "ndcg@10": 0.7476359590666161,
+    "sin_encontrar": 29
+   },
+   "identificador": {
+    "n": 30,
+    "recall@1": 0.8666666666666667,
+    "recall@5": 0.8666666666666667,
+    "recall@8": 0.8666666666666667,
+    "mrr@10": 0.8666666666666667,
+    "ndcg@10": 0.8666666666666667,
+    "sin_encontrar": 4
+   },
+   "tematica": {
+    "n": 131,
+    "recall@1": 0.6106870229007634,
+    "recall@5": 0.7938931297709924,
+    "recall@8": 0.8015267175572519,
+    "mrr@10": 0.6906700593723494,
+    "ndcg@10": 0.7203770183948488,
+    "sin_encontrar": 25
+   }
+  },
+  "sin_estado": {
+   "global": {
+    "n": 58,
+    "recall@1": 0.05172413793103448,
+    "recall@5": 0.10344827586206896,
+    "recall@8": 0.10344827586206896,
+    "mrr@10": 0.07758620689655173,
+    "ndcg@10": 0.08435843552955814,
+    "sin_encontrar": 52
+   },
+   "conversacional": {
+    "n": 29,
+    "recall@1": 0.10344827586206896,
+    "recall@5": 0.20689655172413793,
+    "recall@8": 0.20689655172413793,
+    "mrr@10": 0.15517241379310345,
+    "ndcg@10": 0.16871687105911629,
+    "sin_encontrar": 23
+   },
+   "conversacional_acto": {
+    "n": 29,
+    "recall@1": 0.0,
+    "recall@5": 0.0,
+    "recall@8": 0.0,
+    "mrr@10": 0.0,
+    "ndcg@10": 0.0,
+    "sin_encontrar": 29
+   }
+  },
+  "sin_reescritura": {
+   "global": {
+    "n": 58,
+    "recall@1": 0.06896551724137931,
+    "recall@5": 0.15517241379310345,
+    "recall@8": 0.1724137931034483,
+    "mrr@10": 0.10220306513409962,
+    "ndcg@10": 0.12281860107685164,
+    "sin_encontrar": 47
+   },
+   "conversacional": {
+    "n": 29,
+    "recall@1": 0.13793103448275862,
+    "recall@5": 0.20689655172413793,
+    "recall@8": 0.20689655172413793,
+    "mrr@10": 0.17624521072796934,
+    "ndcg@10": 0.19182377595885847,
+    "sin_encontrar": 22
+   },
+   "conversacional_acto": {
+    "n": 29,
+    "recall@1": 0.0,
+    "recall@5": 0.10344827586206896,
+    "recall@8": 0.13793103448275862,
+    "mrr@10": 0.028160919540229885,
+    "ndcg@10": 0.05381342619484478,
+    "sin_encontrar": 25
+   }
+  },
+  "sin_entidad": {
+   "global": {
+    "n": 58,
+    "recall@1": 0.8103448275862069,
+    "recall@5": 0.8793103448275862,
+    "recall@8": 0.896551724137931,
+    "mrr@10": 0.8418103448275862,
+    "ndcg@10": 0.855088050771287,
+    "sin_encontrar": 6
+   },
+   "conversacional": {
+    "n": 29,
+    "recall@1": 0.6206896551724138,
+    "recall@5": 0.7586206896551724,
+    "recall@8": 0.7931034482758621,
+    "mrr@10": 0.6836206896551724,
+    "ndcg@10": 0.7101761015425738,
+    "sin_encontrar": 6
+   },
+   "conversacional_acto": {
+    "n": 29,
+    "recall@1": 1.0,
+    "recall@5": 1.0,
+    "recall@8": 1.0,
+    "mrr@10": 1.0,
+    "ndcg@10": 1.0,
+    "sin_encontrar": 0
+   }
+  },
+  "sin_actos": {
+   "global": {
+    "n": 58,
+    "recall@1": 0.8103448275862069,
+    "recall@5": 0.8793103448275862,
+    "recall@8": 0.896551724137931,
+    "mrr@10": 0.8421182266009852,
+    "ndcg@10": 0.8553961276083146,
+    "sin_encontrar": 6
+   },
+   "conversacional": {
+    "n": 29,
+    "recall@1": 0.6206896551724138,
+    "recall@5": 0.7586206896551724,
+    "recall@8": 0.7931034482758621,
+    "mrr@10": 0.6842364532019704,
+    "ndcg@10": 0.7107922552166293,
+    "sin_encontrar": 6
+   },
+   "conversacional_acto": {
+    "n": 29,
+    "recall@1": 1.0,
+    "recall@5": 1.0,
+    "recall@8": 1.0,
+    "mrr@10": 1.0,
+    "ndcg@10": 1.0,
+    "sin_encontrar": 0
+   }
+  },
+  "con_estado": {
+   "global": {
+    "n": 58,
+    "recall@1": 0.8103448275862069,
+    "recall@5": 0.8793103448275862,
+    "recall@8": 0.896551724137931,
+    "mrr@10": 0.8421182266009852,
+    "ndcg@10": 0.8553961276083146,
+    "sin_encontrar": 6
+   },
+   "conversacional": {
+    "n": 29,
+    "recall@1": 0.6206896551724138,
+    "recall@5": 0.7586206896551724,
+    "recall@8": 0.7931034482758621,
+    "mrr@10": 0.6842364532019704,
+    "ndcg@10": 0.7107922552166293,
+    "sin_encontrar": 6
+   },
+   "conversacional_acto": {
+    "n": 29,
+    "recall@1": 1.0,
+    "recall@5": 1.0,
+    "recall@8": 1.0,
+    "mrr@10": 1.0,
+    "ndcg@10": 1.0,
+    "sin_encontrar": 0
+   }
+  },
+  "estado_corregido": {
+   "global": {
+    "n": 58,
+    "recall@1": 0.8103448275862069,
+    "recall@5": 0.8793103448275862,
+    "recall@8": 0.896551724137931,
+    "mrr@10": 0.8421182266009852,
+    "ndcg@10": 0.8553961276083146,
+    "sin_encontrar": 6
+   },
+   "conversacional": {
+    "n": 29,
+    "recall@1": 0.6206896551724138,
+    "recall@5": 0.7586206896551724,
+    "recall@8": 0.7931034482758621,
+    "mrr@10": 0.6842364532019704,
+    "ndcg@10": 0.7107922552166293,
+    "sin_encontrar": 6
+   },
+   "conversacional_acto": {
+    "n": 29,
+    "recall@1": 1.0,
+    "recall@5": 1.0,
+    "recall@8": 1.0,
+    "mrr@10": 1.0,
+    "ndcg@10": 1.0,
+    "sin_encontrar": 0
+   }
+  }
+ },
+ "detalle": [
+  {
+   "consulta": "¿Qué establece la Disposicion CS 52/2026?",
+   "tipo": "identificador",
+   "cita": "Disposicion CS 52/2026 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPDD-CB 10/2026?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPDD-CB 10/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DISPCD-CS 129/2025",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPCD-CS 129/2025 — Artículo 1",
+   "denso": null,
+   "bm25": 6,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Disposicion DISPDD-E 45/2026",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPDD-E 45/2026 — Artículo 1",
+   "denso": null,
+   "bm25": 9,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPPCD-CB 207/2024?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPPCD-CB 207/2024 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPSECPOS 62/2024?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPSECPOS 62/2024 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DSUBSEF 178/2024",
+   "tipo": "identificador",
+   "cita": "Disposicion DSUBSEF 178/2024 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Disposicion DISSECPCII 142/2025",
+   "tipo": "identificador",
+   "cita": "Disposicion DISSECPCII 142/2025 — Artículo 1",
+   "denso": null,
+   "bm25": 3,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPSEACAD 678/2026?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPSEACAD 678/2026 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DSECBUAE 7/2026?",
+   "tipo": "identificador",
+   "cita": "Disposicion DSECBUAE 7/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "texto de la Disposicion CS 37/2026",
+   "tipo": "identificador",
+   "cita": "Disposicion CS 37/2026 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "Disposicion DISPDD-E 177/2024",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPDD-E 177/2024 — Artículo 1",
+   "denso": null,
+   "bm25": 2,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPDD-CS 41/2024?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPDD-CS 41/2024 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPPCD-E 37/2026?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPPCD-E 37/2026 — Artículo 1",
+   "denso": null,
+   "bm25": 4,
+   "hibrido": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DGAA 560/2024",
+   "tipo": "identificador",
+   "cita": "Disposicion DGAA 560/2024 — Considerando",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Resolucion RR 135/2024",
+   "tipo": "identificador",
+   "cita": "Resolucion RR 135/2024 — Considerando",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DSECEXT 27/2025?",
+   "tipo": "identificador",
+   "cita": "Disposicion DSECEXT 27/2025 — Visto",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿De qué trata la Unknown?",
+   "tipo": "identificador",
+   "cita": "Unknown — Artículo 2",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "texto de la Disposicion DISPSEACAD 595/2025",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPSEACAD 595/2025 — Artículo 1",
+   "denso": null,
+   "bm25": 2,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Disposicion DGR 3/2025",
+   "tipo": "identificador",
+   "cita": "Disposicion DGR 3/2025 — Artículo 1",
+   "denso": 3,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Resolucion RR 14/2025?",
+   "tipo": "identificador",
+   "cita": "Resolucion RR 14/2025 — Considerando",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPCD-CB 348/2025?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPCD-CB 348/2025 — Artículo 2",
+   "denso": null,
+   "bm25": 5,
+   "hibrido": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DGAEF 64/2026",
+   "tipo": "identificador",
+   "cita": "Disposicion DGAEF 64/2026 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Disposicion DISPPCD-E 91/2025",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPPCD-E 91/2025 — Considerando",
+   "denso": null,
+   "bm25": 4,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPCD-T 41/2025?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPCD-T 41/2025 — Artículo 2",
+   "denso": null,
+   "bm25": 9,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DGS 2/2025?",
+   "tipo": "identificador",
+   "cita": "Disposicion DGS 2/2025 — Artículo 2",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "texto de la Disposicion DISPSECCYT 5/2025",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPSECCYT 5/2025 — Artículo 3",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Disposicion DISPDD-T 68/2026",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPDD-T 68/2026 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion CS 49/2026?",
+   "tipo": "identificador",
+   "cita": "Disposicion CS 49/2026 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿De qué trata la Disposicion DISPCD-T 46/2025?",
+   "tipo": "identificador",
+   "cita": "Disposicion DISPCD-T 46/2025 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de Adriana Rosenfeld para servicios personales en transformación digital en Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DSECEXT 26/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Información sobre la licencia docente de Clara María Minaverry para actividades académicas en Noruega en enero de 2026",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-CS 23/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "baja de docente en Ciencias Sociales María Dolores Martínez",
+   "tipo": "tematica",
+   "cita": "Disposicion CS 43/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación docente Gabriel Larretape en abril de 2025",
+   "tipo": "tematica",
+   "cita": "Disposicion CS 7/2025 — Artículo 1",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quiénes son los responsables del curso de posgrado sobre tecnologías de la información geográfica aplicadas a la gestión municipal en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-CB 388/2024 — Artículo 2",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Aval del informe final sobre el uso de sistemas externos de representación en la enseñanza de ciencias en la escuela primaria",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-E 191/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué información hay sobre el concurso para el cargo de Ayudante de Primera en Tecnologías Informáticas que fue declarado desierto?",
+   "tipo": "tematica",
+   "cita": "Resolucion RESHCS 303/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuál fue el resultado de la evaluación de la docente Mabel María Luján Muñoz para el cargo de Ayudante de Primera en la disciplina de Procesamiento y Conservación de Alimentos?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-T 138/2025 — Artículo 1",
+   "denso": 4,
+   "bm25": 1,
+   "hibrido": 2
+  },
+  {
+   "consulta": "Renuncia de docente en la División Cultura Corporal y su Enseñanza",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-E 163/2024 — Artículo 1",
+   "denso": 3,
+   "bm25": null,
+   "hibrido": 3
+  },
+  {
+   "consulta": "Error en el número de documento de identidad de la estudiante Gómez Ivana Elizabeth en la disposición del Departamento de Tecnología",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-T 100/2025 — Considerando",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de Jefe de Trabajos Prácticos en Biología para un docente con doctorado",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CB 83/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Designación de ayudante de segunda en el departamento de educación para Malena Tacuri Condo",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSEACAD 1107/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Baja por cesantía de un profesor adjunto por abandono de servicios en la UNLu",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-E 129/2024 — Artículo 2",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuándo se llevará a cabo el concurso cerrado interno para el cargo de Jefe de División de Liquidaciones de Haberes en la Universidad Nacional de las Artes?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECADM 353/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "tema de trabajo final de aplicación de Ivana Elizabeth Gómez en ingeniería agronómica sobre condiciones ambientales en granjas porcinas",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-T 80/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "alta de docente interino en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CS 325/2024 — Artículo 2",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Cuáles son las condiciones para presentar la garantía de cumplimiento de contrato en las órdenes de compra de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Orden_compra — Artículo 77",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Cómo se conforma la Comisión Revisora del Estatuto en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Resolucion RAU 1/2026 — Considerando",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de ayudante de primera en cultura corporal y su enseñanza",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-E 36/2026 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Qué estudiantes fueron incorporadas al equipo del proyecto de investigación sobre la memoria colectiva en la formación docente en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-E 192/2024 — Artículo 1",
+   "denso": 7,
+   "bm25": 9,
+   "hibrido": 2
+  },
+  {
+   "consulta": "¿Quiénes son los docentes designados para el tribunal evaluador del Trabajo Final de Graduación de la Licenciatura en Trabajo Social de Agustina Cartier Moulin?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CS 331/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quién fue designado como profesor asociado en la División de Análisis Socioeconómico y Cultural del Departamento de Ciencias Sociales?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSEACAD 93/2026 — Artículo 1",
+   "denso": 3,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "autorización de pago por servicio de traslado entre Luján y Manuel Alberti",
+   "tipo": "tematica",
+   "cita": "Disposicion DSUBSEF 203/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "programa del seminario sobre sujetos, culturas y pedagogías para la maestría en educación popular de adultos",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-E 64/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "pago anticipado a proveedor por adquisición de módulo de interfaz de confort para vehículo oficial",
+   "tipo": "tematica",
+   "cita": "Disposicion DSUBSEF 65/2026 — Artículo 1",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Inscripción de José María D'Angelo como candidato a Doctor en Ciencias Sociales y Humanas en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Resolucion RESPRHCS 11/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué información hay sobre la contratación de servicios personales para el seminario de Biología Molecular en la Carrera de Bioinformática en 2024?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECPOS 38/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 2,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación del Secretario de Bienestar y Asuntos Estudiantiles en enero de 2026",
+   "tipo": "tematica",
+   "cita": "Resolucion RR 394/2025 — Artículo 3",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 3
+  },
+  {
+   "consulta": "baja de docente en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "cita": "Disposicion DSBSGA 1/2024 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Quién es la tutora del trabajo final de graduación de María Florencia Magalí Sequeira en la licenciatura en Trabajo Social?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CS 427/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuánto se autorizó para el reintegro a María Laura Risiglione por el acto de reconocimiento a profesores del Departamento de Tecnología?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAEF 11/2025 — Artículo 2",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "aval para informe final de acciones y proyectos de extensión en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DGE 3/2025 — Considerando",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Coordinadores designados para la evaluación de proyectos de extensión 2026",
+   "tipo": "tematica",
+   "cita": "Disposicion DSECEXT 16/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 3,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quién fue designado como consultor en la carrera de especialización en producción avícola y cuál es su periodo de prestación de servicios?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISSECPCII 43/2024 — Artículo 1",
+   "denso": 3,
+   "bm25": 5,
+   "hibrido": 2
+  },
+  {
+   "consulta": "Licencia extraordinaria para docente en jornadas de mastozoología en Santa Cruz",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CB 288/2025 — Artículo 1",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "baja de docente Jésica Benholtz en Ciencias Básicas por renuncia",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSEACAD 185/2026 — Artículo 1",
+   "denso": 3,
+   "bm25": 1,
+   "hibrido": 2
+  },
+  {
+   "consulta": "¿Qué pasó con la inscripción de la estudiante Giuliana Benitez en el ciclo académico 2022?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAA 731/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Cuántas renovaciones anuales de cajas chicas se autorizan para la Dirección de Gestión de Rectorado en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Resolucion RR 325/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quiénes fueron designados como jurados para la defensa de la tesis de doctorado de Víctor Nicolás Velazco en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Resolucion RESPRHCS 151/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Aprobación de actividades extracurriculares en la Universidad Nacional de Luján relacionadas con cultivos alternativos",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-T 431/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "Descuento de haberes para el cargo de Ayudante de Primera en diciembre de 2025 por liquidación indebida",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECADM 84/2026 — Artículo 1",
+   "denso": 6,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de ayudantes de primera en cultura corporal y su enseñanza",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-E 7/2025 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": 9
+  },
+  {
+   "consulta": "Revalidación de docente en cargo de profesora adjunta en Trabajo Social",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSEACAD 492/2026 — Artículo 1",
+   "denso": null,
+   "bm25": 10,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Quiénes son los miembros de la Comisión de Recepción Definitiva para la contratación de repuestos para reparación de PCs en el Departamento de Servicios Sociales?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECADM 393/2024 — Artículo 2",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "prestación de servicios personales para el seminario de la carrera de maestría en gestión empresaria 2024",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECPOS 73/2024 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "Renovación de designación de personal nodocente en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECADM 813/2025 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "designación de Natalia Ledesma como Jefe de Trabajos Prácticos en Psicología y Psicopedagogía",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-E 208/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quién dictará el seminario sobre tecnologías y teoría de la información aplicadas a museos en la Universidad Nacional de Luján en octubre y noviembre de 2025?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECCYT 17/2025 — Artículo 1",
+   "denso": 9,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la contratación de una enfermera en la Delegación San Fernando en 2025?",
+   "tipo": "tematica",
+   "cita": "Disposicion DSECBUAE 19/2025 — Artículo 1",
+   "denso": 4,
+   "bm25": 3,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Reintegro de gastos por traslado del rector a Mar del Plata",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAEF 156/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "modificación de situación de revista docente Emilio Javier De La Cueva Gutiérrez",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CS 30/2025 — Artículo 1",
+   "denso": 4,
+   "bm25": 3,
+   "hibrido": 4
+  },
+  {
+   "consulta": "Funciones de los asistentes en el Rectorado de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DGR 1/2025 — Parte dispositiva",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cómo se preservan los registros de evaluación socioeconómica de los estudiantes que solicitan becas?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGBU 1/2025 — Artículo 2",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "incorporación de estudiante al proyecto de extensión en Cuartel V, Moreno",
+   "tipo": "tematica",
+   "cita": "Resolucion RESHCS 327/2026 — Artículo 1",
+   "denso": 4,
+   "bm25": 2,
+   "hibrido": 3
+  },
+  {
+   "consulta": "¿Cuánto se autorizó pagar por el servicio de catering durante el congreso de decanos y decanas de ciencias sociales?",
+   "tipo": "tematica",
+   "cita": "Disposicion DSUBSEF 68/2025 — Artículo 1",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Autorización de pago para la adquisición de insumos y servicios de mantenimiento en la Universidad",
+   "tipo": "tematica",
+   "cita": "Disposicion DSUBSEF 186/2024 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la asignación transitoria de funciones para el cargo de Jefe de División Pagos a favor de Natalia Teresa Pérez?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGP 67/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Programa del seminario de posgrado sobre metodología y técnicas de investigación en ciencias sociales y humanas para el doctorado",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-E 82/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Quiénes son las autoridades del Observatorio Malvinas y cuál es su estructura?",
+   "tipo": "tematica",
+   "cita": "Disposicion CS 17/2026 — Artículo 1",
+   "denso": 2,
+   "bm25": 2,
+   "hibrido": 2
+  },
+  {
+   "consulta": "Reintegro de gastos para actividades de la Asociación Civil de Microbiología General",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAEF 256/2024 — Artículo 1",
+   "denso": 2,
+   "bm25": 2,
+   "hibrido": 2
+  },
+  {
+   "consulta": "Modificación de artículo sobre imputación presupuestaria en la Secretaría de Posgrado",
+   "tipo": "tematica",
+   "cita": "Disposicion DISSECPCII 202/2025 — Artículo 1",
+   "denso": 5,
+   "bm25": null,
+   "hibrido": 4
+  },
+  {
+   "consulta": "continuidad docente Cintia Vanesa Bianchi Ayudante de Primera Psicología",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-E 97/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Quiero saber quiénes están designados para dictar el Taller de Lectura y Comprensión de Textos en febrero de 2025 y cuántas comisiones tiene cada uno.",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-CS 72/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 3,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Renovación del equipo de trabajo para la caracterización de grasas alimentarias en el CATEC",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-T 416/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Servicios personales para el taller de handball en Luján durante julio a diciembre de 2026",
+   "tipo": "tematica",
+   "cita": "Disposicion DSECBUAE 11/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuál es la retribución y las fechas del seminario sobre estudios de género que dictará Gloria Alejandra Lynch en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECPOS 35/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Modificación de la situación de revista de la docente Rosa Ester Miriam Campos en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-CS 41/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué información hay sobre la licencia extraordinaria de la docente Lucía Morresi en la División Biología?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CB 102/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuáles son las condiciones para la garantía de cumplimiento de contrato en las órdenes de compra de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Orden_compra — Artículo 77",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "Composición de la Comisión de Plan de Estudios de la Licenciatura en Enfermería",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-CS 96/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 8,
+   "hibrido": 2
+  },
+  {
+   "consulta": "¿Qué dependencias se consultan al recibir las bajas de personal en la Dirección General de Sistemas?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGS 4/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Hasta cuándo se extiende el plazo para inscribirse en los proyectos de investigación sobre sustentabilidad agropecuaria?",
+   "tipo": "tematica",
+   "cita": "Unknown — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Quiénes son los directores de la tesis de María Florencia Larroque en Licenciatura en Ciencias Biológicas?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-CB 40/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "cambio de dedicación docente de Ayudante de Primera en Ciencias Sociales",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSEACAD 490/2026 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Qué gastos se autorizaron para la compra de materiales para los talleres deportivos en la universidad?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAEF 54/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la contratación de Gerardo Adrián Núñez para la Maestría en Gestión Empresaria en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECPOS 77/2024 — Artículo 1",
+   "denso": 8,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "Reintegro de gastos para la compra de un regulador de presión para bebederos de pollos",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAEF 34/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Funciones de los asistentes en las unidades políticas del Rectorado de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DGR 1/2025 — Parte dispositiva",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Cómo se conforma la Comisión Revisora Permanente del Estatuto en la Asamblea Universitaria de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Resolucion RAU 1/2026 — Considerando",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "modificación de la situación de revista de un docente en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-CS 39/2024 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Qué información hay sobre la designación de una persona para un seminario sobre la infancia en la Universidad Nacional de Luján en 2024?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECPOS 87/2024 — Artículo 1",
+   "denso": null,
+   "bm25": 10,
+   "hibrido": 2
+  },
+  {
+   "consulta": "Información sobre la aprobación y aval de informes finales para proyectos de extensión en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DGE 5/2024 — Considerando",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Cómo se preservan los registros de evaluación socioeconómica de los estudiantes que solicitan becas?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGBU 1/2025 — Artículo 2",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Qué equivalencias académicas se otorgaron a Leon Gomez Damico para la carrera de Ingeniería en Alimentos?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAA 459/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quiénes son los docentes designados como tutor y asesora temática del trabajo final de graduación de Brisa Sánchez en la Licenciatura en Trabajo Social?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CS 394/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de jurados para evaluar un trabajo final en la especialización en matemática aplicada",
+   "tipo": "tematica",
+   "cita": "Resolucion RESPRHCS 16/2026 — Artículo 1",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quiénes son los miembros de la comisión evaluadora del trabajo final de Micaela Alejandra Macchia en Ingeniería Agronómica?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-CB 33/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuál es la nueva fecha límite para presentar el informe final del proyecto sobre la expansión urbana en la región metropolitana de Buenos Aires?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECCYT 14/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "autorización de servicios personales para dictado de un curso de posgrado en el marco de un proyecto de fortalecimiento de doctorados",
+   "tipo": "tematica",
+   "cita": "Resolucion RR 439/2024 — Artículo 1",
+   "denso": 3,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "Quiero saber sobre la designación de personal de gabinete en la Secretaría de Bienestar Universitario de la Universidad Nacional de Luján.",
+   "tipo": "tematica",
+   "cita": "Resolucion RR 305/2026 — Artículo 2",
+   "denso": null,
+   "bm25": 4,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuáles son los requisitos para constituir la garantía de cumplimiento de contrato en las órdenes de compra de la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Orden_compra — Artículo 77",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "modificación de dedicación del docente Pablo Javier Privitera en la División Cultura Corporal",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-E 48/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de Elda Yolanda Monterroso como personal de gabinete en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "cita": "Disposicion CS 48/2026 — Considerando",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quién fue aprobado para el cargo de Profesor Adjunto en la División Tecnología Agropecuaria?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-T 302/2025 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "modificación de la situación del docente Damián Alejandro Cipolla en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-CS 39/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 2,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de ayudante de segunda en biología ad honorem",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSEACAD 571/2025 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "Información sobre la inscripción al doctorado en Ciencias Aplicadas de María Eugenia Beily",
+   "tipo": "tematica",
+   "cita": "Resolucion RESPRHCS 46/2025 — Visto",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Quién fue la persona seleccionada para el cargo de Jefe de Trabajos Prácticos en la División Química?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPCD-CB 174/2024 — Artículo 1",
+   "denso": 3,
+   "bm25": 4,
+   "hibrido": 3
+  },
+  {
+   "consulta": "designación de docente tutor en la carrera de especialización en abordajes interdisciplinarios en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DISSECPCII 146/2025 — Artículo 1",
+   "denso": null,
+   "bm25": 2,
+   "hibrido": 2
+  },
+  {
+   "consulta": "Reconocimiento de actividades académicas en la especialización en Ciencias Sociales con mención en Historia Social",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAA 764/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": null,
+   "hibrido": 5
+  },
+  {
+   "consulta": "¿Qué información hay sobre el programa de extensión 'La UNLu en el Barrio' y quiénes son sus integrantes?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGE 1/2025 — Artículo 1",
+   "denso": 4,
+   "bm25": 3,
+   "hibrido": 3
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la contratación de profesores para el taller de vóley en Luján durante el segundo semestre de 2026?",
+   "tipo": "tematica",
+   "cita": "Disposicion DSECBUAE 10/2026 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Qué información hay sobre el taller de realización audiovisual para el programa Jóvenes y Memoria en Luján?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGE 4/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 2,
+   "hibrido": 2
+  },
+  {
+   "consulta": "Funciones específicas asignadas a Verónica Cano en la Dirección General de Recursos de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DGR 2/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "¿Cuál es la situación de la renuncia del docente Daniel Adrián Tortonese en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Disposicion CS 29/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Informe final del proyecto de extensión sobre desayunos y meriendas en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Resolucion RESHCS 35/2025 — Artículo 1",
+   "denso": 5,
+   "bm25": 8,
+   "hibrido": 3
+  },
+  {
+   "consulta": "¿Cuándo se designa a Virginia Elizabeth Simón como Ayudante de Segunda en la asignatura Termodinámica?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-T 22/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 3,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Quién es el nuevo representante suplente del claustro de docentes auxiliares en el registro de aspirantes?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-E 95/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Licencia extraordinaria sin goce de haberes para docentes en cargos interinos de mayor jerarquía",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-E 44/2026 — Artículo 1",
+   "denso": 8,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "designación de tribunal evaluador para trabajo final de graduación en licenciatura en trabajo social",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CS 112/2026 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Cuáles son los detalles sobre la adquisición de mesadas para el laboratorio de microbiología en la universidad?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAEF 13/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 3,
+   "hibrido": 2
+  },
+  {
+   "consulta": "Licencia por maternidad para docentes en el Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "cita": "Disposicion DGP 99/2025 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Quién fue designada para brindar apoyo administrativo en la carrera de Especialización en Educación y Políticas Públicas para la Primera Infancia en la Universidad Nacional de Luján?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISSECPCII 163/2025 — Artículo 1",
+   "denso": null,
+   "bm25": 4,
+   "hibrido": 6
+  },
+  {
+   "consulta": "¿Qué información hay sobre el taller de realización audiovisual para el programa Jóvenes y Memoria en Luján?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGE 4/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 2,
+   "hibrido": 2
+  },
+  {
+   "consulta": "¿Qué asignaturas se reconocen por equivalencia para la carrera de Contador Público en la Universidad Nacional de José C. Paz?",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAA 778/2024 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Cuánto se autorizó pagar por el servicio de traslado de los equipos de handball a Rafael Calzada en mayo de 2026?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPSECADM 273/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de ayudante de primera en computación en la sede Chivilcoy",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CB 87/2026 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Funciones de los asistentes en el Rectorado de la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Disposicion DGR 1/2025 — Parte dispositiva",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "tutoría trabajo final graduación licenciatura en trabajo social Candela Serio",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-CS 160/2026 — Visto",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "asesor técnico en producción de forraje en la Universidad Nacional de Luján",
+   "tipo": "tematica",
+   "cita": "Unknown — Visto",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "¿Cuál es la designación de la docente María Luciana Maidana en la asignatura de Enfermería Materno Infantil para el período 2025-2026?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-T 16/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "baja definitiva del docente Luis Juan Güerini en la División Derecho del Departamento de Ciencias Sociales",
+   "tipo": "tematica",
+   "cita": "Disposicion CS 46/2026 — Artículo 2",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Convocatoria para prácticas de extensión en las carreras de grado y pregrado de la UNLu 2026",
+   "tipo": "tematica",
+   "cita": "Disposicion DSECEXT 4/2026 — Artículo 1",
+   "denso": 2,
+   "bm25": 2,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Prórroga de licencia sin goce de haberes para docentes en cargos de mayor jerarquía en Tecnología Agropecuaria",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-T 186/2025 — Artículo 1",
+   "denso": 3,
+   "bm25": 3,
+   "hibrido": 2
+  },
+  {
+   "consulta": "¿Cuál es la situación laboral de la docente Rosana Demichuk en el Departamento de Ciencias Sociales?",
+   "tipo": "tematica",
+   "cita": "Disposicion CS 25/2025 — Artículo 1",
+   "denso": 4,
+   "bm25": 3,
+   "hibrido": 2
+  },
+  {
+   "consulta": "¿Qué información hay sobre el programa de la asignatura de Riego y Drenaje para la carrera de Ingeniería Agronómica en la Universidad Nacional de Luján para los años 2026-2027?",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPPCD-T 177/2025 — Artículo 1",
+   "denso": 2,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Equivalencias de materias para la carrera de Analista Universitario en Ciencias de Datos",
+   "tipo": "tematica",
+   "cita": "Disposicion DGAA 114/2026 — Artículo 1",
+   "denso": null,
+   "bm25": null,
+   "hibrido": null
+  },
+  {
+   "consulta": "Quiero saber quiénes son los miembros del tribunal evaluador del trabajo final de aplicación de Guillermo Andrés Schulz en Ingeniería Agronómica.",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-CB 24/2025 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de consejeras y tribunal evaluador para el trabajo final de aplicación de Milagros Peralta en Ingeniería Agronómica",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-CB 30/2024 — Artículo 1",
+   "denso": 1,
+   "bm25": 1,
+   "hibrido": 1
+  },
+  {
+   "consulta": "designación de responsable para talleres culturales en 2025",
+   "tipo": "tematica",
+   "cita": "Disposicion DSECEXT 11/2025 — Artículo 2",
+   "denso": 2,
+   "bm25": 3,
+   "hibrido": 1
+  },
+  {
+   "consulta": "Licencia sin goce de haberes para docente en mayor jerarquía en el Departamento de Tecnología",
+   "tipo": "tematica",
+   "cita": "Disposicion DISPDD-T 166/2024 — Artículo 1",
+   "denso": null,
+   "bm25": 1,
+   "hibrido": 2
+  },
+  {
+   "consulta": "¿Cuál es la normativa sobre la extensión del período de sesiones ordinarias en el Departamento de Ciencias Sociales? → ¿Y de qué año es esa disposición?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPCD-CS 541/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la disposición sobre la extensión del período de sesiones ordinarias en el Departamento de Ciencias Sociales?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Sobre qué trata la renuncia de la docente Susana Beatriz Serisier? → ¿Y de qué año es la aceptación de esta renuncia?",
+   "tipo": "conversacional",
+   "cita": "Disposicion CS 45/2026 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿Y de qué año es la aceptación de la renuncia de la docente Susana Beatriz Serisier?",
+   "sin_reescritura": null,
+   "sin_entidad": null,
+   "sin_actos": null,
+   "con_estado": null,
+   "estado_corregido": null
+  },
+  {
+   "consulta": "¿Cuál es el tema de la disposición relacionada con la prestación de servicios personales de Lilia Beatriz Chernobylsky? → ¿Y de qué año es la propuesta para el dictado del curso sobre análisis de datos cualitativos?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPSECCYT 6/2024 — Artículo 1",
+   "sin_estado": 1,
+   "consulta_efectiva": "¿De qué año es la propuesta para el dictado del curso sobre análisis de datos cualitativos?",
+   "sin_reescritura": 1,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la disposición que designa a un director y co-director para la tesis de Gianfranco Vaccaro? → ¿Y de qué año es esa disposición?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPDD-CB 59/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la disposición que designa a un director y co-director para la tesis de Gianfranco Vaccaro?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la disposición relacionada con la propuesta de servicios personales de la Directora del Doctorado en Ciencias Sociales y Humanas? → ¿Y de qué año es esta propuesta? ¿Sigue Alicia Itatí Palermo en ese cargo?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISSECPCII 11/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la propuesta relacionada con los servicios personales de la Directora del Doctorado en Ciencias Sociales y Humanas? ¿Sigue Alicia Itatí Palermo en el cargo de Directora del Doctorado en Ciencias Sociales y Humanas?",
+   "sin_reescritura": null,
+   "sin_entidad": 8,
+   "sin_actos": 7,
+   "con_estado": 7,
+   "estado_corregido": 7
+  },
+  {
+   "consulta": "¿Cuál es el tema de la resolución sobre el plan de tesis de Oscar Ramón Ojeda? → ¿Y de qué año es esa resolución?",
+   "tipo": "conversacional",
+   "cita": "Resolucion RESPRHCS 12/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la resolución sobre el plan de tesis de Oscar Ramón Ojeda?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿De qué trata la disposición que designa a los jurados evaluadores para las acciones de extensión? → ¿Y de qué año es esta convocatoria para la designación de evaluadores?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DGE 2/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la convocatoria para la designación de jurados evaluadores para las acciones de extensión?",
+   "sin_reescritura": 9,
+   "sin_entidad": 2,
+   "sin_actos": 2,
+   "con_estado": 2,
+   "estado_corregido": 2
+  },
+  {
+   "consulta": "¿Sobre qué trata el traslado de la trabajadora Fernanda Inés Caceres? → ¿Y de qué año es este traslado?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DGP 30/2026 — Artículo 1",
+   "sin_estado": 2,
+   "consulta_efectiva": "¿Y de qué año es el traslado de la trabajadora Fernanda Inés Caceres?",
+   "sin_reescritura": 1,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es la normativa que regula la designación de representantes del Departamento de Ciencias Sociales en la Comisión Académica de la Carrera de Especialización en Gestión de la Tecnología y la Innovación? → ¿Y de qué año es la normativa que establece esta designación?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPCD-CS 202/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la normativa que establece la designación de representantes del Departamento de Ciencias Sociales en la Comisión Académica de la Carrera de Especialización en Gestión de la Tecnología y la Innovación?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la licencia otorgada a Juan Ignacio Deriú en el Departamento de Ciencias Básicas? → ¿Y de qué año es la licencia otorgada a este docente?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPPCD-CB 179/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la licencia otorgada a Juan Ignacio Deriú?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la disposición que propone la integración de la Comisión Evaluadora para la promoción de un docente en la División Química? → ¿Y de qué año es esta propuesta? ¿Quién la firmó?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPCD-CB 203/2026 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la propuesta de integración de la Comisión Evaluadora para la promoción de un docente en la División Química y quién la firmó?",
+   "sin_reescritura": null,
+   "sin_entidad": null,
+   "sin_actos": null,
+   "con_estado": null,
+   "estado_corregido": null
+  },
+  {
+   "consulta": "¿Cuál es el tema del aval otorgado para el proyecto de investigación sobre el río Luján? → ¿Y de qué año es el aval que otorgó el secretario de Ciencia, Tecnología e Innovación?",
+   "tipo": "conversacional",
+   "cita": "Resolucion RESHCS-LUJ 200/20 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es el aval que otorgó el secretario de Ciencia, Tecnología e Innovación?",
+   "sin_reescritura": null,
+   "sin_entidad": null,
+   "sin_actos": null,
+   "con_estado": null,
+   "estado_corregido": null
+  },
+  {
+   "consulta": "¿Qué me puedes contar sobre la designación de la tutora interna para el trabajo de integración final de Carlos Alberto Pistarini? → ¿Y de qué año es esta designación?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPDD-T 176/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la designación de la tutora interna para el trabajo de integración final de Carlos Alberto Pistarini?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la actuación de pago relacionada con la adquisición de la micropipeta automática? → ¿Y de qué año es esa actuación de pago?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DSUBSEF 146/2025 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la actuación de pago relacionada con la adquisición de la micropipeta automática?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es la normativa relacionada con la renovación de designación de personal nodocente? → ¿Y de qué año es esa renovación, y quién la firmó?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPSECADM 311/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la renovación de designación de personal nodocente, y quién la firmó?",
+   "sin_reescritura": null,
+   "sin_entidad": 5,
+   "sin_actos": 5,
+   "con_estado": 5,
+   "estado_corregido": 5
+  },
+  {
+   "consulta": "¿Qué trata la disposición sobre la renuncia de un docente en el Departamento de Ciencias Sociales? → ¿Y de qué año es la renuncia de Alfredo Juan Bacigaluppi?",
+   "tipo": "conversacional",
+   "cita": "Disposicion CS 50/2024 — Artículo 1",
+   "sin_estado": 1,
+   "consulta_efectiva": "¿De qué año es la renuncia de Alfredo Juan Bacigaluppi?",
+   "sin_reescritura": 1,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es la sanción disciplinaria que se aplica al trabajador SANCHEZ por su incumplimiento laboral? → ¿Y de qué año es esta disposición? Porque no sé si sigue vigente.",
+   "tipo": "conversacional",
+   "cita": "Disposicion DSG 1/2025 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la disposición que aplica la sanción disciplinaria al trabajador SANCHEZ por su incumplimiento laboral?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la disposición que designa a María Fabiana Carlís para la prestación de servicios personales en la universidad? → ¿Y de qué año es la propuesta formativa en la que ella está involucrada?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISSECPCII 35/2026 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la propuesta formativa en la que María Fabiana Carlís está involucrada?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la baja definitiva del docente mencionado? → ¿Y de qué año es esa resolución?",
+   "tipo": "conversacional",
+   "cita": "Resolucion RESPRHCS 74/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la resolución sobre la baja definitiva del docente mencionado?",
+   "sin_reescritura": null,
+   "sin_entidad": 2,
+   "sin_actos": 2,
+   "con_estado": 2,
+   "estado_corregido": 2
+  },
+  {
+   "consulta": "¿Sobre qué trata la disposición relacionada con el registro de aspirantes para un cargo suplente en el área de Metodología de la Investigación? → ¿Y de qué año es esa disposición? ¿Se mantiene Carlos Fernando Torres en ese cargo?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPCD-E 152/2026 — Artículo 1",
+   "sin_estado": 2,
+   "consulta_efectiva": "¿De qué año es la disposición relacionada con el registro de aspirantes para un cargo suplente en el área de Metodología de la Investigación? ¿Se mantiene Carlos Fernando Torres en ese cargo?",
+   "sin_reescritura": 2,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema del taller deportivo recreativo de arquería que se menciona en la normativa? → ¿Y de qué año es el taller aprobado en esa normativa?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DSECBUAE 8/2026 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es el taller deportivo recreativo de arquería aprobado en la normativa?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué me puedes contar sobre la renuncia de un docente en la Universidad Nacional de Luján? → ¿Y de qué año es esa renuncia?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPDD-T 1/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿Y de qué año es la renuncia de un docente en la Universidad Nacional de Luján?",
+   "sin_reescritura": null,
+   "sin_entidad": null,
+   "sin_actos": null,
+   "con_estado": null,
+   "estado_corregido": null
+  },
+  {
+   "consulta": "¿Cuál es el tema relacionado con la prestación de servicios personales de María del Carmen Luján Maimone? → ¿Y de qué año es la disposición que regula su contratación?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPSECPOS 58/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la disposición que regula la contratación de María del Carmen Luján Maimone?",
+   "sin_reescritura": null,
+   "sin_entidad": null,
+   "sin_actos": null,
+   "con_estado": null,
+   "estado_corregido": null
+  },
+  {
+   "consulta": "¿Cuál es la normativa relacionada con la renuncia de un docente en la División de Actividad Física y Salud? → ¿Y de qué año es esta renuncia?",
+   "tipo": "conversacional",
+   "cita": "Disposicion CS 33/2026 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la renuncia de un docente en la División de Actividad Física y Salud?",
+   "sin_reescritura": null,
+   "sin_entidad": null,
+   "sin_actos": null,
+   "con_estado": null,
+   "estado_corregido": null
+  },
+  {
+   "consulta": "¿Cuál es el tema de la disposición relacionada con el Taller Deportivo de Basquet en Luján? → ¿Y de qué año es la propuesta de servicios personales para el profesor Nicolás Emanuel Miracca?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DSECBUAE 15/2025 — Artículo 1",
+   "sin_estado": 1,
+   "consulta_efectiva": "¿De qué año es la propuesta de servicios personales para el profesor Nicolás Emanuel Miracca?",
+   "sin_reescritura": 1,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la disposición que ratifica el dictamen del jurado en el concurso para cubrir un cargo de ayudante de segunda en la División Computación? → ¿Y de qué año es la disposición que aprueba el dictamen de Romero Monteagudo para ese cargo?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPCD-CB 467/2025 — Visto",
+   "sin_estado": 2,
+   "consulta_efectiva": "¿De qué año es la disposición que aprueba el dictamen de Romero Monteagudo para el cargo de ayudante de segunda en la División Computación?",
+   "sin_reescritura": 2,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema del ingreso a carrera docente de Martina Baglietto? → ¿Y de qué año es ese ingreso?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPCD-CS 431/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es el ingreso a carrera docente de Martina Baglietto?",
+   "sin_reescritura": null,
+   "sin_entidad": 2,
+   "sin_actos": 2,
+   "con_estado": 2,
+   "estado_corregido": 2
+  },
+  {
+   "consulta": "¿Cuál es el tema de la designación de tutora y co-tutora para el trabajo final de graduación de Carolina Ventura? → ¿Y de qué año es esa designación?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DISPDD-T 14/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿Y de qué año es la designación de tutora y co-tutora para el trabajo final de graduación de Carolina Ventura?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Cuál es el tema de la autorización del pago anticipado a Bulonera Romar S.R.L.? → ¿Y de qué año es esta autorización? ¿Quién la firmó?",
+   "tipo": "conversacional",
+   "cita": "Disposicion DSUBSEF 68/2026 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿De qué año es la autorización del pago anticipado a Bulonera Romar S.R.L. y quién la firmó?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPPCD-CB 270/2025? → ¿y de qué fecha es?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPPCD-CB 270/2025 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y de qué fecha es la Disposición DISPPCD-CB 270/2025?",
+   "sin_reescritura": 6,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DSG 2/2025? → ¿quién la firmó?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DSG 2/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿quién firmó la Disposición DSG 2/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DGGI 1/2025? → ¿qué dice su primer artículo?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DGGI 1/2025 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué dice el primer artículo de la Disposición DGGI 1/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPCD-CS 306/2025? → ¿y de qué fecha es?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPCD-CS 306/2025 — Visto",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y de qué fecha es la Disposición DISPCD-CS 306/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DGP 136/2024? → ¿y de qué fecha es?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DGP 136/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y de qué fecha es la Disposición DGP 136/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPCD-CB 32/2026? → ¿quién la firmó?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPCD-CB 32/2026 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿quién firmó la Disposición DISPCD-CB 32/2026?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DGS 1/2025? → ¿qué dice su primer artículo?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DGS 1/2025 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué dice el primer artículo de la Disposición DGS 1/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPDD-CS 40/2024? → ¿de qué trata su parte resolutiva?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPDD-CS 40/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿de qué trata la parte resolutiva de la Disposición DISPDD-CS 40/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DGAEF 70/2026? → ¿y qué establece en concreto?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DGAEF 70/2026 — Artículo 3",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y qué establece en concreto la Disposición DGAEF 70/2026?",
+   "sin_reescritura": 5,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPPCD-E 219/2024? → ¿y qué establece en concreto?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPPCD-E 219/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y qué establece en concreto la Disposición DISPPCD-E 219/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISSECPCII 195/2025? → ¿y de qué fecha es?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISSECPCII 195/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y de qué fecha es la Disposición DISSECPCII 195/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Resolucion RESHCS 116/2025? → ¿quién la firmó?",
+   "tipo": "conversacional_acto",
+   "cita": "Resolucion RESHCS 116/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿Quién firmó la Resolución RESHCS 116/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DGS 3/2024? → ¿y qué establece en concreto?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DGS 3/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y qué establece en concreto la Disposición DGS 3/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Resolucion RESHCS 5/2025? → ¿de qué trata su parte resolutiva?",
+   "tipo": "conversacional_acto",
+   "cita": "Resolucion RESHCS 5/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿de qué trata la parte resolutiva de la Resolución RESHCS 5/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPDD-CB 2/2026? → ¿quién la firmó?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPDD-CB 2/2026 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿quién firmó la Disposición DISPDD-CB 2/2026?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPPCD-CB 345/2024? → ¿y qué establece en concreto?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPPCD-CB 345/2024 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué establece en concreto la Disposición DISPPCD-CB 345/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPSECCYT 13/2024? → ¿y de qué fecha es?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPSECCYT 13/2024 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y de qué fecha es la Disposición DISPSECCYT 13/2024?",
+   "sin_reescritura": 4,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPPCD-CS 260/2025? → ¿qué dice su primer artículo?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPPCD-CS 260/2025 — Visto",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué dice el primer artículo de la Disposición DISPPCD-CS 260/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DSECEXT 2/2025? → ¿de qué trata su parte resolutiva?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DSECEXT 2/2025 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿de qué trata la parte resolutiva de la Disposición DSECEXT 2/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DSECBUAE 2/2026? → ¿quién la firmó?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DSECBUAE 2/2026 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿quién firmó la Disposición DSECBUAE 2/2026?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPSECADM 445/2024? → ¿qué dice su primer artículo?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPSECADM 445/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué dice el primer artículo de la Disposición DISPSECADM 445/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Resolucion RESPRHCS 23/2025? → ¿qué dice su primer artículo?",
+   "tipo": "conversacional_acto",
+   "cita": "Resolucion RESPRHCS 23/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué dice el primer artículo de la Resolución RESPRHCS 23/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Resolucion RAU 1/2025? → ¿de qué trata su parte resolutiva?",
+   "tipo": "conversacional_acto",
+   "cita": "Resolucion RAU 1/2025 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿de qué trata la parte resolutiva de la Resolución RAU 1/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DGE 5/2025? → ¿quién la firmó?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DGE 5/2025 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿quién firmó la Disposición DGE 5/2025?",
+   "sin_reescritura": 5,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPCD-CB 35/2026? → ¿qué dice su primer artículo?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPCD-CB 35/2026 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué dice el primer artículo de la Disposición DISPCD-CB 35/2026?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPCD-CS 211/2024? → ¿y qué establece en concreto?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPCD-CS 211/2024 — Artículo 1",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué establece en concreto la Disposición DISPCD-CS 211/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPCD-T 250/2024? → ¿de qué trata su parte resolutiva?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPCD-T 250/2024 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿de qué trata la parte resolutiva de la Disposición DISPCD-T 250/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DISPCD-E 82/2024? → ¿y de qué fecha es?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DISPCD-E 82/2024 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿y de qué fecha es la Disposición DISPCD-E 82/2024?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  },
+  {
+   "consulta": "¿Qué establece la Disposicion DSUBSCOMU 1/2025? → ¿y qué establece en concreto?",
+   "tipo": "conversacional_acto",
+   "cita": "Disposicion DSUBSCOMU 1/2025 — Considerando",
+   "sin_estado": null,
+   "consulta_efectiva": "¿qué establece en concreto la Disposición DSUBSCOMU 1/2025?",
+   "sin_reescritura": null,
+   "sin_entidad": 1,
+   "sin_actos": 1,
+   "con_estado": 1,
+   "estado_corregido": 1
+  }
+ ],
+ "indice_fragmentos": 148113
+}
