@@ -18,13 +18,37 @@ SERVICIO=rag-unlu
 
 [ -d "$ORIGEN" ] || { echo "no hay nada preparado en $ORIGEN"; exit 1; }
 
-# Solo estas tres partes se despliegan. El resto de la aplicación ---índice, datos,
+# Estas partes son código puro: se reemplazan enteras, con --delete, para que un archivo
+# borrado en el repo desaparezca también acá. El resto de la aplicación ---índice, datos,
 # entorno virtual, .env--- no se toca nunca desde acá: son estado, no código.
 for parte in backend frontend/dist docs; do
     if [ -d "$ORIGEN/$parte" ]; then
         install -d -o ragunlu -g ragunlu "$DESTINO/$(dirname "$parte")"
         rsync -a --delete --chown=ragunlu:ragunlu "$ORIGEN/$parte/" "$DESTINO/$parte/"
         echo "desplegado: $parte"
+    fi
+done
+
+# El recolector y el pipeline son el código que el panel ejecuta como operaciones, así que
+# tienen que viajar en el despliegue: si no, el panel sigue corriendo la versión vieja
+# mientras el backend ya es nuevo.
+#
+# Van con otras reglas que las de arriba, y el motivo es que estas dos carpetas no son
+# solo código: son también donde la VM ESCRIBE. El catálogo y la traza se generan acá, con
+# las operaciones del panel, y esa copia es la buena; la del repo es una copia vieja de
+# desarrollo. Por eso, en vez de excluir los datos conocidos ---una lista negra que hay
+# que acordarse de ampliar cada vez que aparece un archivo nuevo--- se listan los tipos
+# que SÍ viajan. Lo que no es código no llega, aunque nadie lo haya previsto.
+#
+# Y sin --delete: borrar lo que no vino en el despliegue sería borrar exactamente esos
+# datos, y rehacer la recolección completa del portal.
+for parte in scrapers pipeline; do
+    if [ -d "$ORIGEN/$parte" ]; then
+        install -d -o ragunlu -g ragunlu "$DESTINO/$parte"
+        rsync -a --chown=ragunlu:ragunlu \
+              --include='*/' --include='*.py' --include='*.slurm' --exclude='*' \
+              "$ORIGEN/$parte/" "$DESTINO/$parte/"
+        echo "desplegado: $parte (solo código; el catálogo de la VM no se toca)"
     fi
 done
 

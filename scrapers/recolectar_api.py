@@ -108,14 +108,157 @@ def pedir(cid, offset, intentos=3):
     return None
 
 
-def total_declarado(cid):
-    """El total que el portal declara para una carpeta, en un pedido. None si no responde."""
-    try:
-        d = pedir(cid, 0, intentos=2)
+def total_declarado(cid, insistencias=6):
+    """El total que el portal declara para una carpeta. None si no se logra saberlo.
+
+    Se insiste porque el portal devuelve cuerpo vacío de manera intermitente, y no parejo:
+    las carpetas más grandes ---Secretarías, Direcciones Administrativas--- fallan mucho
+    más seguido que el resto. Preguntar una sola vez hacía que justo esas dos, las que más
+    importa vigilar, quedaran sin total y por lo tanto sin verificación.
+
+    Que devuelva None no es lo mismo que "está completa": quien llama tiene que tratarlo
+    como "no pude verificar" y decirlo.
+    """
+    for n in range(insistencias):
+        try:
+            d = pedir(cid, 0, intentos=2)
+            docs = (d or {}).get('documents') or []
+            if docs:
+                return int(docs[0].get('total') or 0) or None
+        except Exception:
+            pass
+        if n < insistencias - 1:
+            time.sleep(min(4 * (n + 1), 20))
+    return None
+
+
+class OrdenInesperado(Exception):
+    """El portal dejó de devolver los documentos de más nuevo a más viejo.
+
+    No es un detalle: la recolección incremental se apoya en ese orden para poder frenar
+    apenas reconoce lo que ya tiene. Si el orden cambia ---otra versión de SUDOCU, otra
+    configuración, otra universidad--- frenar temprano dejaría de significar "no hay nada
+    nuevo" y empezaría a significar "no miré". Por eso se verifica en cada página y, si no
+    se cumple, la carpeta se recolecta completa en vez de confiar.
+    """
+
+
+def verificar_orden(docs, techo):
+    """Comprueba que lo más nuevo esté al principio del listado.
+
+    La verificación NO es que cada fila sea más vieja que la anterior: se midió contra el
+    portal de la UNLu y no se cumple ---en Consejo Superior aparece un acto del 12 de
+    diciembre después de uno del 11---. El listado viene ordenado por algo que correlaciona
+    con la fecha pero admite inversiones locales.
+
+    Lo que sí tiene que valer, y es lo único que la lectura incremental necesita, es que
+    ninguna página posterior traiga un documento MÁS NUEVO que el más nuevo de la primera.
+    Si eso pasa, lo reciente no está al principio y frenar temprano dejaría afuera actos.
+
+    `techo` es la fecha máxima de la primera página; None mientras no se estableció.
+    """
+    fechas = [(x.get('fecha') or '')[:10] for x in docs]
+    fechas = [f for f in fechas if f]
+    if not fechas:
+        return techo
+    if techo is None:
+        return max(fechas)
+    if max(fechas) > techo:
+        raise OrdenInesperado(
+            f'apareció un documento del {max(fechas)}, más nuevo que el tope de la '
+            f'primera página ({techo}): el listado dejó de venir ordenado por recencia')
+    return techo
+
+
+def recolectar_incremental(cid, nombre, conocidos, paginas_limpias=3, tope_paginas=200,
+                           traza=None):
+    """Los documentos de una carpeta que todavía no tenemos, leyendo solo la punta.
+
+    El portal devuelve de más nuevo a más viejo, así que lo que cambió está al principio y
+    no hace falta recorrer la carpeta entera: se lee hasta que varias páginas seguidas no
+    traen nada desconocido. En un corpus de doscientos mil actos, una actualización semanal
+    lee tres páginas por carpeta en vez de doscientas mil filas.
+
+    `paginas_limpias` no es 1 a propósito. Un acto cargado con retraso ---fechado en marzo,
+    publicado hoy--- entra en el listado por su fecha, o sea sepultado bajo los más nuevos.
+    Frenar con el primer conocido lo dejaría afuera para siempre. Con tres páginas de
+    margen se recuperan los rezagados sin pagar el costo del listado completo; los que
+    caigan más atrás los levanta la reconciliación completa.
+
+    `conocidos` son los identificadores de documento que ya están en el catálogo, es decir
+    la columna `id_documento` del CSV. OJO con el mapeo, porque está cruzado y es fácil
+    comparar el campo equivocado: el `id` que devuelve la API se guarda como
+    `id_documento`, y el campo que la API llama `documento` se guarda como `id_archivo`.
+    Comparar contra el que no es hace que todo parezca nuevo y la lectura incremental
+    recorra la carpeta entera sin decir por qué.
+
+    Devuelve (documentos_nuevos, total_declarado). Levanta OrdenInesperado si el portal
+    deja de ordenar como se espera, para que quien llama recolecte la carpeta completa.
+    """
+    nuevos, offset, limpias, total_portal = [], 0, 0, None
+    techo, vistos = None, set()
+
+    while offset < tope_paginas * TOPE:
+        d = pedir(cid, offset)
         docs = (d or {}).get('documents') or []
-        return int(docs[0].get('total') or 0) or None if docs else None
-    except Exception:
-        return None
+        registrar(traza, {'carpeta': cid, 'nombre': nombre, 'offset': offset,
+                          'modo': 'incremental', 'devueltos': len(docs)})
+        if not docs:
+            break
+        techo = verificar_orden(docs, techo)
+        if total_portal is None:
+            try:
+                total_portal = int(docs[0].get('total') or 0) or None
+            except (TypeError, ValueError):
+                total_portal = None
+
+        desconocidos = 0
+        for x in docs:
+            ident = x.get('id')          # se guarda como id_documento en el catálogo
+            if not ident or ident in vistos:
+                continue
+            vistos.add(ident)
+            if ident in conocidos:
+                continue
+            desconocidos += 1
+            nuevos.append(x)
+
+        limpias = 0 if desconocidos else limpias + 1
+        if limpias >= paginas_limpias:
+            break
+        offset += TOPE
+
+    print(f'  {nombre}: {len(nuevos)} nuevos leyendo {offset // TOPE + 1} páginas', flush=True)
+    return nuevos, total_portal
+
+
+def anexar_nuevos(docs, nombre, salida, filas_previas):
+    """Agrega al final del catálogo los documentos nuevos de una carpeta.
+
+    El nombre de archivo se deriva de la identidad del acto, así que hay que sembrar
+    `tomados` con TODO lo que ya está en el CSV ---no solo con la carpeta que se está
+    actualizando---: dos organismos distintos pueden llegar al mismo código, número y año,
+    y ahí el desempate por identificador de archivo es lo único que evita que un acto nuevo
+    se descargue encima de uno viejo.
+    """
+    tomados = {r['Archivo'] for r in filas_previas if r.get('Archivo')}
+    ordinales = [int(r['ID PDF']) for r in filas_previas
+                 if r.get('Seccion') == nombre and str(r.get('ID PDF', '')).isdigit()]
+    siguiente = max(ordinales, default=0)
+
+    escritos = []
+    with open(salida, 'a', newline='', encoding='utf-8-sig') as f:
+        w = csv.DictWriter(f, fieldnames=COLUMNAS)
+        # Se anexan de más viejo a más nuevo para que el orden del CSV siga siendo el del
+        # listado: el portal los entrega al revés.
+        for x in reversed(docs):
+            reg = fila_a_registro(x, nombre)
+            reg['Archivo'] = nombre_archivo(reg, tomados)
+            siguiente += 1
+            reg['ID PDF'] = siguiente
+            w.writerow(reg)
+            escritos.append(reg)
+    return escritos
 
 
 def recolectar(cid, nombre, salida, maximo=None, tope_vacias=6, traza=None):
@@ -222,6 +365,8 @@ def main():
                    help='JSONL con una línea por pedido: offset, cuántos volvieron y sus ids')
     p.add_argument('--paciencia', type=int, default=6,
                    help='respuestas vacías seguidas antes de dar por terminada una carpeta')
+    p.add_argument('--completo', action='store_true',
+                   help='listar cada carpeta entera en vez de leer solo lo nuevo')
     a = p.parse_args()
 
     # Siempre se pregunta al portal, también con --carpeta: el nombre de la sección
@@ -237,29 +382,57 @@ def main():
     # Una carpeta corta ---un corte a mitad de listado--- se REHACE: sus filas se sacan
     # del CSV y se lista de nuevo. Antes bastaba una fila para saltear la carpeta entera,
     # y una interrupción dejaba agujeros permanentes.
-    if os.path.exists(a.salida):
+    if os.path.exists(a.salida) and not a.completo:
         with open(a.salida, encoding='utf-8-sig') as f:
             filas_previas = list(csv.DictReader(f))
-        por_seccion = {}
+        conocidos_por_seccion = {}
         for r in filas_previas:
-            por_seccion[r['Seccion']] = por_seccion.get(r['Seccion'], 0) + 1
+            if r.get('id_documento'):
+                conocidos_por_seccion.setdefault(r['Seccion'], set()).add(r['id_documento'])
 
-        completas, rehacer = [], []
+        al_dia, rehacer, anexados = [], [], 0
         for cid in list(ids):
             nombre = carpetas.get(cid, f'carpeta {cid}')
-            n = por_seccion.get(nombre, 0)
-            if not n:
-                continue
+            conocidos = conocidos_por_seccion.get(nombre) or set()
+            if not conocidos:
+                continue                      # carpeta nunca recolectada: listado completo
             total = total_declarado(cid)
-            if total is None or n >= total - 3:
-                completas.append(nombre)
-                ids = [i for i in ids if i != cid]
-            else:
+            try:
+                nuevos, total_pag = recolectar_incremental(cid, nombre, conocidos, traza=None)
+            except OrdenInesperado as e:
+                print(f'  {nombre}: {e} -> se rehace entera', flush=True)
                 rehacer.append(nombre)
-                print(f'  {nombre}: {n} de {total} en el CSV -> se rehace', flush=True)
+                continue
+            total = total or total_pag
+            tengo = len(conocidos) + len(nuevos)
 
-        if completas:
-            print(f'ya completas: {sorted(completas)}', flush=True)
+            # La segunda verificación, y la que atrapa lo que la primera no puede ver: lo
+            # que ya está en el catálogo más lo que se acaba de encontrar tiene que dar lo
+            # que el portal declara para esa carpeta. La lectura incremental mira la punta
+            # del listado, así que encuentra lo recién publicado pero es ciega a los
+            # agujeros del medio ---un acto que se perdió en una corrida cortada hace
+            # meses---. Esos solo aparecen como una resta que no cierra, y entonces la
+            # carpeta se rehace completa. La tolerancia de 3 es la misma de siempre: el
+            # portal repite filas entre páginas y las cuenta en el total.
+            if total is not None and tengo < total - 3:
+                print(f'  {nombre}: {tengo} de {total} tras leer lo nuevo -> se rehace '
+                      f'entera (faltan {total - tengo} del medio del listado)', flush=True)
+                rehacer.append(nombre)
+                continue
+
+            if nuevos:
+                filas_previas.extend(anexar_nuevos(nuevos, nombre, a.salida, filas_previas))
+                anexados += len(nuevos)
+            if total is None:
+                print(f'  {nombre}: {tengo} en el catálogo, {len(nuevos)} nuevos; el portal '
+                      f'no declaró total: NO SE PUDO VERIFICAR que esté completa', flush=True)
+            al_dia.append(nombre)
+            ids = [i for i in ids if i != cid]
+
+        if anexados:
+            print(f'{anexados} documentos nuevos agregados al catálogo', flush=True)
+        if al_dia:
+            print(f'al día: {sorted(al_dia)}', flush=True)
         if rehacer:
             conservar = [r for r in filas_previas if r['Seccion'] not in rehacer]
             with open(a.salida, 'w', newline='', encoding='utf-8-sig') as f:

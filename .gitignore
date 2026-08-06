@@ -72,3 +72,16 @@ datos/chatdigesto.sqlite
 
 # Revisión de seguridad: describe debilidades no corregidas, no se publica.
 seguridad/
+
+# Índices alternativos y respaldos. Es el mismo contenido que indice/ y pesa lo mismo
+# ---el de la última comparación, 1,6 GB---, y se regenera con el pipeline. La
+# reconstrucción total deja además el anterior como indice.previo-<sello> al lado.
+indice-*/
+indice.previo-*/
+
+# El catálogo y la traza de cada instalación son datos de esa instancia, con el mismo
+# criterio que los del repo: salida de la recolección, se regeneran desde el panel y pesan
+# (16 MB el de UNSL). El código adaptado de cada instancia sí se versiona.
+instalaciones/*/scrapers/metadatos*.csv
+instalaciones/*/scrapers/meta_*.csv
+instalaciones/*/scrapers/traza.jsonl

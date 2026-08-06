@@ -157,11 +157,14 @@ function duracion(inicio, fin) {
   return `${(seg / 3600).toFixed(1)} h`;
 }
 
+const POR_PAGINA = 8;
+
 function Corridas({ alFallar }) {
   const [datos, setDatos] = useState(null);
   const [abierta, setAbierta] = useState(null);      // id de la corrida cuyo log se mira
   const [detalle, setDetalle] = useState(null);
   const [lanzando, setLanzando] = useState(false);
+  const [pagina, setPagina] = useState(0);
 
   const refrescar = () => adminCorridas().then(setDatos).catch((e) => alFallar(e.message));
   useEffect(() => { refrescar(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -205,6 +208,13 @@ function Corridas({ alFallar }) {
   if (!datos) return <p className="admin-cargando">Cargando…</p>;
   const hayActiva = !!datos.en_curso;
 
+  // El registro crece con cada ejecución y la consola vive abajo de la tabla: sin paginar,
+  // llegar al log de lo que se acaba de lanzar es scrollear todo el historial. Se muestran
+  // de a POR_PAGINA, con la más reciente primero, que es la que se viene a mirar.
+  const paginas = Math.max(1, Math.ceil(datos.corridas.length / POR_PAGINA));
+  const actual = Math.min(pagina, paginas - 1);
+  const visibles = datos.corridas.slice(actual * POR_PAGINA, (actual + 1) * POR_PAGINA);
+
   return (
     <>
       <div className="corrida-operaciones">
@@ -235,7 +245,7 @@ function Corridas({ alFallar }) {
                   <th>Duración</th><th>Ejecutado por</th><th></th></tr>
             </thead>
             <tbody>
-              {datos.corridas.map((c) => (
+              {visibles.map((c) => (
                 <tr key={c.id} className={abierta === c.id ? "fila-activa" : ""}>
                   <td>{c.id}</td>
                   <td>{c.operacion}</td>
@@ -250,6 +260,15 @@ function Corridas({ alFallar }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {paginas > 1 && (
+        <div className="admin-paginador">
+          <button className="history-accion" disabled={actual === 0}
+                  onClick={() => setPagina(actual - 1)}>anterior</button>
+          <span>página {actual + 1} de {paginas} · {datos.corridas.length} ejecuciones</span>
+          <button className="history-accion" disabled={actual >= paginas - 1}
+                  onClick={() => setPagina(actual + 1)}>siguiente</button>
         </div>
       )}
 

@@ -22,8 +22,8 @@ BASE="${RAG_BASE:-${SLURM_SUBMIT_DIR:-$PWD}}"
 VENV="${VENV:-$HOME/trace-repro/venv}"
 PY="$VENV/bin/python"
 MODELO="${MODELO:-$BASE/modelos/bge-m3}"
-PROCESADOS="${PROCESADOS:-resultados/portal}"
-METADATA="${METADATA:-resultados/join_metadata.csv}"
+PROCESADOS="${PROCESADOS:-resultados}"
+METADATA="${METADATA:-resultados/metadata-todos.csv}"
 BATCH="${BATCH:-64}"
 
 cd "$BASE"
@@ -37,6 +37,8 @@ mkdir -p logs
 # Sin salida a internet: que las librerías usen los pesos locales en vez de fallar con un
 # tiempo de espera confuso.
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+# La depuracion re-embebe las citas que repara, y toma el modelo de esta variable.
+export RAG_MODELO_EMB="$MODELO"
 export LANG=C.UTF-8 LC_ALL=C.UTF-8
 export PYTHONPATH="$BASE"
 

@@ -214,6 +214,13 @@ def reconstruir_todo(a, t0, comando_conciliar):
     # eso no invalida la reconstrucción: lo que aporta es refrescar enlaces y estados, no
     # el contenido. Se avisa y se sigue, en vez de abortar con el índice ya adoptado.
     if os.path.exists(os.path.join(RAIZ, METADATOS)):
+        # Depurar NO es opcional en una reconstrucción. El portal publica el mismo acto en
+        # varias carpetas, así que los actos procesados traen duplicados por diseño: sobre
+        # el corpus de la UNLu, 2.274 actos ocupando 4.645 documentos. Sin este paso, la
+        # reconstrucción los reintroduce y el sistema cita ocho veces la misma disposición.
+        # Ver docs/duplicados.md.
+        paso('depurar duplicados', [PY, '-m', 'pipeline.depurar_indice',
+                                    '--metadatos', METADATOS, '--aplicar'])
         paso('refrescar metadata', [PY, '-m', 'pipeline.actualizar_metadata', '--aplicar'])
     else:
         print(f'\nsin catálogo en {METADATOS}: se omite el refresco de metadata', flush=True)

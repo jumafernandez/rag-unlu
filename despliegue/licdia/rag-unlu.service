@@ -34,10 +34,15 @@ RestartSec=5
 # Todo el sistema de archivos queda de solo lectura salvo lo que se declara abajo:
 # el índice (se reconstruye y se reemplaza), los datos (base, marca, registros de
 # corridas), la caché del modelo (crea archivos de bloqueo aun estando sin conexión)
-# y data/, donde el pipeline deposita los PDF que descarga del portal. Sin esta
-# última, las operaciones del panel fallan al escribir y el motivo no es evidente.
+# data/, donde el pipeline deposita los PDF que descarga del portal, y scrapers/,
+# donde el recolector escribe el catálogo y su traza.
+#
+# Los cuatro salieron de revisar dónde escribe cada script del pipeline, no de que
+# fallaran de a uno: una operación que no puede escribir falla con un mensaje que no
+# menciona los permisos, y el motivo no es evidente desde el panel.
 ProtectSystem=strict
-ReadWritePaths=/opt/rag-unlu/datos /opt/rag-unlu/indice /opt/rag-unlu/.cache /opt/rag-unlu/data
+ReadWritePaths=/opt/rag-unlu/datos /opt/rag-unlu/indice /opt/rag-unlu/.cache \
+               /opt/rag-unlu/data /opt/rag-unlu/scrapers
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

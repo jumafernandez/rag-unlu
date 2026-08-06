@@ -136,20 +136,74 @@ def cargar_metadata_autoritativa(ruta):
     return out
 
 
-def cita_de(meta, seccion_titulo, tipo):
-    """'Disposición DISPCD-CB 528/2025 — Artículo 2'"""
-    tipo_doc = (meta.get('document_type') or 'documento')
+# El catálogo nombra el tipo de acto con su denominación oficial completa
+# ---"DISPOSICIÓN CONSEJO DIRECTIVO DEPARTAMENTAL DE CIENCIAS BÁSICAS"--- y eso, puesto
+# en cada cita, la vuelve ilegible: el órgano ya viaja en el código (DISPCD-CB). Para
+# citar alcanza con el género del acto.
+GENEROS = {'disposicion': 'Disposición', 'resolucion': 'Resolución',
+           'ordenanza': 'Ordenanza', 'acta': 'Acta', 'nota': 'Nota',
+           'providencia': 'Providencia', 'orden': 'Orden de compra'}
+
+
+def genero_del_acto(tipo_documento):
+    crudo = (tipo_documento or 'documento').strip()
+    primera = crudo.split()[0] if crudo.split() else 'documento'
+    plano = primera.lower()
+    for acento, llano in (('ó', 'o'), ('í', 'i'), ('á', 'a'), ('é', 'e'), ('ú', 'u')):
+        plano = plano.replace(acento, llano)
+    return GENEROS.get(plano, primera.capitalize())
+
+
+# Un título de sección puede ser un párrafo entero: hay citas de dos mil caracteres. La
+# cita tiene que caber en una línea de una respuesta, no reproducir el encabezado.
+LARGO_SECCION = 60
+
+
+def acortar(titulo, maximo=LARGO_SECCION):
+    t = ' '.join((titulo or '').split())
+    return t if len(t) <= maximo else t[:maximo].rsplit(' ', 1)[0] + '…'
+
+
+RE_ANEXO = re.compile(r'^(anexo\s*[IVXLC0-9]*)', re.IGNORECASE)
+
+
+def nombre_de_anexo(titulo):
+    """'ANEXO I - REGLAMENTO DE ... CAPÍTULO 1' -> 'Anexo I'.
+
+    El encabezado del anexo suele arrastrar el título completo del reglamento y hasta su
+    primer capítulo. Para calificar una cita alcanza con identificar cuál anexo es: lo
+    demás la vuelve ilegible y empuja fuera de pantalla la parte que importa.
+    """
+    m = RE_ANEXO.match(titulo.strip())
+    crudo = m.group(1) if m else 'Anexo'
+    partes = crudo.split()
+    return 'Anexo' + (' ' + partes[1].upper() if len(partes) > 1 else '')
+
+
+def cita_de(meta, seccion_titulo, tipo, anexo=None):
+    """'Disposición DISPCD-CB 528/2025 — Artículo 2'
+
+    El parámetro `anexo` resuelve una ambigüedad que rompe la trazabilidad: un acto
+    que aprueba un reglamento tiene SUS artículos y los del reglamento, y ambos se
+    llaman "Artículo 2". Sin calificar, la cita manda a quien verifica al lugar
+    equivocado del mismo documento, y el modelo escribe "el artículo 2 de la
+    resolución dispone" cuando en realidad es el artículo 2 de lo que aprueba.
+    """
+    tipo_doc = genero_del_acto(meta.get('document_type'))
     codigo = meta.get('document_code') or ''
     numero = meta.get('document_number') or ''
     piezas = [x for x in (tipo_doc, codigo, numero) if x and x.lower() != 'unknown']
     cabeza = ' '.join(piezas).strip()
     if cabeza:
         cabeza = cabeza[0].upper() + cabeza[1:]
-    if tipo in ('articulo', 'anexo') and seccion_titulo:
-        return f'{cabeza} — {seccion_titulo}'
-    if seccion_titulo and tipo != 'otra':
-        return f'{cabeza} — {seccion_titulo}'
-    return cabeza or 'documento sin identificar'
+    if not seccion_titulo or tipo == 'otra':
+        return cabeza or 'documento sin identificar'
+    seccion_titulo = acortar(seccion_titulo)
+    if tipo == 'anexo' and not seccion_titulo.lower().startswith('anexo'):
+        # Sección interna de un anexo: se nombra el anexo que la contiene. Si el acto
+        # no numeró sus anexos, alcanza con decir que es uno.
+        return f'{cabeza} — {anexo or "Anexo"}, {seccion_titulo}'
+    return f'{cabeza} — {seccion_titulo}'
 
 
 def main():
@@ -245,8 +299,11 @@ def main():
                 'seccion_portal')}
 
             despues_de_firmas = False
+            anexo_actual = None
             for _, titulo, cuerpo in partir_markdown(md):
                 tipo = tipo_de_seccion(titulo, despues_de_firmas)
+                if tipo == 'anexo' and titulo.strip().lower().startswith('anexo'):
+                    anexo_actual = nombre_de_anexo(titulo)
                 if tipo == 'firmas':
                     # El primer bloque de firmas cierra el acto: lo que venga después es
                     # anexo. Los bloques de firma siguientes son los del propio anexo.
@@ -259,7 +316,7 @@ def main():
                         continue
                     n_chunks += 1
                     por_tipo[tipo] = por_tipo.get(tipo, 0) + 1
-                    cita = cita_de(meta, titulo, tipo)
+                    cita = cita_de(meta, titulo, tipo, anexo_actual)
                     # El texto indexado lleva el título del acto y la cita adelante: ayuda
                     # a que el embedding capture de qué trata, no solo el fragmento suelto.
                     encabezado = ' | '.join(x for x in (meta.get('titulo'), cita) if x)
