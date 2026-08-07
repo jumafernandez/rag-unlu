@@ -35,6 +35,27 @@ Los pasos del pipeline de datos, en el orden en el que corren:
 
 **Actualización completa** encadena los cuatro; es lo que corre la rutina programada.
 
+### Programarla
+
+Arriba de los botones hay una tarjeta para que la actualización completa corra sola:
+diaria, semanal por día, o mensual por número de día, siempre a una hora en punto. Si el
+día elegido no existe en algún mes ---el 31 en febrero--- corre el último día de ese mes,
+porque saltearlo sería un silencio que nadie nota hasta que la normativa está vieja.
+
+Se ejecuta unos minutos después de la hora elegida. Ese corrimiento se deriva del portal
+configurado, así que es propio de cada instalación y siempre el mismo: evita que todas
+las universidades salgan a consultar SUDOCU en el mismo minuto. El panel muestra la hora
+real, no la elegida.
+
+La corrida programada pasa por el mismo registro que el botón, con su log y su regla de
+que no puede haber dos operaciones a la vez: si a la hora programada hay algo corriendo,
+se saltea y queda anotado. Y si el servicio estuvo caído en ese momento, al volver corre
+igual, siempre que no hayan pasado más de doce horas.
+
+Conviene programarla en lugar de usar cron. Una corrida lanzada por cron no pasa por el
+registro, así que no aparece en el panel y ---más importante--- puede arrancar justo
+cuando alguien apretó Ejecutar, con dos procesos escribiendo el mismo catálogo.
+
 Reglas de la casa:
 
 - **Corre una sola ejecución a la vez.** Comparten archivos; dos juntas se pisan. Si un

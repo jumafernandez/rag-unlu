@@ -182,6 +182,8 @@ export const adminCorridas = () => pedir("/admin/corridas");
 export const adminCorrida = (id, lineas = 200) => pedir(`/admin/corridas/${id}?lineas=${lineas}`);
 export const adminLanzarCorrida = (operacion) =>
   pedir("/admin/corridas", { method: "POST", body: JSON.stringify({ operacion }) });
+export const adminGuardarProgramacion = (valores) =>
+  pedir("/admin/programacion", { method: "PUT", body: JSON.stringify({ valores }) });
 export const adminCancelarCorrida = (id) =>
   pedir(`/admin/corridas/${id}/cancelar`, { method: "POST" });
 export const adminRecargarIndice = () =>

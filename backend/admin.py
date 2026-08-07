@@ -12,13 +12,14 @@ arranque, para que exista el primero sin que nadie tenga que insertar una fila a
 la tabla `admin`, para los que se dan de alta después desde el panel. Los usuarios comunes
 no se administran: entran con Google y listo.
 """
+import datetime
 import json
 import os
 import shutil
 import sqlite3
 import time
 
-from . import historial
+from . import historial, programacion
 
 def admins_entorno():
     """Administradores de arranque, leídos del entorno.
@@ -311,6 +312,37 @@ def guardar_generacion(valores, por):
 def clave_llm():
     """La clave para el LLM: la del panel manda; la del entorno es el respaldo."""
     return (leer_ajuste('generacion', {}) or {}).get('clave') or os.environ.get('OPENAI_API_KEY')
+
+
+def leer_programacion():
+    """Cuándo corre sola la actualización completa. Nunca levanta: un ajuste ilegible
+    apaga la programación, no impide arrancar."""
+    return programacion.normalizar(leer_ajuste('programacion', {}) or {})
+
+
+def guardar_programacion(valores, por):
+    limpio = programacion.normalizar(valores)
+    guardar_ajuste('programacion', limpio, por)
+    return limpio
+
+
+def ultima_programada():
+    """El momento PROGRAMADO que se ejecutó por última vez, no cuándo terminó.
+
+    Guardar el momento programado y no la hora real es lo que permite distinguir "ya
+    corrió la de las 3" de "todavía no", aunque haya arrancado 3:47 por un reinicio.
+    """
+    crudo = leer_ajuste('ultima_programada')
+    if not crudo:
+        return None
+    try:
+        return datetime.datetime.fromisoformat(crudo)
+    except (TypeError, ValueError):
+        return None
+
+
+def marcar_programada(momento):
+    guardar_ajuste('ultima_programada', momento.isoformat(), 'reloj')
 
 
 def leer_institucion():

@@ -112,16 +112,20 @@ Ver [administracion.md](administracion.md).
 
 ## 7. Actualización periódica
 
-La rutina completa es idempotente y se programa tal cual. Con cron:
+Se programa desde el panel, en **Ejecuciones**: diaria, semanal o mensual, a la hora que
+se elija. No hace falta tocar la máquina ni tener acceso de root.
 
-```
-15 3 * * 0  cd /ruta/rag-unlu && OMP_NUM_THREADS=1 .venv/bin/python -m pipeline.actualizar >> datos/corridas/cron.log 2>&1
-```
+Es la forma recomendada, y no solo por comodidad. Una corrida lanzada por cron no pasa
+por el registro de corridas, y ahí es donde vive la regla de que no puede haber dos
+operaciones a la vez: un cron puede arrancar justo cuando alguien apretó Ejecutar desde
+el panel, y quedan dos procesos escribiendo el mismo catálogo. Programada desde adentro,
+eso no puede pasar, y además la corrida queda en el registro con su log.
 
-Termina recargando el índice de la API en caliente (sin cortar el servicio) si la API
-está corriendo con la misma `RAG_CLAVE_INTERNA` del entorno; si no, el índice nuevo se
-toma en el próximo reinicio. También se puede lanzar desde el panel: es el botón
-**Actualización completa**.
+**Si venís de una instalación anterior con la línea de cron puesta, sacala antes de
+activar la programación del panel**, o van a correr las dos.
+
+La rutina termina recargando el índice de la API en caliente, sin cortar el servicio; si
+esa recarga no llega a completarse, el índice nuevo se toma en el próximo reinicio.
 
 ## Exponerlo afuera
 

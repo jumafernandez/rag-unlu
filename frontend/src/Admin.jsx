@@ -15,6 +15,7 @@ import {
   adminEstado, adminDocumentos, adminAdmins, adminAgregarAdmin, adminQuitarAdmin,
   leerTema, guardarTema, leerInstitucion, guardarInstitucion, subirLogo, quitarLogo, URL_LOGO,
   adminCorridas, adminCorrida, adminLanzarCorrida, adminCancelarCorrida, adminRecargarIndice,
+  adminGuardarProgramacion,
   adminGeneracion, adminGuardarGeneracion, adminProbarGeneracion, adminUso
 } from "./api";
 import { LOGO_POR_OMISION } from "./config";
@@ -157,6 +158,106 @@ function duracion(inicio, fin) {
   return `${(seg / 3600).toFixed(1)} h`;
 }
 
+const DIAS_SEMANA = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+
+/** Configuración de la actualización automática.
+ *
+ * Vive acá y no en una pantalla aparte porque es lo mismo que hacen los botones de abajo,
+ * solo que sin que nadie los apriete: la corrida programada aparece en el mismo registro,
+ * con su log, y respeta la misma regla de que no puede haber dos a la vez.
+ */
+function Programacion({ inicial, texto, alGuardar, alFallar, fallo }) {
+  const [cfg, setCfg] = useState(inicial);
+  const [guardando, setGuardando] = useState(false);
+  const [descripcion, setDescripcion] = useState(texto);
+  const cambiado = JSON.stringify(cfg) !== JSON.stringify(inicial);
+
+  const guardar = async () => {
+    setGuardando(true);
+    try {
+      const r = await adminGuardarProgramacion(cfg);
+      setDescripcion(r.descripcion);
+      alGuardar(r.programacion);
+    } catch (e) { alFallar(e.message); }
+    setGuardando(false);
+  };
+
+  return (
+    <div className="programacion">
+      <div className="programacion-titulo">
+        <label className="programacion-switch">
+          <input type="checkbox" checked={!!cfg.activa}
+                 onChange={(e) => setCfg({ ...cfg, activa: e.target.checked })} />
+          <strong>Actualización automática</strong>
+        </label>
+        {cambiado && (
+          <button className="sidebar-action primary-side admin-guardar"
+                  disabled={guardando} onClick={guardar}>
+            {guardando ? "Guardando…" : "Guardar"}
+          </button>
+        )}
+      </div>
+
+      {cfg.activa && (
+        <div className="programacion-campos">
+          <label>Cada
+            <select value={cfg.cadencia}
+                    onChange={(e) => setCfg({ ...cfg, cadencia: e.target.value })}>
+              <option value="diaria">día</option>
+              <option value="semanal">semana</option>
+              <option value="mensual">mes</option>
+            </select>
+          </label>
+
+          {cfg.cadencia === "semanal" && (
+            <label>el
+              <select value={cfg.dia_semana}
+                      onChange={(e) => setCfg({ ...cfg, dia_semana: +e.target.value })}>
+                {DIAS_SEMANA.map((d, i) => <option key={d} value={i}>{d}</option>)}
+              </select>
+            </label>
+          )}
+
+          {cfg.cadencia === "mensual" && (
+            <label>el día
+              <input type="number" min="1" max="31" value={cfg.dia_mes}
+                     onChange={(e) => setCfg({ ...cfg, dia_mes: +e.target.value })} />
+            </label>
+          )}
+
+          <label>a las
+            <select value={cfg.hora}
+                    onChange={(e) => setCfg({ ...cfg, hora: +e.target.value })}>
+              {Array.from({ length: 24 }, (_, h) => (
+                <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
+
+      <p className="admin-nota">{descripcion}</p>
+      {cfg.activa && (
+        <p className="admin-nota-chica">
+          Corre unos minutos después de la hora elegida. El corrimiento es propio de esta
+          instalación y siempre el mismo: evita que todas las universidades salgan a
+          consultar el portal en el mismo minuto.
+        </p>
+      )}
+      {cfg.cadencia === "mensual" && cfg.activa && cfg.dia_mes > 28 && (
+        <p className="admin-nota-chica">
+          Los meses que no llegan a ese día se actualizan el último día del mes.
+        </p>
+      )}
+      {fallo && (
+        <p className="programacion-fallo">
+          La última actualización automática falló (#{fallo.id}). Mirá su log más abajo.
+        </p>
+      )}
+    </div>
+  );
+}
+
 const POR_PAGINA = 8;
 
 function Corridas({ alFallar }) {
@@ -236,6 +337,15 @@ function Corridas({ alFallar }) {
 
   return (
     <>
+      <Programacion inicial={datos.programacion} texto={datos.programacion_texto}
+                    alGuardar={(p) => setDatos({ ...datos, programacion: p })}
+                    alFallar={alFallar}
+                    fallo={datos.corridas.find((c) => c.por === "programada" &&
+                                                     c.estado !== "en_curso")?.estado === "error"
+                           ? datos.corridas.find((c) => c.por === "programada" &&
+                                                        c.estado !== "en_curso")
+                           : null} />
+
       <div className="corrida-operaciones">
         {datos.operaciones.map((op) => (
           <div className="corrida-operacion" key={op.clave}>

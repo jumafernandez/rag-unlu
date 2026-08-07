@@ -23,6 +23,8 @@ Variables:
 """
 
 import contextlib
+import asyncio
+import datetime as dt
 import json
 import os
 import pathlib
@@ -41,7 +43,7 @@ from pydantic import BaseModel, Field
 
 from fastapi import File, Header, UploadFile
 
-from . import admin, corridas, historial, sesion
+from . import admin, corridas, historial, programacion, sesion
 from .recuperacion import Indice
 
 
@@ -131,7 +133,70 @@ async def ciclo_de_vida(_app):
         print(f'modelo de embeddings cargado en {time.time() - t1:.0f}s', flush=True)
     except Exception as e:
         print(f'AVISO: no se pudo cargar el modelo de embeddings ({e})', flush=True)
-    yield
+
+    reloj = asyncio.create_task(_reloj_de_actualizacion())
+    print(programacion.describir(admin.leer_programacion(), dt.datetime.now(),
+                                 _SEMILLA_RELOJ), flush=True)
+    try:
+        yield
+    finally:
+        reloj.cancel()
+
+
+# El minuto dentro de la hora sale del portal configurado: distinto en cada universidad,
+# igual en cada arranque de la misma. Ver programacion.desfase().
+_SEMILLA_RELOJ = os.environ.get('SUDOCU_PORTAL_URL', '')
+
+# Lo que despierta al reloj antes de tiempo cuando alguien cambia la programación desde
+# el panel. Sin esto habría que elegir entre que el cambio tarde en tomar efecto o que el
+# reloj se despierte cada tanto a preguntar; con esto duerme hasta el momento exacto y se
+# entera al instante.
+_despertar_reloj = asyncio.Event()
+
+
+async def _reloj_de_actualizacion():
+    """Lanza la actualización completa cuando le toca, por la misma puerta que el botón.
+
+    Pasar por `corridas.lanzar` y no por un cron es lo que garantiza que nunca haya dos
+    operaciones escribiendo el catálogo a la vez: si hay una en curso, esta se saltea y
+    queda anotada. También es lo que hace que la corrida programada aparezca en el
+    registro con su log, igual que las que se lanzan a mano.
+    """
+    while True:
+        try:
+            cfg = admin.leer_programacion()
+            ahora = dt.datetime.now()
+            if programacion.toca_ahora(cfg, ahora, admin.ultima_programada(), _SEMILLA_RELOJ):
+                momento = programacion.anterior(cfg, ahora, _SEMILLA_RELOJ)
+                # Se marca ANTES de lanzar: si el lanzamiento falla porque ya hay algo
+                # corriendo, no se debe reintentar en bucle hasta que termine.
+                admin.marcar_programada(momento)
+                op = OPERACIONES['actualizacion']
+                try:
+                    cid = corridas.lanzar('actualizacion', op['comando'],
+                                          {'comando': ' '.join(op['comando'])},
+                                          'programada', cwd=os.getcwd(),
+                                          entorno={'PYTHONPATH': _REPO,
+                                                   **(op.get('entorno') or {})})
+                    print(f'actualización programada lanzada: corrida #{cid}', flush=True)
+                except ValueError as e:
+                    print(f'actualización programada salteada: {e}', flush=True)
+
+            siguiente = programacion.proxima(cfg, dt.datetime.now(), _SEMILLA_RELOJ)
+            # Sin programación activa no hay nada que esperar: duerme hasta que alguien
+            # la encienda. El tope de una hora es solo una red por si el reloj del
+            # sistema salta (cambio de hora, corrección por NTP).
+            espera = 3600.0 if siguiente is None else max(
+                1.0, min(3600.0, (siguiente - dt.datetime.now()).total_seconds()))
+        except Exception as e:                      # nunca matar el reloj por un error
+            print(f'AVISO: fallo en el reloj de actualización ({e})', flush=True)
+            espera = 300.0
+
+        try:
+            await asyncio.wait_for(_despertar_reloj.wait(), timeout=espera)
+        except (asyncio.TimeoutError, TimeoutError):
+            pass
+        _despertar_reloj.clear()
 
 
 app = FastAPI(title='ChatDigesto UNLu', version='1.0', lifespan=ciclo_de_vida)
@@ -1591,11 +1656,38 @@ class LanzarCorrida(BaseModel):
     operacion: str
 
 
+class Programacion(BaseModel):
+    valores: dict
+
+
+@app.get('/admin/programacion')
+def programacion_leer(authorization: Optional[str] = Header(None)):
+    exigir_admin(authorization)
+    cfg = admin.leer_programacion()
+    return {'programacion': cfg,
+            'descripcion': programacion.describir(cfg, dt.datetime.now(), _SEMILLA_RELOJ)}
+
+
+@app.put('/admin/programacion')
+def programacion_guardar(p: Programacion, authorization: Optional[str] = Header(None)):
+    uid = exigir_admin(authorization)
+    cfg = admin.guardar_programacion(p.valores, admin.correo_de(uid) or uid)
+    # El reloj está durmiendo hasta el próximo momento programado: se lo despierta para
+    # que recalcule con lo que se acaba de guardar.
+    _despertar_reloj.set()
+    return {'programacion': cfg,
+            'descripcion': programacion.describir(cfg, dt.datetime.now(), _SEMILLA_RELOJ)}
+
+
 @app.get('/admin/corridas')
 def corridas_listar(authorization: Optional[str] = Header(None)):
     exigir_admin(authorization)
+    cfg = admin.leer_programacion()
     return {'corridas': corridas.listar(),
             'en_curso': corridas.en_curso(),
+            'programacion': cfg,
+            'programacion_texto': programacion.describir(cfg, dt.datetime.now(),
+                                                         _SEMILLA_RELOJ),
             'operaciones': [{'clave': k, 'titulo': v['titulo'],
                              'descripcion': v['descripcion']}
                             for k, v in OPERACIONES.items()]}
