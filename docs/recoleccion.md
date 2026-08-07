@@ -151,14 +151,20 @@ página. Hacer eso todas las semanas para encontrar los pocos actos publicados d
 semana anterior no escala, y en una universidad con cien mil actos deja de ser viable.
 
 El portal entrega cada carpeta con lo más reciente al principio, así que lo que cambió está
-en las primeras páginas. La lectura incremental aprovecha eso: pide páginas desde el
-comienzo y se detiene cuando **tres páginas seguidas** no traen ningún documento que el
-catálogo no tenga ya. Una actualización semanal pasa de recorrer veintiún mil filas a leer
-unas tres páginas por carpeta: dos minutos para el portal entero.
+en las primeras páginas. La pregunta es cuándo parar, y la respuesta es una cuenta, no una
+corazonada: **se para cuando lo que el catálogo ya tenía más lo que se acaba de encontrar
+alcanza el total que el portal declara para esa carpeta**. Ahí no queda nada por buscar.
 
-Tres páginas y no una porque un acto puede publicarse con retraso —fechado en marzo,
-cargado hoy— y entra al listado por su fecha, o sea sepultado bajo los más nuevos. Frenar
-con el primer conocido lo dejaría afuera para siempre.
+Una carpeta al día se resuelve en **una sola página**. El portal entero, en once pedidos.
+
+Esa cuenta también resuelve sola el caso del acto publicado con retraso —fechado en marzo,
+cargado hoy—, que entra al listado por su fecha y queda sepultado bajo los más nuevos. No
+hay que adivinar cuántas páginas mirar de más: si ese acto existe, el total del portal lo
+cuenta, la resta no cierra y la lectura sigue.
+
+Queda un corte de reserva —tres páginas seguidas sin nada desconocido— para el único caso
+en que la cuenta no se puede hacer: que no se sepa el total, ni por esta corrida ni por la
+anterior.
 
 ### Por qué la lectura incremental no alcanza sola
 

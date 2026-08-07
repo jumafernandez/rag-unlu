@@ -195,6 +195,25 @@ function Corridas({ alFallar }) {
     adminCorrida(id).then(setDetalle).catch((e) => alFallar(e.message));
   };
 
+  // Detener lo que está corriendo. La función existía en el servidor desde el principio
+  // ---mata el grupo de procesos, así que se lleva también a los hijos que el script haya
+  // lanzado--- pero no había por dónde pedirla: una recolección de dos horas lanzada por
+  // error no se podía parar salvo reiniciando el servicio.
+  //
+  // Se confirma porque del otro lado puede haber horas de trabajo, y se aclara que lo ya
+  // hecho queda: los pasos escriben a medida que avanzan, no al final.
+  const detener = async (id) => {
+    if (!window.confirm(
+      "¿Detener la operación en curso?\n\n" +
+      "Lo que ya se recolectó, descargó o vectorizó se conserva: al volver a ejecutar " +
+      "el paso, retoma desde donde quedó.")) return;
+    try {
+      await adminCancelarCorrida(id);
+      await refrescar();
+      if (abierta === id) adminCorrida(id).then(setDetalle).catch(() => {});
+    } catch (e) { alFallar(e.message); }
+  };
+
   const lanzar = async (clave) => {
     setLanzando(true);
     try {
@@ -254,8 +273,14 @@ function Corridas({ alFallar }) {
                   <td>{fecha(c.inicio)}</td>
                   <td>{duracion(c.inicio, c.fin)}</td>
                   <td>{c.por}</td>
-                  <td><button className="history-accion" onClick={() => abrir(c.id)}>
-                    ver log</button></td>
+                  <td className="corrida-acciones">
+                    <button className="history-accion" onClick={() => abrir(c.id)}>
+                      ver log</button>
+                    {c.estado === "en_curso" && (
+                      <button className="history-accion corrida-detener"
+                              onClick={() => detener(c.id)}>detener</button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

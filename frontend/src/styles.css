@@ -1994,3 +1994,7 @@ button, .sidebar-action {
   color: var(--texto-suave, #5f6368);
 }
 .admin-paginador button:disabled { opacity: 0.4; cursor: default; }
+
+.corrida-acciones { display: flex; gap: 8px; white-space: nowrap; }
+.corrida-detener { color: #b3261e; }
+.corrida-detener:hover { background: #fce8e6; }
