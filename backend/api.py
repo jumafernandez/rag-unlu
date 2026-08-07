@@ -1675,5 +1675,48 @@ def corridas_cancelar(cid: int, authorization: Optional[str] = Header(None)):
 # ---------------------------------------------------------------------------
 
 _DIST = pathlib.Path(__file__).resolve().parent.parent / 'frontend' / 'dist'
+
+
+def _index_con_identidad():
+    """El index.html con la identidad de la instancia ya adentro.
+
+    Sin esto la aplicación arranca con la identidad compilada en el build ---la de la
+    UNLu--- y recién cuando llegan las respuestas de /admin/tema y /admin/institucion se
+    repinta con la que corresponde. En la UNLu no se nota; en otra universidad se ve la
+    marca ajena durante un segundo, que es exactamente lo que nadie quiere de un sistema
+    que se ofrece como propio.
+
+    La identidad no está en el build a propósito ---se edita desde el panel, sin
+    recompilar--- así que el único lugar donde puede llegar a tiempo es el HTML, que ya lo
+    sirve este mismo proceso. Va sin caché porque cambia cuando el panel la cambia; los
+    archivos con hash en el nombre siguen cacheándose como siempre.
+    """
+    from fastapi.responses import HTMLResponse
+
+    html = (_DIST / 'index.html').read_text(encoding='utf-8')
+    try:
+        identidad = {'institucion': admin.leer_institucion(), 'tema': admin.leer_tema()}
+        # El escape de "</" evita que un valor con un cierre de etiqueta corte el script.
+        crudo = json.dumps(identidad, ensure_ascii=False).replace('</', '<\\/')
+        guion = f'<script>window.__IDENTIDAD__={crudo};</script>'
+        html = html.replace('</head>', guion + '</head>', 1)
+    except Exception:
+        # La identidad es una mejora de la primera impresión, no un requisito para entrar.
+        # Si no se pudo leer ---la base ocupada, un ajuste corrupto--- se sirve el HTML tal
+        # cual y la aplicación la pide por HTTP como hacía antes: vuelve el parpadeo, no
+        # una portada rota.
+        pass
+    return HTMLResponse(html, headers={'Cache-Control': 'no-cache'})
+
+
 if _DIST.is_dir():
+    # Estas dos rutas van ANTES del montaje, que se queda con todo lo demás.
+    @app.get('/', include_in_schema=False)
+    def portada():
+        return _index_con_identidad()
+
+    @app.get('/index.html', include_in_schema=False)
+    def portada_explicita():
+        return _index_con_identidad()
+
     app.mount('/', StaticFiles(directory=str(_DIST), html=True), name='web')

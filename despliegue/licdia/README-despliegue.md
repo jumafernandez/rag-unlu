@@ -39,3 +39,51 @@ nginx ya sirviendo el dominio (verificado), ~6 GB de disco para código + índic
 
 Nota: el primer arranque descarga BGE-m3 (~2,3 GB) desde Hugging Face si no se
 copió la caché; alternativa: rsync de `~/.cache/huggingface` desde la Mac.
+
+## Actualizaciones posteriores
+
+Lo de arriba es la instalación. Para publicar cambios de código se usa `desplegar-rag`,
+que vive en `/usr/local/sbin`, es de root y está habilitado en sudoers sin contraseña. No
+toma argumentos: los orígenes y destinos son fijos, así que el permiso sirve para desplegar
+esta aplicación y para nada más.
+
+1. Preparar el origen desde la Mac. Las tres primeras partes son código puro; `scrapers` y
+   `pipeline` van filtradas a `*.py` porque en la VM esas carpetas son también donde el
+   panel **escribe** el catálogo y la traza:
+
+       D=VM:/home/administrador/deploy-pendiente
+       rsync -az --delete --exclude='__pycache__' backend/ $D/backend/
+       rsync -az --delete frontend/dist/ $D/frontend/dist/
+       rsync -az --delete docs/ $D/docs/
+       rsync -az --include='*/' --include='*.py' --exclude='*' scrapers/ $D/scrapers/
+       rsync -az --include='*/' --include='*.py' --include='*.slurm' --exclude='*' \
+             pipeline/ $D/pipeline/
+
+2. **Verificar que no haya una operación del panel en curso**, inmediatamente antes de
+   desplegar. `desplegar-rag` reinicia el servicio, y las operaciones corren como procesos
+   hijos suyos: reiniciar las mata. Ya pasó, con una recolección de catálogo de dos horas.
+   Chequear diez minutos antes no sirve; el chequeo tiene que ser parte del mismo comando:
+
+       ssh VM 'ps -eo cmd | grep -E "recolectar_api|bajar_pdfs|pipeline\.actualizar" \
+               | grep -v grep && echo "HAY ALGO CORRIENDO" && exit 1; \
+               sudo -n /usr/local/sbin/desplegar-rag'
+
+3. Verificar. El arranque tarda unos dos minutos en cargar índice y modelo:
+
+       ssh VM 'curl -s http://127.0.0.1:8000/salud'
+
+El índice, los datos, el entorno virtual y el `.env` no se tocan nunca desde el despliegue:
+son estado, no código. Las configuraciones de systemd y de nginx tampoco, porque cambian el
+entorno de ejecución y merecen una decisión humana.
+
+Si hay que cambiar el propio `desplegar-rag`, conviene dejar copia de la versión instalada
+antes de reemplazarla: es lo único del despliegue que no se puede revertir volviendo a
+correr el despliegue.
+
+## El proxy
+
+La VM no sale a internet directamente: usa `http://proxy.unlu.edu.ar:8080`, declarado en la
+unidad de systemd. Las operaciones del panel lo heredan porque corren como hijas del
+servicio. Un script lanzado a mano por SSH **no** lo hereda y muere en un timeout largo;
+si hay que correr algo así, hay que exportar `HTTPS_PROXY`, `HTTP_PROXY` y `NO_PROXY`
+primero.

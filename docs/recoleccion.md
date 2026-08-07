@@ -144,6 +144,82 @@ filas declaradas, 1807 actos distintos). Por eso una carpeta que termina "a uno"
 total, con el listado ya agotado, no está incompleta: está completa y el total miente.
 La traza JSONL permite verificarlo: los ids vienen registrados página por página.
 
+## Actualización incremental
+
+Recolectar el catálogo completo cuesta horas: son veintiún mil actos leídos de a quince por
+página. Hacer eso todas las semanas para encontrar los pocos actos publicados desde la
+semana anterior no escala, y en una universidad con cien mil actos deja de ser viable.
+
+El portal entrega cada carpeta con lo más reciente al principio, así que lo que cambió está
+en las primeras páginas. La lectura incremental aprovecha eso: pide páginas desde el
+comienzo y se detiene cuando **tres páginas seguidas** no traen ningún documento que el
+catálogo no tenga ya. Una actualización semanal pasa de recorrer veintiún mil filas a leer
+unas tres páginas por carpeta: dos minutos para el portal entero.
+
+Tres páginas y no una porque un acto puede publicarse con retraso —fechado en marzo,
+cargado hoy— y entra al listado por su fecha, o sea sepultado bajo los más nuevos. Frenar
+con el primer conocido lo dejaría afuera para siempre.
+
+### Por qué la lectura incremental no alcanza sola
+
+Leer la punta encuentra lo recién publicado, pero es **ciega a los agujeros del medio**: un
+acto que se perdió en una corrida cortada hace meses está enterrado entre miles de
+conocidos y ninguna lectura de la punta lo va a ver. Al medirlo, seis carpetas tenían 49
+actos faltantes de ese tipo, y en todas ellas la punta daba cero novedades.
+
+Por eso hay una segunda comprobación, aritmética: **lo que el catálogo ya tiene de esa
+carpeta, más lo que la lectura acaba de encontrar, tiene que dar lo que el portal declara
+para ella**. Si no da, la carpeta se lista completa. Es la única forma de que un faltante
+viejo se vuelva visible.
+
+### El orden no es el que parece
+
+La lectura incremental depende de que lo nuevo esté al principio, así que eso se verifica
+en cada corrida en vez de suponerse. La verificación **no** es que cada fila sea más vieja
+que la anterior: se midió contra el portal de la UNLu y no se cumple. En Resoluciones del
+H. Consejo Superior aparece un acto del 12 de diciembre después de uno del 11. El listado
+viene ordenado por algo que correlaciona con la fecha pero admite inversiones locales.
+
+Lo que sí vale, y es lo único que la lectura necesita, es que ninguna página posterior
+traiga un documento más nuevo que el más nuevo de la primera. Si eso deja de cumplirse
+—otra versión de SUDOCU, otra configuración, otra universidad— la carpeta se lista completa
+en vez de confiar.
+
+### El total se recuerda
+
+El criterio de completitud necesita el total que declara el portal. El portal lo declara
+casi siempre, pero devuelve cuerpo vacío de manera intermitente, y no parejo: las dos
+carpetas más grandes fallan mucho más seguido que el resto. Una consulta fallida no
+significa que el total no exista, así que se guarda en `scrapers/totales.json` cada vez que
+se consigue y se reusa cuando no viene. Sin esa memoria, justo las carpetas que más importa
+vigilar quedaban sin verificar.
+
+El total no se pide aparte: viaja dentro de cada documento de la primera página, que ya se
+pide para leer las novedades.
+
+### Rehacer una carpeta no borra nada
+
+Marcar una carpeta para rehacerla era destructivo: primero se sacaban sus filas del CSV y
+después se salía a listarla de nuevo. Entre esas dos cosas puede pasar cualquier cosa, y
+pasó: Secretarías de Rectorado quedó con 255 filas de 5.668. El faltante no lo causó la
+interrupción sino el borrado previo.
+
+Ahora lo que se saca se conserva, y al terminar se reponen las filas cuyo documento no haya
+vuelto a aparecer. La carpeta puede quedar incompleta —y el resumen lo dice—, pero el
+catálogo no pierde lo que ya tenía. Reponer de más es imposible: se compara por
+identificador de documento.
+
+### Cuándo se lista la carpeta entera
+
+- La verificación de orden falla.
+- El portal no entrega ni una sola página después de insistir.
+- La punta no converge: hay tanto desconocido que ya no es "lo nuevo" sino una carpeta a
+  medio construir.
+- La cuenta no cierra contra el total declarado.
+- Se pide explícitamente con `--completo`.
+
+Fuera de esos casos, la carpeta se da por al día y se dice por qué.
+
 ## Lo que queda anotado
 
 El objeto de cada fila incluye `atributos.contenido`: **el texto completo del acto en

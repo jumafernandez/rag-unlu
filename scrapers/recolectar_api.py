@@ -108,28 +108,43 @@ def pedir(cid, offset, intentos=3):
     return None
 
 
-def total_declarado(cid, insistencias=6):
-    """El total que el portal declara para una carpeta. None si no se logra saberlo.
+def ruta_totales(salida):
+    """El archivo donde se recuerda cuántos documentos declara cada carpeta.
 
-    Se insiste porque el portal devuelve cuerpo vacío de manera intermitente, y no parejo:
-    las carpetas más grandes ---Secretarías, Direcciones Administrativas--- fallan mucho
-    más seguido que el resto. Preguntar una sola vez hacía que justo esas dos, las que más
-    importa vigilar, quedaran sin total y por lo tanto sin verificación.
-
-    Que devuelva None no es lo mismo que "está completa": quien llama tiene que tratarlo
-    como "no pude verificar" y decirlo.
+    Va al lado del catálogo, porque es del mismo tipo: dato de esta instalación, no código.
     """
-    for n in range(insistencias):
-        try:
-            d = pedir(cid, 0, intentos=2)
-            docs = (d or {}).get('documents') or []
-            if docs:
-                return int(docs[0].get('total') or 0) or None
-        except Exception:
-            pass
-        if n < insistencias - 1:
-            time.sleep(min(4 * (n + 1), 20))
-    return None
+    return os.path.join(os.path.dirname(salida) or '.', 'totales.json')
+
+
+def leer_totales(salida):
+    try:
+        with open(ruta_totales(salida), encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def recordar_total(salida, cid, nombre, total):
+    """Guarda el total que el portal declaró para una carpeta.
+
+    El portal contesta el total casi siempre, y cuando no contesta no es que no lo tenga:
+    es que devolvió un cuerpo vacío, como hace de manera intermitente. Sin memoria, esa
+    respuesta vacía nos deja sin poder verificar una carpeta que sabíamos contar la semana
+    pasada. Guardarlo convierte un dato que ya teníamos en un dato que no se pierde.
+
+    Se escribe por archivo temporal y os.replace para que una corrida interrumpida no deje
+    el registro a medio escribir.
+    """
+    if not total:
+        return
+    registro = leer_totales(salida)
+    registro[str(cid)] = {'nombre': nombre, 'total': int(total),
+                          'visto': time.strftime('%Y-%m-%d %H:%M')}
+    destino = ruta_totales(salida)
+    temporal = destino + '.tmp'
+    with open(temporal, 'w', encoding='utf-8') as f:
+        json.dump(registro, f, ensure_ascii=False, indent=1, sort_keys=True)
+    os.replace(temporal, destino)
 
 
 class OrdenInesperado(Exception):
@@ -140,6 +155,27 @@ class OrdenInesperado(Exception):
     configuración, otra universidad--- frenar temprano dejaría de significar "no hay nada
     nuevo" y empezaría a significar "no miré". Por eso se verifica en cada página y, si no
     se cumple, la carpeta se recolecta completa en vez de confiar.
+    """
+
+
+class PortalMudo(Exception):
+    """No se pudo leer ni la primera página de la carpeta.
+
+    El portal devuelve cuerpo vacío de manera intermitente. Si eso pasa en la primera
+    página de una lectura incremental, no leímos nada, y "no encontré nada nuevo" pasaría
+    a significar "no miré". Se avisa para que la carpeta se liste completa, que tiene su
+    propia paciencia para esperar a que el servidor se recupere.
+    """
+
+
+class DemasiadoNuevo(Exception):
+    """La punta del listado no converge: hay demasiado desconocido como para ser "lo nuevo".
+
+    La lectura incremental supone que lo que cambió es un puñado de actos al principio.
+    Cuando una carpeta viene de una corrida cortada ---Secretarías quedó con 255 de 5668---
+    ese supuesto no vale: casi todo es desconocido, y seguir paginando la punta es hacer
+    una recolección completa disfrazada, más lenta y sin las protecciones de la completa.
+    Conviene decirlo temprano y listar la carpeta entera.
     """
 
 
@@ -170,8 +206,8 @@ def verificar_orden(docs, techo):
     return techo
 
 
-def recolectar_incremental(cid, nombre, conocidos, paginas_limpias=3, tope_paginas=200,
-                           traza=None):
+def recolectar_incremental(cid, nombre, conocidos, paginas_limpias=3, tope_paginas=20,
+                           tope_vacias=6, traza=None):
     """Los documentos de una carpeta que todavía no tenemos, leyendo solo la punta.
 
     El portal devuelve de más nuevo a más viejo, así que lo que cambió está al principio y
@@ -198,13 +234,31 @@ def recolectar_incremental(cid, nombre, conocidos, paginas_limpias=3, tope_pagin
     nuevos, offset, limpias, total_portal = [], 0, 0, None
     techo, vistos = None, set()
 
+    vacias, paginas = 0, 0
     while offset < tope_paginas * TOPE:
         d = pedir(cid, offset)
         docs = (d or {}).get('documents') or []
         registrar(traza, {'carpeta': cid, 'nombre': nombre, 'offset': offset,
                           'modo': 'incremental', 'devueltos': len(docs)})
         if not docs:
-            break
+            # Pasado el total, una respuesta vacía ES el fin del listado y no hay nada que
+            # esperar. Sin esta salida, cada carpeta chica pagaba la paciencia completa
+            # ---más de un minuto de esperas--- para descubrir que ya había terminado.
+            if total_portal and offset >= total_portal:
+                break
+            # Antes del total, una vacía puede ser el fin o la intermitencia conocida del
+            # portal. Se insiste antes de creerle; si nunca entregó una página, no hay
+            # lectura que valga y se avisa.
+            vacias += 1
+            if vacias >= tope_vacias:
+                if paginas == 0:
+                    raise PortalMudo(f'{tope_vacias} respuestas vacías sin entregar '
+                                     f'una sola página')
+                break
+            time.sleep(min(5 * vacias, 45))
+            continue
+        vacias = 0
+        paginas += 1
         techo = verificar_orden(docs, techo)
         if total_portal is None:
             try:
@@ -227,6 +281,10 @@ def recolectar_incremental(cid, nombre, conocidos, paginas_limpias=3, tope_pagin
         if limpias >= paginas_limpias:
             break
         offset += TOPE
+    else:
+        # El while terminó por agotar el tope, no por reconocer lo que ya se tenía.
+        raise DemasiadoNuevo(f'{len(nuevos)} desconocidos en {paginas} páginas sin llegar '
+                             f'a lo ya conocido')
 
     print(f'  {nombre}: {len(nuevos)} nuevos leyendo {offset // TOPE + 1} páginas', flush=True)
     return nuevos, total_portal
@@ -354,6 +412,33 @@ def recolectar(cid, nombre, salida, maximo=None, tope_vacias=6, traza=None):
     return registros, total_portal
 
 
+def restaurar_faltantes(salida, respaldo):
+    """Devuelve al catálogo lo que una recolección incompleta dejó afuera.
+
+    Rehacer una carpeta es destructivo por diseño: primero se sacan sus filas del CSV y
+    después se sale a listarla de nuevo. Entre esas dos cosas puede pasar cualquiera ---el
+    portal deja de contestar, el servicio se reinicia, alguien corta la corrida--- y lo que
+    queda es una carpeta vacía en vez de una carpeta vieja. Ya ocurrió: Secretarías de
+    Rectorado quedó en 255 de 5668, y el faltante no lo causó el corte sino el borrado
+    previo.
+
+    Por eso el borrado deja de ser definitivo: lo que se sacó se guarda, y al terminar se
+    reponen las filas cuyo documento no haya vuelto a aparecer. Reponer de más es
+    imposible, porque se compara por identificador de documento; lo peor que puede pasar
+    es quedarse con un acto que el portal ya no publica, que es mucho mejor que perder
+    quinientos que sí.
+    """
+    with open(salida, encoding='utf-8-sig') as f:
+        presentes = {r['id_documento'] for r in csv.DictReader(f) if r.get('id_documento')}
+    faltan = [r for r in respaldo
+              if r.get('id_documento') and r['id_documento'] not in presentes]
+    if not faltan:
+        return 0
+    with open(salida, 'a', newline='', encoding='utf-8-sig') as f:
+        csv.DictWriter(f, fieldnames=COLUMNAS).writerows(faltan)
+    return len(faltan)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -372,6 +457,7 @@ def main():
     # Siempre se pregunta al portal, también con --carpeta: el nombre de la sección
     # sale de acá, y el mapa estático es solo el respaldo si el pedido falla.
     carpetas = carpetas_del_portal()
+    respaldo = []          # filas apartadas al rehacer carpetas, para reponer al final
     ids = a.carpeta or (sorted(carpetas) if a.todas else None)
     if not ids:
         sys.exit('indicá --carpeta ID o --todas')
@@ -396,14 +482,28 @@ def main():
             conocidos = conocidos_por_seccion.get(nombre) or set()
             if not conocidos:
                 continue                      # carpeta nunca recolectada: listado completo
-            total = total_declarado(cid)
             try:
                 nuevos, total_pag = recolectar_incremental(cid, nombre, conocidos, traza=None)
-            except OrdenInesperado as e:
+            except (OrdenInesperado, PortalMudo, DemasiadoNuevo) as e:
                 print(f'  {nombre}: {e} -> se rehace entera', flush=True)
                 rehacer.append(nombre)
                 continue
-            total = total or total_pag
+
+            # El total viaja DENTRO de cada documento de la primera página, que ya se pidió
+            # para leer lo nuevo. Preguntarlo aparte era una llamada de más por carpeta, y
+            # en las dos que el portal atiende peor eso significaba insistir hasta un minuto
+            # por un dato que la página traía gratis. Si aun así no vino, se usa el del
+            # último chequeo: el portal siempre lo declara, así que no tenerlo es un fallo
+            # de esta consulta, no un dato que no exista.
+            if total_pag:
+                total = total_pag
+                recordar_total(a.salida, cid, nombre, total)
+            else:
+                recordado = leer_totales(a.salida).get(str(cid))
+                total = recordado['total'] if recordado else None
+                if recordado:
+                    print(f'  {nombre}: la página no trajo el total; se usa el del último '
+                          f'chequeo ({total}, {recordado["visto"]})', flush=True)
             tengo = len(conocidos) + len(nuevos)
 
             # La segunda verificación, y la que atrapa lo que la primera no puede ver: lo
@@ -420,12 +520,23 @@ def main():
                 rehacer.append(nombre)
                 continue
 
+            # Sin total no hay verificación posible, y sin verificación no se puede
+            # afirmar que la carpeta esté al día: se lista completa. Parece exagerado
+            # hasta que se mira un caso real ---Secretarías de Rectorado quedó en 255 de
+            # 5668 cuando una corrida se cortó a la mitad---, porque es justo en las
+            # carpetas grandes donde el portal contesta vacío más seguido y donde el
+            # faltante es más caro. Dar por buena una carpeta que no se pudo contar
+            # significa no volver a mirarla nunca.
+            if total is None:
+                print(f'  {nombre}: {tengo} en el catálogo, sin total ni ahora ni en el '
+                      f'registro -> se lista completa, porque no se puede verificar',
+                      flush=True)
+                rehacer.append(nombre)
+                continue
+
             if nuevos:
                 filas_previas.extend(anexar_nuevos(nuevos, nombre, a.salida, filas_previas))
                 anexados += len(nuevos)
-            if total is None:
-                print(f'  {nombre}: {tengo} en el catálogo, {len(nuevos)} nuevos; el portal '
-                      f'no declaró total: NO SE PUDO VERIFICAR que esté completa', flush=True)
             al_dia.append(nombre)
             ids = [i for i in ids if i != cid]
 
@@ -434,11 +545,14 @@ def main():
         if al_dia:
             print(f'al día: {sorted(al_dia)}', flush=True)
         if rehacer:
+            respaldo = [r for r in filas_previas if r['Seccion'] in rehacer]
             conservar = [r for r in filas_previas if r['Seccion'] not in rehacer]
             with open(a.salida, 'w', newline='', encoding='utf-8-sig') as f:
                 w = csv.DictWriter(f, fieldnames=COLUMNAS)
                 w.writeheader()
                 w.writerows(conservar)
+            print(f'  ({len(respaldo)} filas apartadas de {len(rehacer)} carpeta(s); se '
+                  f'reponen al final las que no vuelvan a aparecer)', flush=True)
         if not ids:
             # Que no quede nada por hacer es un final feliz, no un error: salir con
             # código distinto de cero hacía que el panel lo mostrara como "Falló".
@@ -453,14 +567,25 @@ def main():
             regs, tp = recolectar(cid, carpetas.get(cid, f'carpeta {cid}'),
                                   a.salida, a.maximo, a.paciencia, traza)
             total += len(regs)
+            recordar_total(a.salida, cid, carpetas.get(cid, f'carpeta {cid}'), tp)
             resumen.append((carpetas.get(cid, str(cid)), len(regs), tp))
         except Exception as e:
             print(f'  ERROR en la carpeta {cid}: {type(e).__name__}: {e}', flush=True)
             resumen.append((carpetas.get(cid, str(cid)), None, None))
 
+    repuestas = restaurar_faltantes(a.salida, respaldo) if respaldo else 0
+    if repuestas:
+        print(f'\nse repusieron {repuestas} filas que la recolección no volvió a traer: '
+              f'la carpeta quedó incompleta, pero el catálogo no perdió nada', flush=True)
+
     print(f'\n=== resumen: {total} documentos en {time.time() - t0:.0f}s -> {a.salida} ===')
+    # Para juzgar si una carpeta quedó corta sirve tanto el total que trajo esta corrida
+    # como el que se recordó de la anterior: sin eso, una carpeta que no devolvió nada se
+    # informaba como "0 de ? ok", que es justo lo contrario de lo que pasó.
+    recordados = {v['nombre']: v['total'] for v in leer_totales(a.salida).values()}
     incompletas = 0
     for nombre, n, tp in resumen:
+        tp = tp or recordados.get(nombre)
         if n is None:
             print(f'  {nombre[:40]:42s} ERROR'); incompletas += 1
         elif tp and n < tp:

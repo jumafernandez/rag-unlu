@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import "./styles.css";
 import Login from "./Login";
 import Markdown from "./Markdown";
 import Admin, { aplicarTema } from "./Admin";
-import { INSTITUCION, LOGO_POR_OMISION, textos } from "./config";
+import { INSTITUCION, LOGO_POR_OMISION, TEMA_INYECTADO, textos } from "./config";
 import {
   consultarEnFlujo, leerSesion, cerrarSesion, listarConversaciones, adoptarConversacion,
   leerConversacion, renombrarConversacion, borrarConversacion, valorarMensaje, salud,
@@ -143,12 +143,22 @@ export default function App() {
 
   // Los colores guardados se aplican al arrancar, antes de cualquier sesión: son parte de
   // la identidad visual de la institución, no una preferencia de usuario.
-  useEffect(() => { leerTema().then((r) => aplicarTema(r.tema)).catch(() => {}); }, []);
+  //
+  // Si el servidor los inyectó en el HTML, se aplican con useLayoutEffect, que corre
+  // ANTES de que el navegador pinte: así no hay un cuadro con los colores del build. Si
+  // no vinieron ---desarrollo con Vite--- se piden como siempre.
+  useLayoutEffect(() => { if (TEMA_INYECTADO) aplicarTema(TEMA_INYECTADO); }, []);
+  useEffect(() => {
+    if (TEMA_INYECTADO) return;
+    leerTema().then((r) => aplicarTema(r.tema)).catch(() => {});
+  }, []);
 
   // La institución (nombre, logo, enlaces) vive en el servidor, no en el build: el panel
-  // la edita y la aplicación se entera sin recompilar.
+  // la edita y la aplicación se entera sin recompilar. INSTITUCION ya trae lo inyectado,
+  // así que el primer pintado es el correcto y el pedido solo hace falta sin inyección.
   const [inst, setInst] = useState(INSTITUCION);
   useEffect(() => {
+    if (TEMA_INYECTADO) return;
     leerInstitucion().then((r) => setInst({ ...INSTITUCION, ...r.institucion })).catch(() => {});
   }, []);
   const rotulos = useMemo(() => textos(inst), [inst]);

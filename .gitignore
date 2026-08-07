@@ -93,3 +93,8 @@ instalaciones/*/scrapers/traza.jsonl
 # Ningún CSV bajo scrapers/ es código: todos son catálogos, listados intermedios o mapeos
 # de la recolección. Se regeneran con la operación 1 del panel.
 scrapers/**/*.csv
+
+# Cuántos documentos declara cada carpeta del portal. Es memoria de la recolección de esta
+# instancia, del mismo tipo que el catálogo: se aprende corriendo, no se versiona.
+scrapers/totales.json
+instalaciones/*/scrapers/totales.json

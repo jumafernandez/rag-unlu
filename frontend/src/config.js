@@ -7,7 +7,15 @@
  * queda si el servidor no contesta. Las claves son las mismas que las del backend.
  */
 
-export const INSTITUCION = {
+// El servidor inyecta la identidad de ESTA instancia en el index.html, antes de que
+// corra nada de la aplicación. Cuando está, manda: es la del panel, la verdadera. Los
+// valores de abajo quedan como último recurso ---desarrollo con Vite, o un servidor que
+// no contestó--- y son los de la UNLu porque es donde nació el sistema.
+const INYECTADA = (typeof window !== "undefined" && window.__IDENTIDAD__) || null;
+
+export const TEMA_INYECTADO = INYECTADA?.tema || null;
+
+const POR_OMISION = {
   nombre: "Universidad Nacional de Luján",
   sigla: "UNLu",
   producto: "ChatDigesto",
@@ -21,6 +29,8 @@ export const INSTITUCION = {
   // Logo de reserva, en public/. El que configura el admin se sirve desde /marca/logo.
   logo: null,
 };
+
+export const INSTITUCION = { ...POR_OMISION, ...(INYECTADA?.institucion || {}) };
 
 export const LOGO_POR_OMISION = `${import.meta.env.BASE_URL}logo-unlu-96.png`;
 
