@@ -237,13 +237,6 @@ function Programacion({ inicial, texto, alGuardar, alFallar, fallo }) {
       )}
 
       <p className="admin-nota">{descripcion}</p>
-      {cfg.activa && (
-        <p className="admin-nota-chica">
-          Corre unos minutos después de la hora elegida. El corrimiento es propio de esta
-          instalación y siempre el mismo: evita que todas las universidades salgan a
-          consultar el portal en el mismo minuto.
-        </p>
-      )}
       {cfg.cadencia === "mensual" && cfg.activa && cfg.dia_mes > 28 && (
         <p className="admin-nota-chica">
           Los meses que no llegan a ese día se actualizan el último día del mes.

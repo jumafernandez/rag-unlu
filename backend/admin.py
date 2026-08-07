@@ -323,6 +323,13 @@ def leer_programacion():
 def guardar_programacion(valores, por):
     limpio = programacion.normalizar(valores)
     guardar_ajuste('programacion', limpio, por)
+    # La última ocurrencia YA PASADA se da por ejecutada. Sin esto, activar la
+    # programación a las 17 con la hora puesta en el mediodía disparaba una actualización
+    # en ese mismo instante: la regla que recupera una corrida perdida por un servicio
+    # caído tomaba el mediodía de hoy como perdida. Configurar no es ejecutar.
+    ya_paso = programacion.anterior(limpio, datetime.datetime.now())
+    if ya_paso is not None:
+        marcar_programada(ya_paso)
     return limpio
 
 

@@ -42,10 +42,9 @@ diaria, semanal por día, o mensual por número de día, siempre a una hora en p
 día elegido no existe en algún mes ---el 31 en febrero--- corre el último día de ese mes,
 porque saltearlo sería un silencio que nadie nota hasta que la normativa está vieja.
 
-Se ejecuta unos minutos después de la hora elegida. Ese corrimiento se deriva del portal
-configurado, así que es propio de cada instalación y siempre el mismo: evita que todas
-las universidades salgan a consultar SUDOCU en el mismo minuto. El panel muestra la hora
-real, no la elegida.
+Configurarla no la ejecuta: al guardar, la última ocurrencia ya pasada se da por hecha.
+Activarla a las cinco de la tarde con la hora puesta al mediodía programa la de mañana, no
+dispara una en ese momento.
 
 La corrida programada pasa por el mismo registro que el botón, con su log y su regla de
 que no puede haber dos operaciones a la vez: si a la hora programada hay algo corriendo,

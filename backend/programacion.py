@@ -17,7 +17,6 @@ problema son los meses sin día 31 y los reinicios a destiempo.
 """
 import calendar
 import datetime as dt
-import hashlib
 
 CADENCIAS = ('diaria', 'semanal', 'mensual')
 
@@ -52,24 +51,8 @@ def normalizar(cfg):
     return c
 
 
-def desfase(semilla):
-    """Minutos de corrimiento dentro de la hora elegida, propios de esta instalación.
-
-    Si el sistema se instala en varias universidades, todas van a elegir la madrugada y
-    todas van a salir a las 3 en punto contra el mismo SUDOCU. El corrimiento las separa
-    sin que nadie tenga que pensarlo.
-
-    Se deriva del portal configurado, así que es estable ---la misma instalación cae
-    siempre en el mismo minuto, y se puede anunciar en el panel--- y distinto entre
-    universidades. No se usa azar: un minuto que cambia en cada arranque haría imposible
-    explicar por qué corrió cuando corrió.
-    """
-    d = hashlib.sha256((semilla or '').encode('utf-8')).digest()
-    return d[0] % 60
-
-
-def _con_hora(dia, hora, minuto):
-    return dt.datetime(dia.year, dia.month, dia.day, hora, minuto)
+def _con_hora(dia, hora):
+    return dt.datetime(dia.year, dia.month, dia.day, hora)
 
 
 def _dia_del_mes(anio, mes, dia_pedido):
@@ -82,19 +65,19 @@ def _dia_del_mes(anio, mes, dia_pedido):
     return min(dia_pedido, calendar.monthrange(anio, mes)[1])
 
 
-def _candidatas(cfg, ahora, minuto):
+def _candidatas(cfg, ahora):
     """Momentos programados cerca de `ahora`, de más viejo a más nuevo."""
     hora = cfg['hora']
     hoy = ahora.date()
 
     if cfg['cadencia'] == 'diaria':
-        return [_con_hora(hoy + dt.timedelta(days=n), hora, minuto) for n in (-1, 0, 1)]
+        return [_con_hora(hoy + dt.timedelta(days=n), hora) for n in (-1, 0, 1)]
 
     if cfg['cadencia'] == 'semanal':
         # weekday(): lunes = 0. Se retrocede al día elegido de esta semana y se miran la
         # anterior y la siguiente.
         base = hoy - dt.timedelta(days=(hoy.weekday() - cfg['dia_semana']) % 7)
-        return [_con_hora(base + dt.timedelta(days=7 * n), hora, minuto) for n in (-1, 0, 1)]
+        return [_con_hora(base + dt.timedelta(days=7 * n), hora) for n in (-1, 0, 1)]
 
     momentos = []
     for salto in (-1, 0, 1):
@@ -102,40 +85,43 @@ def _candidatas(cfg, ahora, minuto):
         anio = ahora.year + (mes - 1) // 12
         mes = (mes - 1) % 12 + 1
         dia = _dia_del_mes(anio, mes, cfg['dia_mes'])
-        momentos.append(dt.datetime(anio, mes, dia, hora, minuto))
+        momentos.append(dt.datetime(anio, mes, dia, hora))
     return momentos
 
 
-def proxima(cfg, ahora, semilla=''):
+def proxima(cfg, ahora):
     """El primer momento programado posterior a `ahora`. None si está apagada."""
     cfg = normalizar(cfg)
     if not cfg['activa']:
         return None
-    minuto = desfase(semilla)
-    return min(m for m in _candidatas(cfg, ahora, minuto) if m > ahora)
+    return min(m for m in _candidatas(cfg, ahora) if m > ahora)
 
 
-def anterior(cfg, ahora, semilla=''):
+def anterior(cfg, ahora):
     """El último momento programado que ya pasó. None si está apagada."""
     cfg = normalizar(cfg)
     if not cfg['activa']:
         return None
-    minuto = desfase(semilla)
-    pasadas = [m for m in _candidatas(cfg, ahora, minuto) if m <= ahora]
+    pasadas = [m for m in _candidatas(cfg, ahora) if m <= ahora]
     return max(pasadas) if pasadas else None
 
 
-def toca_ahora(cfg, ahora, ultima, semilla=''):
+def toca_ahora(cfg, ahora, ultima):
     """Si corresponde lanzar en este momento.
 
     Corresponde cuando el último momento programado ya pasó, todavía no se ejecutó, y no
     pasó tanto como para que recuperarlo deje de tener sentido.
 
     `ultima` es el momento PROGRAMADO que se ejecutó por última vez, no cuándo terminó:
-    comparar contra el momento programado es lo que hace que un reinicio a las 3:14 no
-    saltee la corrida de las 3:15 ni la repita dos veces.
+    comparar contra el momento programado es lo que hace que un reinicio a las 2:59 no
+    saltee la corrida de las 3 ni la repita dos veces.
+
+    Al guardar una configuración nueva se marca como ya ejecutada la última ocurrencia
+    pasada, así activar la programación a la tarde con la hora puesta en el mediodía no
+    dispara una actualización en ese mismo momento. La ventana de gracia es para un
+    servicio que estuvo caído, no para ocurrencias anteriores a la configuración.
     """
-    ult = anterior(cfg, ahora, semilla)
+    ult = anterior(cfg, ahora)
     if ult is None:
         return False
     if ultima is not None and ultima >= ult:
@@ -143,12 +129,12 @@ def toca_ahora(cfg, ahora, ultima, semilla=''):
     return (ahora - ult) <= dt.timedelta(hours=HORAS_DE_GRACIA)
 
 
-def describir(cfg, ahora, semilla=''):
-    """Cómo contarlo en el panel, con el minuto real y no el que se eligió."""
+def describir(cfg, ahora):
+    """Cómo contarlo en el panel."""
     cfg = normalizar(cfg)
     if not cfg['activa']:
         return 'La actualización automática está desactivada.'
-    p = proxima(cfg, ahora, semilla)
+    p = proxima(cfg, ahora)
     dias = ('lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo')
     if cfg['cadencia'] == 'diaria':
         cada = 'Todos los días'
@@ -156,6 +142,5 @@ def describir(cfg, ahora, semilla=''):
         cada = f'Cada {dias[cfg["dia_semana"]]}'
     else:
         cada = f'El día {cfg["dia_mes"]} de cada mes'
-    return (f'{cada} a las {p.hour:02d}:{p.minute:02d}. '
-            f'Próxima: {dias[p.weekday()]} {p.day}/{p.month} a las '
-            f'{p.hour:02d}:{p.minute:02d}.')
+    return (f'{cada} a las {p.hour:02d}:00. '
+            f'Próxima: {dias[p.weekday()]} {p.day}/{p.month}.')

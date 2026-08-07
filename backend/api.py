@@ -135,17 +135,13 @@ async def ciclo_de_vida(_app):
         print(f'AVISO: no se pudo cargar el modelo de embeddings ({e})', flush=True)
 
     reloj = asyncio.create_task(_reloj_de_actualizacion())
-    print(programacion.describir(admin.leer_programacion(), dt.datetime.now(),
-                                 _SEMILLA_RELOJ), flush=True)
+    print(programacion.describir(admin.leer_programacion(), dt.datetime.now()),
+          flush=True)
     try:
         yield
     finally:
         reloj.cancel()
 
-
-# El minuto dentro de la hora sale del portal configurado: distinto en cada universidad,
-# igual en cada arranque de la misma. Ver programacion.desfase().
-_SEMILLA_RELOJ = os.environ.get('SUDOCU_PORTAL_URL', '')
 
 # Lo que despierta al reloj antes de tiempo cuando alguien cambia la programación desde
 # el panel. Sin esto habría que elegir entre que el cambio tarde en tomar efecto o que el
@@ -166,8 +162,8 @@ async def _reloj_de_actualizacion():
         try:
             cfg = admin.leer_programacion()
             ahora = dt.datetime.now()
-            if programacion.toca_ahora(cfg, ahora, admin.ultima_programada(), _SEMILLA_RELOJ):
-                momento = programacion.anterior(cfg, ahora, _SEMILLA_RELOJ)
+            if programacion.toca_ahora(cfg, ahora, admin.ultima_programada()):
+                momento = programacion.anterior(cfg, ahora)
                 # Se marca ANTES de lanzar: si el lanzamiento falla porque ya hay algo
                 # corriendo, no se debe reintentar en bucle hasta que termine.
                 admin.marcar_programada(momento)
@@ -182,7 +178,7 @@ async def _reloj_de_actualizacion():
                 except ValueError as e:
                     print(f'actualización programada salteada: {e}', flush=True)
 
-            siguiente = programacion.proxima(cfg, dt.datetime.now(), _SEMILLA_RELOJ)
+            siguiente = programacion.proxima(cfg, dt.datetime.now())
             # Sin programación activa no hay nada que esperar: duerme hasta que alguien
             # la encienda. El tope de una hora es solo una red por si el reloj del
             # sistema salta (cambio de hora, corrección por NTP).
@@ -1665,7 +1661,7 @@ def programacion_leer(authorization: Optional[str] = Header(None)):
     exigir_admin(authorization)
     cfg = admin.leer_programacion()
     return {'programacion': cfg,
-            'descripcion': programacion.describir(cfg, dt.datetime.now(), _SEMILLA_RELOJ)}
+            'descripcion': programacion.describir(cfg, dt.datetime.now())}
 
 
 @app.put('/admin/programacion')
@@ -1676,7 +1672,7 @@ def programacion_guardar(p: Programacion, authorization: Optional[str] = Header(
     # que recalcule con lo que se acaba de guardar.
     _despertar_reloj.set()
     return {'programacion': cfg,
-            'descripcion': programacion.describir(cfg, dt.datetime.now(), _SEMILLA_RELOJ)}
+            'descripcion': programacion.describir(cfg, dt.datetime.now())}
 
 
 @app.get('/admin/corridas')
@@ -1686,8 +1682,7 @@ def corridas_listar(authorization: Optional[str] = Header(None)):
     return {'corridas': corridas.listar(),
             'en_curso': corridas.en_curso(),
             'programacion': cfg,
-            'programacion_texto': programacion.describir(cfg, dt.datetime.now(),
-                                                         _SEMILLA_RELOJ),
+            'programacion_texto': programacion.describir(cfg, dt.datetime.now()),
             'operaciones': [{'clave': k, 'titulo': v['titulo'],
                              'descripcion': v['descripcion']}
                             for k, v in OPERACIONES.items()]}
