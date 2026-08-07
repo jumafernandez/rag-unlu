@@ -1998,3 +1998,9 @@ button, .sidebar-action {
 .corrida-acciones { display: flex; gap: 8px; white-space: nowrap; }
 .corrida-detener { color: #b3261e; }
 .corrida-detener:hover { background: #fce8e6; }
+
+.corrida-operacion-activa { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.corrida-operacion-activa .corrida-detener {
+  border-color: #b3261e; color: #b3261e; background: transparent;
+}
+.corrida-operacion-activa .corrida-detener:hover { background: #fce8e6; }

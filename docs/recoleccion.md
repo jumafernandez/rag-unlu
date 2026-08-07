@@ -215,16 +215,48 @@ vuelto a aparecer. La carpeta puede quedar incompleta —y el resumen lo dice—
 catálogo no pierde lo que ya tenía. Reponer de más es imposible: se compara por
 identificador de documento.
 
+### El portal corta las consultas pesadas a los 20 segundos
+
+Las carpetas con miles de documentos devuelven, de manera intermitente, **HTTP 200 con
+cuerpo vacío exactamente a los 20,0 segundos**. Se midió desde dos redes distintas y con
+todas las variantes de parámetros: no es el proxy de la universidad ni una carpeta servida
+de otra forma, es un tope de tiempo del propio portal. Una carpeta chica contesta en tres
+segundos; Secretarías de Rectorado y Direcciones Administrativas, según la carga del
+momento, no llegan.
+
+Es la explicación de algo que estaba anotado desde el principio sin causa conocida: la
+propia interfaz de SUDOCU muestra "No se encontraron documentos" en esas carpetas.
+
+Por eso una respuesta vacía **nunca** se interpreta como "la carpeta está vacía" ni
+dispara una reconstrucción: si el portal no contesta, la carpeta se deja como está y se
+reintenta en la corrida siguiente. Rehacerla sería borrar lo que se tiene para pedírselo a
+un servidor que no está respondiendo.
+
+### Actualizar y reconciliar son dos cosas distintas
+
+Que falten actos **que no están en la punta** significa que son viejos: se perdieron en
+alguna corrida cortada, no se publicaron esta semana. Recuperarlos exige listar la carpeta
+entera, que en las grandes son horas y contra el tope de 20 segundos a veces no termina
+nunca.
+
+Eso no puede dispararse solo en cada actualización: quedaría reconstruyendo las mismas
+carpetas para siempre. La actualización informa el faltante y sigue; la reparación se pide
+a mano y sabiendo lo que cuesta:
+
+```bash
+python recolectar_api.py --todas --salida <catálogo> --reconciliar
+```
+
 ### Cuándo se lista la carpeta entera
 
 - La verificación de orden falla.
-- El portal no entrega ni una sola página después de insistir.
-- La punta no converge: hay tanto desconocido que ya no es "lo nuevo" sino una carpeta a
-  medio construir.
-- La cuenta no cierra contra el total declarado.
+- La punta trae tanto desconocido que ya no es "lo nuevo" sino una carpeta a medio
+  construir.
+- La cuenta no cierra **y** se pidió `--reconciliar`.
 - Se pide explícitamente con `--completo`.
 
-Fuera de esos casos, la carpeta se da por al día y se dice por qué.
+Fuera de esos casos la carpeta se da por al día, o se informa qué le falta y por qué, pero
+no se toca.
 
 ## Lo que queda anotado
 

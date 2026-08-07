@@ -185,7 +185,7 @@ function Corridas({ alFallar }) {
     const timer = setInterval(() => {
       refrescar();
       if (abierta != null) adminCorrida(abierta).then(setDetalle).catch(() => {});
-    }, 3000);
+    }, 6000);
     return () => clearInterval(timer);
   });   // sin dependencias a propósito: se rearma en cada render y usa el estado fresco
 
@@ -243,11 +243,24 @@ function Corridas({ alFallar }) {
               <strong>{op.titulo}</strong>
               <p>{op.descripcion}</p>
             </div>
-            <button className="sidebar-action primary-side admin-guardar"
-                    disabled={hayActiva || lanzando}
-                    onClick={() => lanzar(op.clave)}>
-              {hayActiva ? "Hay una en curso" : "Ejecutar"}
-            </button>
+            {/* El paso que se está ejecutando muestra su propio estado y cómo cortarlo.
+                Los demás quedan deshabilitados y nada más: antes los siete botones
+                cambiaban a "Hay una en curso" a la vez, y no se distinguía el que uno
+                acababa de apretar de los que estaban bloqueados por él. */}
+            {datos.en_curso?.operacion === op.clave ? (
+              <div className="corrida-operacion-activa">
+                <span className="corrida-estado en_curso">En curso</span>
+                <button className="sidebar-action admin-guardar corrida-detener"
+                        onClick={() => detener(datos.en_curso.id)}>Detener</button>
+              </div>
+            ) : (
+              <button className="sidebar-action primary-side admin-guardar"
+                      disabled={hayActiva || lanzando}
+                      title={hayActiva ? "Esperá a que termine la que está en curso" : ""}
+                      onClick={() => lanzar(op.clave)}>
+                Ejecutar
+              </button>
+            )}
           </div>
         ))}
       </div>

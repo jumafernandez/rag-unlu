@@ -305,9 +305,13 @@ def recolectar_incremental(cid, nombre, conocidos, total_recordado=None,
             break
         offset += TOPE
     else:
-        # El while terminó por agotar el tope, no por reconocer lo que ya se tenía.
-        raise DemasiadoNuevo(f'{len(nuevos)} desconocidos en {paginas} páginas sin llegar '
-                             f'a lo ya conocido')
+        # El while terminó por agotar el tope, no por cerrar la cuenta.
+        if nuevos:
+            raise DemasiadoNuevo(f'{len(nuevos)} desconocidos en {paginas} páginas sin '
+                                 f'llegar a lo ya conocido')
+        # Punta limpia y la cuenta igual no cierra: lo que falta no está acá adelante,
+        # está en el medio del listado. No es un caso de excepción sino de aritmética, y
+        # la resuelve quien llama, que sabe cuántos faltan y qué hacer con eso.
 
     print(f'  {nombre}: {len(nuevos)} nuevos leyendo {offset // TOPE + 1} páginas', flush=True)
     return nuevos, total_portal, del_portal
@@ -478,6 +482,9 @@ def main():
                    help='respuestas vacías seguidas antes de dar por terminada una carpeta')
     p.add_argument('--completo', action='store_true',
                    help='listar cada carpeta entera en vez de leer solo lo nuevo')
+    p.add_argument('--reconciliar', action='store_true',
+                   help='rehacer las carpetas a las que les falten actos viejos '
+                        '(caro: puede tardar horas)')
     a = p.parse_args()
 
     # Siempre se pregunta al portal, también con --carpeta: el nombre de la sección
@@ -502,7 +509,7 @@ def main():
             if r.get('id_documento'):
                 conocidos_por_seccion.setdefault(r['Seccion'], set()).add(r['id_documento'])
 
-        al_dia, rehacer, anexados = [], [], 0
+        al_dia, rehacer, mudas, incompletas_viejas, anexados = [], [], [], [], 0
         for cid in list(ids):
             nombre = carpetas.get(cid, f'carpeta {cid}')
             conocidos = conocidos_por_seccion.get(nombre) or set()
@@ -512,7 +519,19 @@ def main():
             try:
                 nuevos, total, del_portal = recolectar_incremental(
                     cid, nombre, conocidos, total_recordado=memoria.get('total'), traza=None)
-            except (OrdenInesperado, PortalMudo, DemasiadoNuevo) as e:
+            except PortalMudo as e:
+                # Que el portal no entregue nada NO es un problema de nuestros datos, así
+                # que rehacer la carpeta es lo peor que se puede hacer: se borra lo que hay
+                # para volver a pedirle a un servidor que no está contestando, y se pasan
+                # horas juntando de a dos filas. Se midió contra Secretarías de Rectorado:
+                # veinte páginas seguidas vacías, y dos corridas de horas que juntaron 255
+                # y 81 filas de 5.668. La carpeta se deja como está y se avisa.
+                print(f'  {nombre}: {e} -> el portal no está sirviendo esta carpeta; se '
+                      f'deja como está y se reintenta en la próxima corrida', flush=True)
+                mudas.append(nombre)
+                ids = [i for i in ids if i != cid]
+                continue
+            except (OrdenInesperado, DemasiadoNuevo) as e:
                 print(f'  {nombre}: {e} -> se rehace entera', flush=True)
                 rehacer.append(nombre)
                 continue
@@ -539,8 +558,22 @@ def main():
             # carpeta se rehace completa. La tolerancia de 3 es la misma de siempre: el
             # portal repite filas entre páginas y las cuenta en el total.
             if total is not None and tengo < total - TOLERANCIA_TOTAL:
-                print(f'  {nombre}: {tengo} de {total} tras leer lo nuevo -> se rehace '
-                      f'entera (faltan {total - tengo} del medio del listado)', flush=True)
+                # Que falten actos que NO están en la punta significa que son viejos: se
+                # perdieron en alguna corrida cortada, no se publicaron esta semana.
+                # Repararlos exige listar la carpeta entera, que en las grandes son horas
+                # ---y contra un portal que corta las consultas pesadas a los 20 segundos,
+                # a veces no termina nunca---. Eso no puede dispararse solo en cada
+                # actualización semanal: quedaría reconstruyendo para siempre las mismas
+                # carpetas. Se informa y se pide explícitamente con --reconciliar.
+                if not a.reconciliar:
+                    print(f'  {nombre}: {tengo} de {total} · le faltan {total - tengo} '
+                          f'actos que no están en la punta, o sea viejos. Se deja como '
+                          f'está; para repararla: --reconciliar', flush=True)
+                    incompletas_viejas.append(f'{nombre} (faltan {total - tengo})')
+                    ids = [i for i in ids if i != cid]
+                    continue
+                print(f'  {nombre}: {tengo} de {total} -> se rehace entera '
+                      f'(faltan {total - tengo} del medio del listado)', flush=True)
                 rehacer.append(nombre)
                 continue
 
@@ -568,6 +601,12 @@ def main():
             print(f'{anexados} documentos nuevos agregados al catálogo', flush=True)
         if al_dia:
             print(f'al día: {sorted(al_dia)}', flush=True)
+        if mudas:
+            print(f'sin respuesta del portal, quedaron como estaban: {sorted(mudas)}',
+                  flush=True)
+        if incompletas_viejas:
+            print(f'con faltantes viejos (correr con --reconciliar para repararlas): '
+                  f'{sorted(incompletas_viejas)}', flush=True)
         if rehacer:
             respaldo = [r for r in filas_previas if r['Seccion'] in rehacer]
             conservar = [r for r in filas_previas if r['Seccion'] not in rehacer]

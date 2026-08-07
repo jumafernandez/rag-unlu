@@ -68,7 +68,17 @@ def _cargar_env_de(ruta):
             if not linea or linea.startswith('#') or '=' not in linea:
                 continue
             clave, valor = linea.split('=', 1)
-            os.environ.setdefault(clave.strip(), valor.strip().strip('"').strip("'"))
+            valor = valor.strip().strip('"').strip("'")
+            # Una clave sin valor no configura nada, y con `setdefault` ---donde gana la
+            # PRIMERA aparición--- hacía algo peor que nada: tapaba el valor real escrito
+            # más abajo. La plantilla trae varias claves vacías para que se completen, así
+            # que agregar la línea al final del archivo, que es lo natural, no tenía
+            # efecto y no había manera de darse cuenta. Pasó con RAG_SESION_SECRETO: el
+            # servicio siguió firmando con un secreto al azar por arranque y cada
+            # despliegue deslogueaba a todo el mundo.
+            if not valor:
+                continue
+            os.environ.setdefault(clave.strip(), valor)
 
 
 _cargar_env()
