@@ -50,7 +50,13 @@ async function pedir(ruta, opciones = {}) {
   const r = await fetch(`${BASE}${ruta}`, { headers: cabeceras(), ...opciones });
   if (r.status === 401) {
     // La sesión venció: se limpia para que el front vuelva al estado sin cuenta.
+    //
+    // Limpiar el almacenamiento no alcanza: la aplicación ya tiene la sesión en su estado
+    // y sigue dibujando la pantalla de alguien conectado, solo que sin permisos ---sin
+    // botón de administración y sin historial--- lo que parece un error del sistema y no
+    // una sesión vencida. El aviso deja que la aplicación se entere y mande al login.
     cerrarSesion();
+    window.dispatchEvent(new Event("sesion-vencida"));
     throw new Error("Tu sesión venció. Volvé a iniciar sesión.");
   }
   if (!r.ok) {

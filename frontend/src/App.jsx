@@ -236,6 +236,14 @@ export default function App() {
     if (enlace) enlace.href = `${URL_LOGO}?v=favicon`;
   }, [inst.logo]);
 
+  // Si el servidor rechaza el token ---venció, o el servicio se reinició sin un secreto
+  // de sesión fijo--- la aplicación tiene que enterarse, no solo el almacenamiento.
+  useEffect(() => {
+    const vencida = () => { setSesion(null); setHistory([]); setConvId(null); };
+    window.addEventListener("sesion-vencida", vencida);
+    return () => window.removeEventListener("sesion-vencida", vencida);
+  }, []);
+
   // La entrada al panel aparece solo para administradores. Es comodidad, no seguridad: el
   // permiso lo verifica el servidor en cada ruta de /admin.
   const [soyAdmin, setSoyAdmin] = useState(false);
