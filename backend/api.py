@@ -791,18 +791,29 @@ def normalizar_estado(bruto) -> dict:
 
 
 def fusionar_actos(estado: dict, mencionados: set) -> dict:
-    """Suma al estado los actos que aparecieron recién, sin pisar lo que decidió el usuario.
+    """El estado queda con lo que el usuario decidió, más lo que la respuesta acaba de citar.
 
-    Los actos NO se acumulan sin control: lo que los acota no es un tope arbitrario sino
-    el propio puntaje. Un acto que el usuario no fijó entra con peso medio, que lo deja
-    por debajo de casi cualquier resultado que la búsqueda haya traído por relevancia, y
-    el corte en k se encarga del resto. Un acto que el usuario fijó pesa el doble y sí
-    compite. La lista puede crecer; el ranking no se inunda.
+    La regla es que **lo que decidió el usuario persiste y lo que infirió el sistema dura
+    un turno**. Un acto que alguien fijó sigue pesando hasta que lo suelte; uno que
+    apareció solo pesa mientras la conversación siga hablando de él.
+
+    Antes los actos se sumaban y no se sacaban nunca, apoyado en que el peso medio los
+    dejaría por debajo de cualquier resultado relevante. La aritmética no lo sostiene: la
+    bonificación de un acto del sistema es 0,0082 y un documento nuevo que sale 30º en una
+    señal suma 0,0111, así que un fragmento de un acto ya fijado le gana desde el puesto
+    50. Con siete actos acumulados y ocho lugares, la conversación quedaba anclada a lo
+    primero que encontró: se midió con una consulta sobre una persona donde las respuestas
+    siguientes se contestaban con los mismos siete actos de un solo departamento, y el
+    sistema decía "no encontré normativa" sobre cosas que sí tenía indexadas.
+
+    Los descartados también persisten: si alguien sacó un acto del foco, no puede volver
+    solo porque la respuesta siguiente lo mencione.
     """
-    ya = {(a['codigo'], a['numero']) for a in estado['actos']}
-    for codigo, numero in sorted(mencionados):
-        if (codigo, numero) not in ya:
-            estado['actos'].append({'codigo': codigo, 'numero': numero, 'origen': 'sistema'})
+    decididos = [a for a in estado['actos'] if a.get('origen') in ('usuario', 'descartado')]
+    ya = {(a['codigo'], a['numero']) for a in decididos}
+    recien = [{'codigo': c, 'numero': n, 'origen': 'sistema'}
+              for c, n in sorted(mencionados) if (c, n) not in ya]
+    estado['actos'] = decididos + recien
     return estado
 
 
@@ -1593,6 +1604,15 @@ def admin_quitar(correo: str, authorization: Optional[str] = Header(None)):
 _REPO = str(pathlib.Path(__file__).resolve().parent.parent)
 
 OPERACIONES = {
+    'verificacion': {
+        'titulo': '0 · Verificación de la instalación',
+        'descripcion': 'Comprueba que cada paso pueda correr en ESTA máquina: las '
+                       'dependencias que necesita, los directorios donde escribe, la '
+                       'salida al portal y al modelo de lenguaje, y el espacio en disco. '
+                       'No modifica nada ni gasta dinero. Conviene correrla después de '
+                       'instalar y cada vez que cambia algo del entorno.',
+        'comando': [sys.executable, '-m', 'pipeline.verificar_instalacion'],
+    },
     'catalogo': {
         'titulo': '1 · Catálogo',
         'descripcion': 'Recorre las carpetas públicas del portal SUDOCU y arma la lista '
@@ -1627,6 +1647,20 @@ OPERACIONES = {
                        'recarga el índice en el momento, sin cortar el servicio.',
         'comando': [sys.executable, '-m', 'pipeline.actualizar', '--solo-indexar'],
         'entorno': {'OMP_NUM_THREADS': '1'},
+    },
+    'medir_rescate': {
+        'titulo': 'Actos sin texto: medir si el portal puede rescatarlos',
+        'descripcion': 'Hay actos catalogados y descargados que no aportaron ningún '
+                       'fragmento al índice, casi siempre porque el PDF es un escaneo sin '
+                       'texto legible: el sistema los tiene y no puede citarlos. Esto '
+                       'consulta el portal y responde cuántos de ellos tienen el cuerpo '
+                       'publicado en HTML, que es la única vía para recuperarlos. No '
+                       'modifica nada: solo informa el techo del rescate.',
+        'comando': [sys.executable, '-m', 'pipeline.rescatar_html',
+                    '--metadatos', 'scrapers/metadatos_nuevo.csv',
+                    '--desde-catalogo', 'datos/catalogo.sqlite',
+                    '--salida', 'data/rescatados', '--solo-medir',
+                    '--paciencia', '25'],
     },
     'reconstruccion': {
         'titulo': 'Reconstrucción total del índice',

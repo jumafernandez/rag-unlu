@@ -54,6 +54,15 @@ CREATE TABLE IF NOT EXISTS acto (
     visto_en      INTEGER,            -- última vez que apareció en la recolección
     descargado_en INTEGER,
     indexado_en   INTEGER,
+    -- Cuántos fragmentos aportó al índice. Cero significa que el acto pasó por todo el
+    -- pipeline y no dejó nada: PDF escaneado sin texto, o extracción fallida. Antes esos
+    -- quedaban marcados como indexados igual, así que el sistema creía tener 353 actos
+    -- que en realidad no puede citar, y no había forma de listarlos.
+    --
+    -- Se guarda el número y NO se les quita la marca de indexado: sacársela los devuelve
+    -- a la cola de pendientes, donde la tanda los reprocesa, no producen nada y vuelven a
+    -- entrar. El bucle ya nos pasó.
+    fragmentos    INTEGER,
     sha256        TEXT,
     bytes         INTEGER,
     error         TEXT                -- último fallo, para no reintentar a ciegas
@@ -81,6 +90,10 @@ def bd(ruta=None):
     c.execute('PRAGMA journal_mode = WAL')
     c.execute('PRAGMA busy_timeout = 10000')
     c.executescript(ESQUEMA)
+    # Columnas agregadas después de la primera versión: ALTER si la base ya existía.
+    existentes = {f[1] for f in c.execute('PRAGMA table_info(acto)')}
+    if 'fragmentos' not in existentes:
+        c.execute('ALTER TABLE acto ADD COLUMN fragmentos INTEGER')
     return c
 
 
@@ -135,14 +148,33 @@ def conciliar(c, dirs_descarga, ruta_indice):
     # el segundo criterio quedaban como pendientes eternos, la tanda los reprocesaba y la
     # fusión ---con razón--- se negaba a duplicarlos. ---
     en_indice, nombres_en_indice = set(), set()
+    cuantos_por_archivo, cuantos_por_nombre = {}, {}
     if ruta_indice and os.path.exists(ruta_indice):
         with open(ruta_indice, encoding='utf-8') as f:
             for linea in f:
                 ch = json.loads(linea)
                 if ch.get('id_archivo'):
                     en_indice.add(ch['id_archivo'])
+                    cuantos_por_archivo[ch['id_archivo']] = \
+                        cuantos_por_archivo.get(ch['id_archivo'], 0) + 1
                 if ch.get('documento'):
                     nombres_en_indice.add(ch['documento'])
+                    cuantos_por_nombre[ch['documento']] = \
+                        cuantos_por_nombre.get(ch['documento'], 0) + 1
+    # Cuántos fragmentos aportó cada acto. Es lo que distingue "indexado" de "procesado
+    # sin resultado", que es la diferencia entre poder citarlo y no.
+    for ia, n in cuantos_por_archivo.items():
+        c.execute('UPDATE acto SET fragmentos=? WHERE id_archivo=?', (n, ia))
+    if cuantos_por_nombre:
+        for fila in c.execute('SELECT id_archivo, archivo FROM acto '
+                              'WHERE fragmentos IS NULL AND archivo IS NOT NULL').fetchall():
+            base = (fila['archivo'] or '').rsplit('.', 1)[0]
+            if base in cuantos_por_nombre:
+                c.execute('UPDATE acto SET fragmentos=? WHERE id_archivo=?',
+                          (cuantos_por_nombre[base], fila['id_archivo']))
+    c.execute('UPDATE acto SET fragmentos=0 '
+              'WHERE fragmentos IS NULL AND indexado_en IS NOT NULL')
+
     indexados = 0
     for ia in en_indice:
         cur = c.execute('UPDATE acto SET indexado_en=?, descargado_en=COALESCE(descargado_en,?) '
@@ -156,8 +188,11 @@ def conciliar(c, dirs_descarga, ruta_indice):
                 c.execute('UPDATE acto SET indexado_en=?, descargado_en=COALESCE(descargado_en,?) '
                           'WHERE id_archivo=?', (ahora, ahora, fila['id_archivo']))
                 indexados += 1
+    sin_fragmentos = c.execute(
+        'SELECT COUNT(*) FROM acto WHERE indexado_en IS NOT NULL '
+        'AND COALESCE(fragmentos, 0) = 0').fetchone()[0]
     c.commit()
-    return marcados, indexados
+    return marcados, indexados, sin_fragmentos
 
 
 def incorporar_log(c, ruta_log):
@@ -235,9 +270,15 @@ def main():
         nuevos, act = importar(c, a.metadatos)
         print(f'nuevos: {nuevos} · actualizados: {act}')
     elif a.cmd == 'conciliar':
-        d, i = conciliar(c, a.descargas, a.indice)
+        d, i, sin_frag = conciliar(c, a.descargas, a.indice)
         h = incorporar_log(c, a.log)
         print(f'marcados descargados: {d} · marcados indexados: {i} · con sha256 del log: {h}')
+        if sin_frag:
+            print(f'ATENCIÓN: {sin_frag} actos figuran indexados pero no aportaron ningún '
+                  f'fragmento. El sistema no puede citarlos. Para verlos:')
+            print("  sqlite3 datos/catalogo.sqlite \"SELECT codigo, nro, anio, seccion, "
+                  "archivo FROM acto WHERE indexado_en IS NOT NULL AND "
+                  "COALESCE(fragmentos,0)=0 LIMIT 20\"")
     elif a.cmd == 'estado':
         for k, v in estado(c).items():
             print(f'  {k:24s}: {v}')

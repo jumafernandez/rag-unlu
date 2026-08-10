@@ -27,6 +27,13 @@ COLUMNAS = [
     'id_archivo', 'id_documento', 'URL',
     # Desglose del número, que el portal ya trae separado en lugar de en una cadena.
     'Seccion', 'Codigo', 'Nro', 'Anio', 'Organismo',
+    # Identificador del tipo de documento en la instalación de origen. Es la clave estable
+    # del organismo emisor: el NOMBRE cambia de forma entre universidades y hasta entre
+    # registros de la misma ---"DISPOSICION SECRETARIA DE CIENCIA Y TECNOLOGIA" y
+    # "DISPOSICIONES SECRETARÍA DE CIENCIA, TECNOLOGÍA E INNOVACIÓN" son dos---, y el
+    # código puede repetirse. Se guarda aunque hoy no se use: capturarlo cuesta un campo y
+    # recuperarlo después cuesta recolectar el portal entero de nuevo.
+    'id_tipo',
     # La fecha del acto, distinta de la de autorización que muestra la tabla del portal:
     # 'Fecha' es cuándo se firmó, 'Fecha acto' es la que está impresa en el documento.
     'Fecha acto',
@@ -77,6 +84,7 @@ def fila_a_registro(d, seccion):
         'Nro': nro.get('nro') or '',
         'Anio': nro.get('anio') or '',
         'Organismo': nro.get('organismo') or '',
+        'id_tipo': d.get('id_tipo') or '',
         'Fecha acto': _fecha(d.get('fecha')),
     }
 

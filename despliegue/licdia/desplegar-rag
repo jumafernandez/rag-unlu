@@ -21,7 +21,12 @@ SERVICIO=rag-unlu
 # Estas partes son código puro: se reemplazan enteras, con --delete, para que un archivo
 # borrado en el repo desaparezca también acá. El resto de la aplicación ---índice, datos,
 # entorno virtual, .env--- no se toca nunca desde acá: son estado, no código.
-for parte in backend frontend/dist docs; do
+# `extractor` va acá y no en el grupo de abajo porque es código puro: no guarda nada, y
+# conviene que un archivo borrado del repo desaparezca también en la VM. Faltaba en las
+# dos listas, así que sus cambios simplemente no llegaban: la VM se quedaba con la copia
+# del día que se instaló, y nadie se enteraba hasta que el extractor se comportara
+# distinto de lo que dice el repositorio.
+for parte in backend frontend/dist docs extractor herramientas; do
     if [ -d "$ORIGEN/$parte" ]; then
         install -d -o ragunlu -g ragunlu "$DESTINO/$(dirname "$parte")"
         rsync -a --delete --chown=ragunlu:ragunlu "$ORIGEN/$parte/" "$DESTINO/$parte/"

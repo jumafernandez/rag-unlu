@@ -331,9 +331,15 @@ def anexar_nuevos(docs, nombre, salida, filas_previas):
                  if r.get('Seccion') == nombre and str(r.get('ID PDF', '')).isdigit()]
     siguiente = max(ordinales, default=0)
 
+    # Se anexa con el encabezado que el archivo YA tiene, no con el actual: si el catálogo
+    # se generó antes de que se agregara una columna, escribir con la lista nueva correría
+    # los valores una posición y arruinaría el archivo en silencio.
+    with open(salida, encoding='utf-8-sig') as f:
+        cabecera = next(csv.reader(f), None) or COLUMNAS
+
     escritos = []
     with open(salida, 'a', newline='', encoding='utf-8-sig') as f:
-        w = csv.DictWriter(f, fieldnames=COLUMNAS)
+        w = csv.DictWriter(f, fieldnames=cabecera, extrasaction='ignore')
         # Se anexan de más viejo a más nuevo para que el orden del CSV siga siendo el del
         # listado: el portal los entrega al revés.
         for x in reversed(docs):
@@ -354,8 +360,15 @@ def recolectar(cid, nombre, salida, maximo=None, tope_vacias=6, traza=None):
     # El CSV se escribe PÁGINA a página, no al final de la carpeta: un corte a mitad de
     # una carpeta grande no pierde nada, y reanudar es rehacer solo la carpeta corta.
     existe = os.path.exists(salida)
+    # Igual que al anexar: manda el encabezado que el archivo ya tiene. Un catálogo
+    # generado antes de que se agregara una columna se sigue completando bien, en vez de
+    # correr los valores una posición sin que nada falle.
+    cabecera = COLUMNAS
+    if existe:
+        with open(salida, encoding='utf-8-sig') as f:
+            cabecera = next(csv.reader(f), None) or COLUMNAS
     archivo_csv = open(salida, 'a', newline='', encoding='utf-8-sig')
-    escritor = csv.DictWriter(archivo_csv, fieldnames=COLUMNAS)
+    escritor = csv.DictWriter(archivo_csv, fieldnames=cabecera, extrasaction='ignore')
     if not existe:
         escritor.writeheader()
     while True:

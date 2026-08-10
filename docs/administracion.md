@@ -35,6 +35,23 @@ Los pasos del pipeline de datos, en el orden en el que corren:
 
 **Actualización completa** encadena los cuatro; es lo que corre la rutina programada.
 
+### Verificar la instalación
+
+**0 · Verificación de la instalación** comprueba que cada paso pueda correr en esta
+máquina antes de que alguien lo necesite: las dependencias que importa cada script, los
+directorios donde el pipeline escribe, la salida al portal y al modelo de lenguaje, y el
+espacio libre. No modifica nada ni gasta dinero.
+
+Conviene correrla después de instalar, y cada vez que cambia algo del entorno. La razón
+es concreta: el sistema se desarrolla en una máquina y se despliega en otra, y las dos
+difieren en cosas que ningún paso declara. En la primera instalación de la UNLu faltaban
+tres dependencias que solo usa el extractor, y eso apareció recién al vectorizar, como 96
+documentos fallando con `ERROR_EXTRACTOR` y nada más. La verificación lo dice en una
+línea, junto con todo lo demás que falte.
+
+Las dependencias no están anotadas en una lista: se leen de los propios archivos de cada
+paso, así que no envejecen cuando el código cambia.
+
 ### Programarla
 
 Arriba de los botones hay una tarjeta para que la actualización completa corra sola:

@@ -110,6 +110,69 @@ y la API devuelve el valor crudo.
 Los PDF nuevos hay que parsearlos, fragmentarlos y embeberlos con el pipeline habitual. Este
 paso sí necesita GPU o varias horas de CPU, y es el único que no se resuelve en el escritorio.
 
+## Actos que el sistema tiene y no puede citar
+
+Hay actos catalogados, descargados y procesados que no aportaron **ningún** fragmento al
+índice: el PDF es un escaneo sin texto legible, o la extracción falló. En la UNLu son 353
+sobre 21.452. No son un problema de calidad de las respuestas: son documentos que
+directamente no existen para quien consulta, y ninguna mejora del ranking los va a traer.
+
+Hasta ahora el sistema los daba por indexados. La conciliación guarda ahora cuántos
+fragmentos aportó cada acto, así que se pueden listar:
+
+```sql
+SELECT codigo, nro, anio, seccion, archivo, id_documento
+  FROM acto
+ WHERE indexado_en IS NOT NULL AND COALESCE(fragmentos, 0) = 0;
+```
+
+No se les quita la marca de indexado a propósito: sacársela los devuelve a la cola de
+pendientes, la tanda los reprocesa, no producen nada y vuelven a entrar.
+
+### Rescatarlos desde el HTML del portal
+
+El portal publica el cuerpo de cada acto en HTML, junto al documento
+(`atributos.contenido`). Es texto del editor, no una extracción: viene limpio, sin los
+encabezados de página que la extracción de PDF intercala en medio de las oraciones. Está
+presente en las dos instalaciones medidas, UNLu y UNSL.
+
+La lista no hay que armarla a mano: sale de la propia base del catálogo.
+
+```bash
+# Primero medir: ¿cuántos de esos actos tienen texto en el portal? No escribe nada.
+python -m pipeline.rescatar_html --metadatos scrapers/metadatos_nuevo.csv \
+    --desde-catalogo datos/catalogo.sqlite --salida data/rescatados --solo-medir
+
+# Si el techo justifica el esfuerzo, rescatarlos de verdad
+python -m pipeline.rescatar_html --metadatos scrapers/metadatos_nuevo.csv \
+    --desde-catalogo datos/catalogo.sqlite --salida data/rescatados
+```
+
+La medición está también en el panel, como **Actos sin texto: medir si el portal puede
+rescatarlos**. El rescate en sí no está en el panel a propósito: escribe en el corpus, y
+conviene decidirlo mirando primero el número.
+
+Produce el mismo par que el extractor de PDF ---`<base>.md` y `<base>_canonico.yaml`---
+así que sigue por el pipeline normal: `metadata_desde_catalogo`, `chunkear`, `embeddings`.
+
+**Medir antes de rescatar no es una formalidad.** En una muestra de 96 actos cualesquiera,
+84 tenían HTML y los 84 dieron estructura reconocida ---visto, considerando, artículos---
+pero **12 no tenían contenido alguno**. Y hay una razón para sospechar que sobre los actos
+escaneados la proporción sea peor: un PDF escaneado sugiere un acto subido como archivo en
+vez de redactado en el editor, que es justamente el caso donde `contenido` viene vacío. El
+modo `--solo-medir` responde eso en minutos y sin escribir nada.
+
+### Lo que el rescate no trae
+
+El HTML **no incluye los anexos**, que en muchos actos son la parte sustantiva. Por eso el
+orden es: manda el PDF, y el HTML entra solo cuando el PDF no dio nada. Un acto sin anexos
+indexado es preferible a un acto ausente; un acto con anexos extraído del PDF es preferible
+a los dos.
+
+Para que eso no se pierda de vista al leer una respuesta, cada fragmento rescatado lleva
+`source_system: portal_html`. Un fragmento así es, de otro modo, indistinguible de uno
+completo.
+
 ## Un aviso operativo
 
 El servidor y el túnel corren en la notebook. Si se queda sin batería, macOS **hiberna**: los

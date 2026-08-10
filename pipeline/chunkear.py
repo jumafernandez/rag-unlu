@@ -296,6 +296,11 @@ def main():
                 'issuing_body', 'date_issued', 'year', 'titulo', 'estado',
                 'tipo_documento_fuente', 'metadata_confianza', 'source_pdf',
                 'url_documento', 'id_archivo', 'id_documento', 'fecha_acto',
+                # De dónde salió el texto. Importa para leer una respuesta: un acto
+                # rescatado del HTML del portal ('portal_html') no incluye los anexos,
+                # que en muchos actos son la parte sustantiva. Sin este campo, un
+                # fragmento así es indistinguible de uno completo.
+                'source_system',
                 'seccion_portal')}
 
             despues_de_firmas = False
