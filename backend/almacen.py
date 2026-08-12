@@ -29,7 +29,8 @@ import threading
 
 import numpy as np
 
-from .recuperacion import BM25, RE_IDENTIFICADOR, Indice, normalizar, tokenizar
+from .recuperacion import (BM25, RE_IDENTIFICADOR, Indice, menciona_entidad,
+                           normalizar, piezas_de_entidad, tokenizar)
 
 # Columnas que se devuelven al pedir un fragmento. Se nombran explícitamente en vez de
 # usar SELECT *: si mañana la tabla suma una columna, la respuesta de la API no cambia sola.
@@ -241,19 +242,22 @@ class AlmacenSQL(Indice):
         """
         if not entidad:
             return []
-        piezas = [t for t in tokenizar(entidad) if len(t) >= 4]
+        piezas = piezas_de_entidad(entidad)
         if not piezas:
             return []
 
         # Se acota con la pieza más larga ---la más selectiva--- y después se verifica el
-        # resto, que es lo que evita recorrer la tabla entera comparando todas.
+        # resto, que es lo que evita recorrer la tabla entera comparando todas. La
+        # verificación es la misma función que usa el índice en memoria: son dos caminos
+        # distintos hacia la misma decisión, y si divergen el sistema se comporta distinto
+        # según qué almacén tenga configurado.
         ancla = max(piezas, key=len)
         candidatos = []
         for fila in self._bd().execute(
                 'SELECT i, titulo, texto FROM chunk '
                 'WHERE titulo LIKE ? OR texto LIKE ?', (f'%{ancla}%', f'%{ancla}%')):
             texto = normalizar(f"{fila['titulo'] or ''} {fila['texto'] or ''}")
-            if sum(1 for p in piezas if p in texto) >= min(2, len(piezas)):
+            if menciona_entidad(texto, piezas):
                 candidatos.append(fila['i'])
         if not candidatos:
             return []

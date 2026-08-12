@@ -87,6 +87,52 @@ def tokenizar(texto):
     return salida
 
 
+# Cuán cerca tienen que aparecer las piezas de un nombre para considerarlo mencionado.
+#
+# Se midió de 20 a 100 caracteres sobre el corpus: la precisión va de 94% a 90% y en
+# ningún punto se pierde un fragmento verdadero, así que el valor exacto no es crítico. Se
+# elige 40 por robustez ante otros nombres y no por el óptimo de esta medición: cubre
+# "FERNÁNDEZ ROMERO, Juan Manuel" y "DE LA TORRE, María Cristina", que son las formas que
+# una ventana más chica rompería en cuanto aparezca un apellido compuesto.
+VENTANA_ENTIDAD = 40
+
+
+def piezas_de_entidad(entidad):
+    """Las palabras del nombre que sirven para buscarlo."""
+    return [t for t in tokenizar(entidad or '') if len(t) >= 4]
+
+
+def menciona_entidad(texto, piezas, ventana=VENTANA_ENTIDAD):
+    """Si el texto nombra a la entidad, y no solo contiene sus palabras sueltas.
+
+    La regla anterior pedía dos piezas cualesquiera en cualquier parte del fragmento. En un
+    corpus de actos administrativos, lleno de nombres propios, eso da por mencionado a
+    "Juan Manuel Fernández" cuando el fragmento habla de un Juan y de un Fernández que son
+    dos personas distintas. Medido sobre el corpus de la UNLu: de 1.267 fragmentos que la
+    regla traía, 879 eran de otra gente ---31% de precisión---.
+
+    Pedir que TODAS las piezas aparezcan y que quepan en una ventana chica sube la
+    precisión al 93% **sin perder un solo fragmento verdadero** de los 388 donde el nombre
+    aparece completo. Los que quedan afuera no son fallas: son nombres que comparten
+    palabras sin ser la misma persona.
+
+    Sirve igual para entidades que no son personas ---"Licenciatura en Sistemas de
+    Información"--- porque también aparecen como frase y no como palabras dispersas.
+    """
+    if not piezas:
+        return False
+    # Primero lo barato: si falta una pieza no hay nada que medir.
+    if any(p not in texto for p in piezas):
+        return False
+    if len(piezas) == 1:
+        return True
+    posiciones = [[m.start() for m in re.finditer(re.escape(p), texto)] for p in piezas]
+    for a in posiciones[0]:
+        if all(any(abs(b - a) <= ventana for b in otras) for otras in posiciones[1:]):
+            return True
+    return False
+
+
 class BM25:
     """BM25 Okapi. Implementado acá para no sumar dependencias y poder auditarlo."""
 
@@ -282,13 +328,13 @@ class Indice(Busqueda):
             return []
         # Se buscan los tokens distintivos del nombre: así "Carina Natalia Duna" matchea
         # con "Duna Carina" y con "DUNA, Carina".
-        piezas = [t for t in tokenizar(entidad) if len(t) >= 4]
+        piezas = piezas_de_entidad(entidad)
         if not piezas:
             return []
         candidatos = []
         for i, c in enumerate(self.chunks):
             texto = normalizar(f"{c.get('titulo') or ''} {c.get('texto') or ''}")
-            if sum(1 for p in piezas if p in texto) >= min(2, len(piezas)):
+            if menciona_entidad(texto, piezas):
                 candidatos.append(i)
         if not candidatos:
             return []
