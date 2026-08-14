@@ -98,6 +98,7 @@ SUGERENCIAS_POR_OMISION = [
 ]
 SUGERENCIAS_MAX = 8
 SUGERENCIA_LARGO = 120
+GLOSARIO_LARGO = 2000
 
 # El logo subido vive junto a los datos y no en el árbol del front: no se versiona, y una
 # reconstrucción de la interfaz no lo borra.
@@ -358,6 +359,7 @@ def leer_institucion():
              **{k: v for k, v in guardado.items() if k in INSTITUCION_POR_OMISION}}
     datos['logo'] = ruta_logo() is not None
     datos['sugerencias'] = leer_ajuste('sugerencias', SUGERENCIAS_POR_OMISION)
+    datos['glosario'] = leer_ajuste('glosario', '')
     return datos
 
 
@@ -385,6 +387,17 @@ def guardar_institucion(valores, por):
         sugerencias = [str(s).strip()[:SUGERENCIA_LARGO] for s in crudas]
         sugerencias = [s for s in sugerencias if s][:SUGERENCIAS_MAX]
         guardar_ajuste('sugerencias', sugerencias, por)
+
+    # El glosario también va aparte, por el mismo motivo que las sugerencias: vacío es
+    # válido. Es la traducción entre cómo la gente pregunta y cómo escriben los actos
+    # ---"dar clases" contra "responsable de asignatura"--- y es propio de cada
+    # institución: la reescritura de consultas lo inyecta en su instrucción. Texto plano,
+    # un mapeo por línea, con el tope pensado para una lista corta de alta confianza y no
+    # un diccionario: cada línea agrega palabras a la búsqueda que el usuario no dijo, y
+    # eso solo mejora si el mapeo es certero.
+    if 'glosario' in valores:
+        glosario = str(valores['glosario'] or '').strip()[:GLOSARIO_LARGO]
+        guardar_ajuste('glosario', glosario, por)
 
     return leer_institucion()
 

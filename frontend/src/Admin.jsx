@@ -634,6 +634,19 @@ function Apariencia({ alFallar }) {
                 value={(inst.sugerencias || []).join("\n")}
                 onChange={(e) => cambiarInst("sugerencias", e.target.value.split("\n"))} />
 
+      <h3 className="admin-subtitulo">Glosario de la institución</h3>
+      <p className="admin-nota">
+        Cómo dice la gente lo que los actos escriben de otra forma. Una equivalencia por
+        línea, con la forma «como se dice → como se escribe». Se usa al interpretar las
+        consultas: la búsqueda agrega el término administrativo sin reemplazar las
+        palabras de quien pregunta. Conviene una lista corta y segura: cada línea suma
+        palabras que la persona no dijo.
+      </p>
+      <textarea className="admin-entrada admin-sugerencias" rows={6}
+                placeholder={"da clases → responsable de asignatura\nlo echaron → cese de funciones"}
+                value={inst.glosario || ""}
+                onChange={(e) => cambiarInst("glosario", e.target.value)} />
+
       <h3 className="admin-subtitulo">Logo</h3>
       <p className="admin-nota">
         PNG, JPEG o GIF, hasta 2 MB. Se valida la firma del archivo y no su extensión. Sin

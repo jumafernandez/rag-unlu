@@ -617,6 +617,14 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
         if fijada:
             previo += ' [FIJADA POR EL USUARIO: es una corrección, no la cambies]'
 
+    # El glosario del panel son las equivalencias propias de ESTA institución, que ningún
+    # modelo puede saber de antemano. Se lee por consulta y no al importar: el
+    # administrador lo edita en caliente y la próxima reescritura ya lo tiene que ver.
+    glosario = (admin.leer_ajuste('glosario', '') or '').strip()
+    glosario_instruccion = (
+        'GLOSARIO DE ESTA INSTITUCIÓN (mismas reglas, agregá entre paréntesis):\n'
+        + glosario + '\n' if glosario else '')
+
     try:
         llm, g = cliente_llm()
         r = llm.chat.completions.create(
@@ -629,6 +637,15 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
                     '- "consulta": la última pregunta reescrita para que se entienda sin leer la '
                     'conversación, resolviendo pronombres y sujetos omitidos. No agregues temas '
                     'que nadie mencionó.\n'
+                    'En la consulta reescrita, expandí el vocabulario coloquial al término '
+                    'administrativo con que lo escriben los actos: AGREGALO entre paréntesis, '
+                    'sin reemplazar las palabras de la persona, y solo cuando la equivalencia '
+                    'sea segura. Ejemplos: "da clases" (responsable de asignatura, designación '
+                    'docente); "lo echaron" (cese de funciones, limitación de designación); '
+                    '"lo nombraron" (designación); "renunció" (renuncia, aceptar la renuncia). '
+                    'Completo: "¿Da clases de grado?" queda "¿X da clases de grado? '
+                    '(responsable de asignatura, designación docente)".\n'
+                    + glosario_instruccion +
                     '- "entidad": el sujeto concreto del que se está hablando (nombre de persona, '
                     'carrera, departamento, órgano o acto), tal como se lo nombra. null si la '
                     'conversación no gira alrededor de ninguno.\n'
@@ -731,19 +748,23 @@ def detectar_entidad(pregunta: str, respuesta: str) -> dict:
 
 
 def actos_en_juego(historial, pregunta='') -> set:
-    """Actos citados en los turnos recientes y en la pregunta actual.
+    """Actos citados en los turnos que se le pasen y en la pregunta actual.
 
     Se los mantiene disponibles en la recuperación aunque la reescritura se desvíe: si
     se estuvo hablando de una resolución y la repregunta es "¿y qué dice el artículo 2?",
     ese acto tiene que seguir al alcance. Sin esto la continuidad depende de que la
     reescritura acierte, que es una apuesta.
 
-    La ventana acota lo que se DESCUBRE, no lo que se recuerda: una vez que un acto entra
-    al estado se queda ahí. Antes no había estado y la ventana era el único registro, así
-    que un acto de siete turnos atrás desaparecía de golpe en medio de la conversación.
+    OJO con cuánto historial se le pasa. Esta función extraía de los últimos seis turnos,
+    y eso deshacía la política de olvido una línea después de aplicarla: el estado llegaba
+    con los actos del sistema ya olvidados, pero como las respuestas viejas citan sus
+    códigos en el texto, todos volvían a entrar acá, con bonificación, en cada turno. Una
+    conversación que empezaba por Ciencias Básicas quedaba anclada ahí para siempre, y el
+    acto correcto para la pregunta nueva no llegaba nunca al contexto. Quien llama decide
+    la ventana; la regla vigente es UNA respuesta ---la última--- más la pregunta.
     """
     encontrados = set()
-    textos = [t.texto or '' for t in (historial or [])[-6:]]
+    textos = [t.texto or '' for t in (historial or [])]
     if pregunta:
         textos.append(pregunta)
     for texto in textos:
@@ -1086,9 +1107,13 @@ def _preparar(c: 'Consulta'):
     """Consulta con la que se va a buscar y estado vigente, según qué mecanismos estén activos."""
     estado = normalizar_estado(c.estado if c.estado is not None else c.foco)
 
-    # Los actos nombrados se incorporan al estado aunque no haya reescritura ni modelo:
-    # el estado refleja la conversación, no depende de que alguien la interprete.
-    estado = fusionar_actos(estado, actos_en_juego(c.historial, c.pregunta))
+    # Los actos nombrados en la ÚLTIMA respuesta y en la pregunta entran al estado aunque
+    # no haya reescritura ni modelo. Solo la última: es la memoria de un turno que define
+    # la política de olvido, y también lo que mantiene la continuidad para un cliente que
+    # manda historial pero no conserva el estado. Pasar el historial entero acá era el
+    # agujero por el que los actos olvidados volvían a entrar.
+    ultima = [t for t in (c.historial or []) if t.rol == 'assistant'][-1:]
+    estado = fusionar_actos(estado, actos_en_juego(ultima, c.pregunta))
 
     if not c.historial or not os.environ.get('OPENAI_API_KEY'):
         return c.pregunta, estado
