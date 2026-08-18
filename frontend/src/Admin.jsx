@@ -405,11 +405,15 @@ function Corridas({ alFallar }) {
       )}
       {paginas > 1 && (
         <div className="admin-paginador">
+          {/* Etiquetadas por CONTENIDO y no por número de página: la lista va de la
+              ejecución más nueva a la más vieja, así que "página anterior" apuntaba a lo
+              más reciente ---exactamente al revés de lo que "anterior" significa en un
+              registro cronológico--- y parecía un botón roto. */}
           <button className="history-accion" disabled={actual === 0}
-                  onClick={() => setPagina(actual - 1)}>anterior</button>
+                  onClick={() => setPagina(actual - 1)}>« más recientes</button>
           <span>página {actual + 1} de {paginas} · {datos.corridas.length} ejecuciones</span>
           <button className="history-accion" disabled={actual >= paginas - 1}
-                  onClick={() => setPagina(actual + 1)}>siguiente</button>
+                  onClick={() => setPagina(actual + 1)}>más antiguas »</button>
         </div>
       )}
 

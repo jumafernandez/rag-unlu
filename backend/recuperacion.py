@@ -96,6 +96,10 @@ def tokenizar(texto):
 # una ventana más chica rompería en cuanto aparezca un apellido compuesto.
 VENTANA_ENTIDAD = 40
 
+# Documentos más recientes que se descartan al informar la cobertura, por si sus fechas
+# son errores de carga. Ver documentos_y_fechas().
+DESCARTE_FECHAS = 5
+
 
 def piezas_de_entidad(entidad):
     """Las palabras del nombre que sirven para buscarlo."""
@@ -237,15 +241,28 @@ class Indice(Busqueda):
         return None
 
     def documentos_y_fechas(self):
-        """(documentos distintos, fecha de cobertura). Ver la nota en _alcance()."""
-        docs, fechas = set(), []
+        """(documentos distintos, fecha de cobertura).
+
+        La cobertura es la fecha del acto más nuevo DESCARTANDO los cinco documentos más
+        recientes. El descarte protege del puñado de actos con fecha de tipeo que una vez
+        corrió el máximo tres meses; cinco alcanzan para eso. El percentil 99 que se usaba
+        antes descartaba el 1% del corpus ---214 documentos--- y por eso la interfaz
+        anunciaba diez días menos de cobertura de la que había: sobre 21.000 actos, una
+        fracción no es una tolerancia, es una cola entera.
+
+        Se cuenta por DOCUMENTO y no por fragmento: un reglamento con cuarenta artículos
+        no es más evidencia de cobertura que una designación de una página.
+        """
+        docs, fechas_doc = set(), {}
         for c in self.chunks:
-            docs.add(c.get('documento'))
+            d = c.get('documento')
+            docs.add(d)
             f = c.get('date_issued')
-            if isinstance(f, str) and len(f) == 10:
-                fechas.append(f)
-        fechas.sort()
-        return len(docs), (fechas[int(len(fechas) * 0.99)] if fechas else None)
+            if d and isinstance(f, str) and len(f) == 10 and d not in fechas_doc:
+                fechas_doc[d] = f
+        fechas = sorted(fechas_doc.values())
+        corte = fechas[-min(DESCARTE_FECHAS + 1, len(fechas))] if fechas else None
+        return len(docs), corte
 
     def vecinos(self, consulta_densa, k, permitidos=None):
         """[(indice, similitud)] por producto interno sobre la matriz completa."""

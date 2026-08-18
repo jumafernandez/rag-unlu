@@ -29,8 +29,9 @@ import threading
 
 import numpy as np
 
-from .recuperacion import (BM25, RE_IDENTIFICADOR, Indice, menciona_entidad,
-                           normalizar, piezas_de_entidad, tokenizar)
+from .recuperacion import (BM25, DESCARTE_FECHAS, RE_IDENTIFICADOR, Indice,
+                           menciona_entidad, normalizar, piezas_de_entidad,
+                           tokenizar)
 
 # Columnas que se devuelven al pedir un fragmento. Se nombran explícitamente en vez de
 # usar SELECT *: si mañana la tabla suma una columna, la respuesta de la API no cambia sola.
@@ -165,13 +166,15 @@ class AlmacenSQL(Indice):
         return [por_i.get(i, {}) for i in indices]
 
     def documentos_y_fechas(self):
+        # Mismo criterio que la versión en memoria: la fecha por DOCUMENTO, descartando
+        # los DESCARTE_FECHAS más recientes por si son errores de carga. El motivo del
+        # cambio está en recuperacion.documentos_y_fechas().
         bd = self._bd()
         docs = bd.execute('SELECT COUNT(DISTINCT documento) FROM chunk').fetchone()[0]
-        n = bd.execute("SELECT COUNT(*) FROM chunk WHERE LENGTH(date_issued)=10").fetchone()[0]
-        if not n:
-            return docs, None
-        fila = bd.execute('SELECT date_issued FROM chunk WHERE LENGTH(date_issued)=10 '
-                          'ORDER BY date_issued LIMIT 1 OFFSET ?', (int(n * 0.99),)).fetchone()
+        fila = bd.execute(
+            'SELECT fecha FROM (SELECT MAX(date_issued) AS fecha FROM chunk '
+            'WHERE LENGTH(date_issued)=10 GROUP BY documento) '
+            'ORDER BY fecha DESC LIMIT 1 OFFSET ?', (DESCARTE_FECHAS,)).fetchone()
         return docs, (fila[0] if fila else None)
 
     def url_de_archivo(self, id_archivo):
