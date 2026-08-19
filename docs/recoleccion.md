@@ -150,28 +150,39 @@ Recolectar el catálogo completo cuesta horas: son veintiún mil actos leídos d
 página. Hacer eso todas las semanas para encontrar los pocos actos publicados desde la
 semana anterior no escala, y en una universidad con cien mil actos deja de ser viable.
 
-El portal entrega cada carpeta con lo más reciente al principio, así que lo que cambió está
-en las primeras páginas. La pregunta es cuándo parar, y la respuesta es una cuenta, no una
-corazonada: **se para cuando lo que el catálogo ya tenía más lo que se acaba de encontrar
-alcanza el total que el portal declara para esa carpeta**. Ahí no queda nada por buscar.
+El portal **no** entrega cada carpeta con lo más reciente al principio: la entrega ordenada
+por número de acto, y la numeración se reinicia cada año. En agosto de 2026, la primera
+posición de Resoluciones del H. Consejo Superior era la 903/2025 y el acto más nuevo de la
+carpeta —la 446/2026, del 4 de agosto— estaba en la posición **900 de 2031**.
 
-Una carpeta al día se resuelve en **una sola página**. El portal entero, en once pedidos.
+Por eso la lectura incremental mira dos tramos:
 
-Esa cuenta también resuelve sola el caso del acto publicado con retraso —fechado en marzo,
-cargado hoy—, que entra al listado por su fecha y queda sepultado bajo los más nuevos. No
-hay que adivinar cuántas páginas mirar de más: si ese acto existe, el total del portal lo
-cuenta, la resta no cierra y la lectura sigue.
+- **La punta.** Los números más altos de la carpeta, que son los del año anterior hasta que
+  la numeración del año en curso los alcanza. Ahí aparece el acto del año pasado publicado
+  con retraso, y los de este año sobre el final del año.
+- **La banda.** El tramo donde los números cruzan el más alto que ya tenemos de este año.
+  Todo lo publicado desde la última corrida está ahí, porque la numeración es secuencial.
+  Se ubica por **búsqueda binaria**: once pedidos en una carpeta de dos mil actos, contra
+  las setenta páginas que costaría llegar leyendo desde el principio.
 
-Queda un corte de reserva —tres páginas seguidas sin nada desconocido— para el único caso
-en que la cuenta no se puede hacer: que no se sepa el total, ni por esta corrida ni por la
-anterior.
+Una carpeta sin actos del año en curso deja la banda al final del listado, que es justo
+donde va a caer el número 1 del año que arranca.
+
+Sobre esos dos tramos sigue mandando la cuenta: **lo que el catálogo ya tenía más lo que se
+acaba de encontrar tiene que alcanzar el total que el portal declara para esa carpeta**.
+
+La cuenta sola no alcanza como criterio de corte, y conviene entender por qué. Admite una
+tolerancia de tres —el portal repite filas entre páginas y las cuenta en el total—, así que
+una carpeta con uno, dos o tres actos nuevos cierra la resta sin haberlos encontrado. La
+tolerancia es necesaria y el corte por banda es lo que la vuelve inocua.
 
 ### Por qué la lectura incremental no alcanza sola
 
-Leer la punta encuentra lo recién publicado, pero es **ciega a los agujeros del medio**: un
-acto que se perdió en una corrida cortada hace meses está enterrado entre miles de
-conocidos y ninguna lectura de la punta lo va a ver. Al medirlo, seis carpetas tenían 49
-actos faltantes de ese tipo, y en todas ellas la punta daba cero novedades.
+Los dos tramos encuentran lo recién publicado, pero son **ciegos a los agujeros del
+medio**: un acto que se perdió en una corrida cortada hace meses está enterrado entre miles
+de conocidos, en una parte del listado donde no hay razón para mirar. Al medirlo, seis
+carpetas tenían 49 actos faltantes de ese tipo, y en todas ellas la lectura daba cero
+novedades.
 
 Por eso hay una segunda comprobación, aritmética: **lo que el catálogo ya tiene de esa
 carpeta, más lo que la lectura acaba de encontrar, tiene que dar lo que el portal declara
@@ -180,16 +191,18 @@ viejo se vuelva visible.
 
 ### El orden no es el que parece
 
-La lectura incremental depende de que lo nuevo esté al principio, así que eso se verifica
-en cada corrida en vez de suponerse. La verificación **no** es que cada fila sea más vieja
-que la anterior: se midió contra el portal de la UNLu y no se cumple. En Resoluciones del
-H. Consejo Superior aparece un acto del 12 de diciembre después de uno del 11. El listado
-viene ordenado por algo que correlaciona con la fecha pero admite inversiones locales.
+Durante un tiempo este sistema supuso que el listado venía por fecha. No viene, y el error
+costó un mes de normativa sin indexar: la actualización corría todos los días, informaba
+que estaba al día, y dejaba afuera 57 actos de una sola carpeta. Peor todavía, los
+informaba como *faltantes viejos*, porque el criterio para llamarlos viejos era justamente
+no estar al principio del listado.
 
-Lo que sí vale, y es lo único que la lectura necesita, es que ninguna página posterior
-traiga un documento más nuevo que el más nuevo de la primera. Si eso deja de cumplirse
-—otra versión de SUDOCU, otra configuración, otra universidad— la carpeta se lista completa
-en vez de confiar.
+Lo que se mide sí se cumple: el número de acto (`nro.nro`) es monótono decreciente a lo
+largo del listado. Eso es lo que la búsqueda binaria necesita, y es lo que se verifica en
+cada página de la punta. Si deja de cumplirse —otra versión de SUDOCU, otra configuración,
+otra universidad— la carpeta se lista completa en vez de confiar.
+
+Cuidado con `nro.nrop`, que se parece y **no** es monótono.
 
 ### El total se recuerda
 
@@ -234,7 +247,7 @@ un servidor que no está respondiendo.
 
 ### Actualizar y reconciliar son dos cosas distintas
 
-Que falten actos **que no están en la punta** significa que son viejos: se perdieron en
+Que falten actos **que no están ni en la punta ni en la banda** significa que son viejos: se perdieron en
 alguna corrida cortada, no se publicaron esta semana. Recuperarlos exige listar la carpeta
 entera, que en las grandes son horas y contra el tope de 20 segundos a veces no termina
 nunca.

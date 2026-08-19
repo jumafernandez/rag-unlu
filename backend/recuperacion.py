@@ -137,6 +137,35 @@ def menciona_entidad(texto, piezas, ventana=VENTANA_ENTIDAD):
     return False
 
 
+# Cuánto se le concede a una tabla que viene partida en varios fragmentos, APARTE del
+# presupuesto normal del contexto.
+#
+# Truncar un párrafo cuesta detalle; truncar una tabla cuesta filas, y el modelo presenta
+# la lista incompleta como si estuviera completa. Ese es el daño que esto evita, y por eso
+# el disparador mira la FORMA del contenido y no la intención de la pregunta.
+#
+# Medido sobre el corpus: de 138.180 secciones, 5.489 vienen partidas y solo 652 tienen
+# forma de tabla. Con 9.000 caracteres entran enteras alrededor de dos tercios. El techo no
+# es opcional: la más grande ---el inventario de documentación a expurgar de la RR
+# 525/2024--- son 176.256 caracteres en 57 fragmentos, y nadie la quiere entera.
+TOPE_TABLA = 9000
+
+
+def parece_tabla(texto):
+    """¿El fragmento es una tabla? Tres renglones con separadores alcanzan.
+
+    Deliberadamente barato y estructural. Un umbral más fino no compra nada: lo único que
+    se decide acá es si vale la pena mirar si la sección sigue.
+    """
+    return sum(1 for l in (texto or '').splitlines() if l.count('|') >= 2) >= 3
+
+
+def filas_de_tabla(texto):
+    """Cuántas filas tiene, para poder decir cuántas quedaron afuera al cortar."""
+    return sum(1 for l in (texto or '').splitlines() if l.count('|') >= 2
+               and not set(l.replace('|', '').replace(' ', '')) <= set('-:'))
+
+
 class BM25:
     """BM25 Okapi. Implementado acá para no sumar dependencias y poder auditarlo."""
 
@@ -499,6 +528,35 @@ class Indice(Busqueda):
 
         return [(i, s, dict(detalle[i], similitud=sims.get(i))) for i, s in mejores]
 
+    def seccion_entera(self, i):
+        """El texto completo de la sección a la que pertenece el fragmento i.
+
+        Los fragmentos de una sección son contiguos en el índice ---los produce el
+        fragmentador en orden---, así que se recorre hacia los dos lados desde `i` en vez
+        de barrer el corpus entero. Devuelve el texto unido, que incluye al propio
+        fragmento; si la sección no está partida devuelve exactamente su texto.
+        """
+        c = self.chunk(i)
+        doc, sec = c.get('documento'), c.get('seccion')
+        if not doc or sec is None:
+            return c.get('texto') or ''
+
+        def es_hermano(j):
+            if j < 0 or j >= len(self):
+                return False
+            o = self.chunk(j)
+            return o.get('documento') == doc and o.get('seccion') == sec
+
+        ini = i
+        while es_hermano(ini - 1):
+            ini -= 1
+        fin = i
+        while es_hermano(fin + 1):
+            fin += 1
+        if ini == fin:
+            return c.get('texto') or ''
+        return '\n'.join(self.chunk(j).get('texto') or '' for j in range(ini, fin + 1))
+
     def contexto(self, resultados, max_caracteres=9000):
         """Bloque de contexto para el modelo, con las citas visibles.
 
@@ -521,7 +579,7 @@ class Indice(Busqueda):
         if not resultados:
             return ''
 
-        encabezados, cuerpos = [], []
+        encabezados, cuerpos, techos = [], [], []
         for i, _, _ in resultados:
             c = self.chunk(i)
             enc = f"[{c['cita']}]"
@@ -530,33 +588,59 @@ class Indice(Busqueda):
             if c.get('date_issued'):
                 enc += f"\n(fecha: {c['date_issued']})"
             encabezados.append(enc)
-            cuerpos.append(c['texto'] or '')
+
+            # Una tabla partida se trae entera, con su propio techo y fuera del reparto:
+            # el presupuesto compartido le daría ~1.100 caracteres y la dejaría cortada a
+            # mitad de fila, que es la forma más silenciosa de dar una lista incompleta
+            # por completa.
+            cuerpo = c['texto'] or ''
+            techo = None
+            if parece_tabla(cuerpo):
+                completo = self.seccion_entera(i)
+                if len(completo) > len(cuerpo):
+                    cuerpo, techo = completo, TOPE_TABLA
+            cuerpos.append(cuerpo)
+            techos.append(techo)
 
         # El encabezado va siempre: es la cita, el título y la fecha, o sea lo que permite
         # reconocer el documento. Lo que se recorta es el cuerpo.
         disponible = max(0, max_caracteres - sum(len(e) + 1 for e in encabezados))
-        parte = disponible // len(cuerpos)
+        # Las tablas con techo propio no entran al reparto ni lo consumen: si lo hicieran,
+        # una sola dejaría sin presupuesto a los otros siete.
+        compartidos = [j for j, x in enumerate(techos) if x is None]
+        parte = disponible // max(1, len(compartidos))
 
-        asignado = [min(len(t), parte) for t in cuerpos]
-        sobrante = disponible - sum(asignado)
+        asignado = [x if x is not None else 0 for x in techos]
+        for j in compartidos:
+            asignado[j] = min(len(cuerpos[j]), parte)
+        sobrante = disponible - sum(asignado[j] for j in compartidos)
         # Lo que no usaron los fragmentos cortos se reparte entre los truncados, por orden
         # de relevancia: el presupuesto se aprovecha entero sin que ninguno monopolice.
-        for j, t in enumerate(cuerpos):
+        for j in compartidos:
             if sobrante <= 0:
                 break
-            falta = len(t) - asignado[j]
+            falta = len(cuerpos[j]) - asignado[j]
             if falta > 0:
                 extra = min(falta, sobrante)
                 asignado[j] += extra
                 sobrante -= extra
 
         partes = []
-        for enc, texto, n in zip(encabezados, cuerpos, asignado):
+        for enc, texto, n, techo in zip(encabezados, cuerpos, asignado, techos):
             if len(texto) > n:
                 # Se corta en el último espacio para no partir una palabra al medio, y se
                 # marca: el modelo tiene que saber que lo que ve está incompleto.
                 recorte = texto[:n]
                 corte = recorte.rfind(' ')
-                texto = (recorte[:corte] if corte > n // 2 else recorte) + ' […]'
+                cortado = (recorte[:corte] if corte > n // 2 else recorte)
+                # En una tabla se dice CUÁNTAS filas quedaron afuera. "[…]" al final de un
+                # párrafo se entiende; al final de una lista, no: sin el número, una lista
+                # de 11 de 40 se lee como la lista completa.
+                if techo is not None:
+                    hay, se_ven = filas_de_tabla(texto), filas_de_tabla(cortado)
+                    texto = (f'{cortado}\n[…tabla cortada: se muestran {se_ven} de {hay} '
+                             f'filas. La respuesta tiene que decir que está incompleta.]')
+                else:
+                    texto = cortado + ' […]'
             partes.append(f"{enc}\n{texto}")
         return '\n\n---\n\n'.join(partes)

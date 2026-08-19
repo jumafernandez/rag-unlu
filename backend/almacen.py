@@ -177,6 +177,24 @@ class AlmacenSQL(Indice):
             'ORDER BY fecha DESC LIMIT 1 OFFSET ?', (DESCARTE_FECHAS,)).fetchone()
         return docs, (fila[0] if fila else None)
 
+    def seccion_entera(self, i):
+        """El texto completo de la sección del fragmento i, en una sola consulta.
+
+        La versión heredada camina de a un vecino por vez, y sobre SQLite eso es una
+        consulta por fragmento: la sección más grande del corpus tiene 57, y serían 59
+        consultas para armar un bloque de contexto. Acá se piden todos juntos.
+        """
+        c = self.chunk(i)
+        doc, sec = c.get('documento'), c.get('seccion')
+        if not doc or sec is None:
+            return c.get('texto') or ''
+        filas = self._bd().execute(
+            'SELECT texto FROM chunk WHERE documento=? AND seccion=? ORDER BY i',
+            (doc, sec)).fetchall()
+        if len(filas) <= 1:
+            return c.get('texto') or ''
+        return '\n'.join(f['texto'] or '' for f in filas)
+
     def url_de_archivo(self, id_archivo):
         fila = self._bd().execute(
             'SELECT url_documento FROM chunk WHERE id_archivo=? LIMIT 1', (id_archivo,)).fetchone()

@@ -102,6 +102,21 @@ Todo lo que ata la aplicación a la institución, editable sin recompilar:
 - **Sugerencias de la pantalla inicial**: los botones que ven quienes llegan por primera
   vez. Una por línea, hasta ocho. Son la primera impresión: conviene que reflejen lo que
   la gente de la institución realmente busca.
+- **Glosario de la institución**: cómo dice la gente lo que los actos escriben de otra
+  forma, una equivalencia por línea con la forma «como se dice → como se escribe». Se
+  aplica al interpretar cada consulta: la búsqueda agrega el término administrativo entre
+  paréntesis, sin reemplazar las palabras de quien pregunta, así que el término original
+  sigue pesando en la señal semántica y el del corpus entra por la léxica.
+
+  Viene con equivalencias del castellano administrativo que sirven en cualquier
+  universidad. Se agregaron porque se midió que la pregunta natural no encontraba el acto:
+  «¿Qué carreras tiene la UNLu?» no encontraba nada, y la lista completa estaba en una
+  tabla dentro de un acto titulado OFERTA ACADÉMICA. La palabra "carrera" aparece en 8.172
+  actos; "oferta académica, sede de dictado" apunta a los tres que traen la tabla.
+
+  Conviene una lista corta y segura: cada línea suma palabras que la persona no dijo, y eso
+  solo mejora si la equivalencia es certera. La fuente para ampliarla son las consultas
+  reales, que quedan registradas en **Uso**.
 - **Logo**: PNG, JPEG o GIF de hasta 2 MB. Se valida el contenido del archivo, no su
   nombre. El favicon de la pestaña lo sigue. "Volver al original" restaura el del build.
 - **Colores**: cuatro roles de los que deriva toda la interfaz. La vista previa aplica

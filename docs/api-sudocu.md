@@ -88,15 +88,34 @@ estructura constante —`EXP 1296/2024  INICIO SUMARIO`: expediente, punto, asun
 mayúsculas—; en UNSL alterna oraciones descriptivas, prefijos de expediente y mayúsculas
 sostenidas. Es utilizable como descripción; no como campo estructurado.
 
-## 4. Orden del listado
+## 4. El listado se ordena por número de acto, no por fecha
 
-El parámetro `orden` no altera el resultado: `fecha`, `ts` y `nombre_plural` devuelven la
-misma secuencia. El listado viene aproximadamente de más reciente a más antiguo, pero **no
-de forma estricta**: en el contenedor 12 de la UNLu aparece un acto del 23 de diciembre
-después de uno del 16.
+El parámetro `orden` no altera el resultado: `fecha`, `ts`, `fecha_autorizacion` y
+`nombre_plural` devuelven la misma secuencia. Y esa secuencia **no es cronológica**: es el
+número del acto (`nro.nro`) de mayor a menor.
 
-Quien construya una lectura incremental sobre el supuesto de orden por recencia debería
-verificarlo en ejecución, no asumirlo.
+Como la numeración se reinicia cada año, un acto recién publicado **no aparece al principio
+del listado**. Medido sobre el contenedor 12 de la UNLu (2.031 actos, `dir=DESC`):
+
+| posición | acto | fecha |
+|---|---|---|
+| 0 | RESHCS 903/2025 | 2025-12-19 |
+| 900 | RESHCS 446/2026 | **2026-08-04** |
+| 2010 | RESHCS 10/2026 | 2026-03-03 |
+
+El acto más nuevo de la carpeta estaba en la posición 900 de 2031. El campo `nro.nro`
+resultó monótono decreciente en las dos carpetas medidas; `nro.nrop`, que se parece, **no**
+lo es.
+
+Consecuencia para quien integra: una lectura incremental que lea "la punta" del listado no
+encuentra lo que se publicó esta semana. Hay que ubicar la banda donde los números cruzan el
+más alto que ya se tiene del año en curso ---por búsqueda binaria, que en una carpeta de dos
+mil actos son once pedidos--- y leer ahí. Nos costó un mes de normativa sin indexar
+descubrirlo, con el agravante de que el sistema informaba esos actos como faltantes viejos,
+porque no estaban adelante.
+
+Sería útil que el API permitiera ordenar por fecha de autorización, o filtrar por fecha
+desde: es la consulta natural de cualquier sistema que se sincroniza.
 
 ## 5. El total declarado puede exceder los documentos distintos
 

@@ -23,6 +23,7 @@ Uso:
 """
 import argparse
 import csv
+import datetime
 import json
 import os
 import sys
@@ -148,13 +149,13 @@ def recordar_total(salida, cid, nombre, total):
 
 
 class OrdenInesperado(Exception):
-    """El portal dejó de devolver los documentos de más nuevo a más viejo.
+    """El portal dejó de devolver los documentos ordenados por número de acto.
 
-    No es un detalle: la recolección incremental se apoya en ese orden para poder frenar
-    apenas reconoce lo que ya tiene. Si el orden cambia ---otra versión de SUDOCU, otra
-    configuración, otra universidad--- frenar temprano dejaría de significar "no hay nada
-    nuevo" y empezaría a significar "no miré". Por eso se verifica en cada página y, si no
-    se cumple, la carpeta se recolecta completa en vez de confiar.
+    No es un detalle: la recolección incremental ubica lo nuevo por búsqueda binaria sobre
+    ese orden. Si el orden cambia ---otra versión de SUDOCU, otra configuración, otra
+    universidad--- la búsqueda deja de tener sentido y "no encontré nada" pasaría a
+    significar "busqué donde no era". Por eso se verifica en cada página de la punta y, si
+    no se cumple, la carpeta se recolecta completa en vez de confiar.
     """
 
 
@@ -185,77 +186,146 @@ class DemasiadoNuevo(Exception):
     """
 
 
-def verificar_orden(docs, techo):
-    """Comprueba que lo más nuevo esté al principio del listado.
+def numero_de(doc):
+    """El número del acto como entero, que es la clave por la que el portal ordena."""
+    try:
+        n = int((doc.get('nro') or {}).get('nro') or 0)
+    except (TypeError, ValueError):
+        return None
+    return n or None
 
-    La verificación NO es que cada fila sea más vieja que la anterior: se midió contra el
-    portal de la UNLu y no se cumple ---en Consejo Superior aparece un acto del 12 de
-    diciembre después de uno del 11---. El listado viene ordenado por algo que correlaciona
-    con la fecha pero admite inversiones locales.
 
-    Lo que sí tiene que valer, y es lo único que la lectura incremental necesita, es que
-    ninguna página posterior traiga un documento MÁS NUEVO que el más nuevo de la primera.
-    Si eso pasa, lo reciente no está al principio y frenar temprano dejaría afuera actos.
+def verificar_orden(docs, ultimo):
+    """El listado viene por número de acto, de mayor a menor. Se comprueba que siga así.
 
-    `techo` es la fecha máxima de la primera página; None mientras no se estableció.
+    Esta verificación miraba las FECHAS, y esa idea equivocada sobre el portal costó un mes
+    de normativa sin indexar. Medido sobre Resoluciones del Consejo Superior: en la posición
+    0 está la 903/2025 y en la 900 la 446/2026, que es siete meses más nueva. El listado no
+    está ordenado por recencia ni aproximadamente; está ordenado por NÚMERO, y el número se
+    reinicia cada año. Por eso lo que se publica hoy no aparece al principio: aparece donde
+    lo pone su número, que en agosto de 2026 es la mitad del listado.
+
+    El número sí resultó monótono en las dos carpetas donde se midió, y es lo que la lectura
+    incremental usa ahora. Se admite la igualdad porque el portal repite filas entre páginas.
     """
-    fechas = [(x.get('fecha') or '')[:10] for x in docs]
-    fechas = [f for f in fechas if f]
-    if not fechas:
-        return techo
-    if techo is None:
-        return max(fechas)
-    if max(fechas) > techo:
+    numeros = [n for n in (numero_de(d) for d in docs) if n]
+    if not numeros:
+        return ultimo
+    if ultimo is not None and max(numeros) > ultimo:
         raise OrdenInesperado(
-            f'apareció un documento del {max(fechas)}, más nuevo que el tope de la '
-            f'primera página ({techo}): el listado dejó de venir ordenado por recencia')
-    return techo
+            f'apareció el acto número {max(numeros)} después del {ultimo}: el listado dejó '
+            f'de venir ordenado por número, que es de lo que depende la lectura incremental')
+    return min(numeros)
 
 
-def recolectar_incremental(cid, nombre, conocidos, total_recordado=None,
-                           paginas_limpias=3, tope_paginas=20, tope_vacias=6, traza=None):
-    """Los documentos de una carpeta que todavía no tenemos, leyendo solo la punta.
+def frontera_de_numero(cid, piso, total, intentos=3, traza=None, nombre=''):
+    """La posición del listado donde los números caen por debajo de `piso`.
 
-    El portal devuelve de más nuevo a más viejo, así que lo que cambió está al principio y
-    no hace falta recorrer la carpeta entera. La pregunta es cuándo parar, y la respuesta
-    es una cuenta, no una corazonada: se para cuando lo que el catálogo ya tenía más lo que
-    se acaba de encontrar alcanza el total que el portal declara para esa carpeta. Ahí no
-    queda nada por buscar, y punto.
+    Los actos que se publican este año llevan números apenas mayores que el más alto que ya
+    tenemos de este año, y el portal ordena por número: lo nuevo no está al principio del
+    listado sino en una banda estrecha, la que separa lo que ya conocemos de lo anterior.
 
-    Eso también resuelve solo el caso del acto cargado con retraso ---fechado en marzo,
-    publicado hoy--- que entra al listado por su fecha, sepultado bajo los más nuevos. No
-    hace falta adivinar cuántas páginas mirar de más: si ese acto existe, el total del
-    portal lo cuenta, la resta no cierra y la lectura sigue. Una carpeta al día se
-    resuelve en UNA página.
+    Encontrar esa banda por búsqueda binaria cuesta once pedidos en una carpeta de dos mil
+    actos. Llegar hasta ella leyendo desde el principio cuesta setenta páginas, y era lo que
+    hacía inviable buscar donde había que buscar.
 
-    `paginas_limpias` queda como corte de reserva para cuando no se sabe el total ---ni de
-    esta corrida ni recordado de la anterior---, que es el único caso en que hay que
-    conformarse con una señal indirecta.
-
-    `total_recordado` es el total de la última vez que el portal lo declaró. Sirve desde la
-    primera página: sin él habría que leer una página solo para saber cuándo parar.
-
-    `conocidos` son los identificadores de documento que ya están en el catálogo, es decir
-    la columna `id_documento` del CSV. OJO con el mapeo, porque está cruzado y es fácil
-    comparar el campo equivocado: el `id` que devuelve la API se guarda como
-    `id_documento`, y el campo que la API llama `documento` se guarda como `id_archivo`.
-    Comparar contra el que no es hace que todo parezca nuevo y la lectura incremental
-    recorra la carpeta entera sin decir por qué.
-
-    Devuelve (documentos_nuevos, total, lo_declaro_el_portal). El tercer valor distingue
-    un total que acaba de declarar el portal ---que hay que recordar--- de uno que ya venía
-    recordado. Levanta OrdenInesperado si el portal deja de ordenar como se espera, para
-    que quien llama recolecte la carpeta completa.
+    Devuelve el primer offset cuyo número es <= piso, `total` si no hay ninguno, o None si el
+    portal no contestó lo suficiente como para decidir ---y entonces quien llama se queda con
+    lo que haya leído de la punta, que es el comportamiento de antes.
     """
-    nuevos, offset, limpias, total_portal = [], 0, 0, total_recordado
-    techo, vistos, del_portal = None, set(), False
+    lo, hi = 0, max(0, (total or 0) - 1)
+    frontera = total or 0
+    while lo <= hi:
+        medio = (lo + hi) // 2
+        # Cada sondeo se insiste antes de darlo por perdido: el portal contesta vacío de
+        # manera intermitente y son justo las carpetas más grandes ---donde la búsqueda
+        # binaria más ahorra--- las que más lo hacen. Rendirse al primer vacío dejaría a
+        # esas carpetas leyendo solo la punta, que es el problema que esto viene a arreglar.
+        n = None
+        for intento in range(intentos):
+            docs = (pedir(cid, medio) or {}).get('documents') or []
+            registrar(traza, {'carpeta': cid, 'nombre': nombre, 'offset': medio,
+                              'modo': 'frontera', 'devueltos': len(docs)})
+            n = next((x for x in (numero_de(d) for d in docs) if x), None)
+            if n is not None:
+                break
+            if intento < intentos - 1:
+                time.sleep(5 * (intento + 1))
+        if n is None:
+            return None
+        if n <= piso:
+            frontera, hi = medio, medio - 1
+        else:
+            lo = medio + 1
+    return frontera
 
-    vacias, paginas = 0, 0
+
+def recolectar_incremental(cid, nombre, conocidos, total_recordado=None, piso=0,
+                           paginas_limpias=3, tope_paginas=20, tope_vacias=6, traza=None):
+    """Los documentos de una carpeta que todavía no tenemos, sin recorrerla entera.
+
+    Se leen dos tramos, y son dos porque el portal ordena por número de acto:
+
+    - **La punta.** Ahí están los números más altos de la carpeta, que son los del año
+      pasado hasta que la numeración de este año los alcanza. Sirve para el acto del año
+      anterior que se publica con retraso, y para los de este año en la última parte del año.
+
+    - **La banda.** El tramo donde los números cruzan `piso`, el más alto que ya tenemos de
+      este año. Todo lo que se publicó desde la última corrida está ahí, porque la numeración
+      es secuencial. Se ubica por búsqueda binaria en vez de leyendo hasta llegar.
+
+    Leer solo la punta ---lo que se hacía antes--- funciona únicamente si el listado viene
+    por fecha, y no viene: en Resoluciones del Consejo Superior dejó 57 actos afuera, y el
+    sistema los informó como faltantes viejos porque no estaban adelante.
+
+    `piso` en 0 (una carpeta sin actos de este año todavía) deja la frontera al final del
+    listado, que es justo donde va a caer el número 1 del año que arranca.
+
+    `conocidos` son los identificadores de documento que ya están en el catálogo, es decir la
+    columna `id_documento` del CSV. OJO con el mapeo, porque está cruzado y es fácil comparar
+    el campo equivocado: el `id` que devuelve la API se guarda como `id_documento`, y el campo
+    que la API llama `documento` se guarda como `id_archivo`. Comparar contra el que no es
+    hace que todo parezca nuevo y la lectura recorra la carpeta entera sin decir por qué.
+
+    Devuelve (documentos_nuevos, total, lo_declaro_el_portal). El tercer valor distingue un
+    total que acaba de declarar el portal ---que hay que recordar--- de uno que ya venía
+    recordado.
+    """
+    nuevos, vistos = [], set()
+    total_portal, del_portal = total_recordado, False
+    paginas, ultimo = 0, None
+
+    def sumar(docs):
+        """Los desconocidos de una página, acumulados. Devuelve cuántos había."""
+        desconocidos = 0
+        for x in docs:
+            ident = x.get('id')          # se guarda como id_documento en el catálogo
+            if not ident or ident in vistos:
+                continue
+            vistos.add(ident)
+            if ident in conocidos:
+                continue
+            desconocidos += 1
+            nuevos.append(x)
+        return desconocidos
+
+    def cerro():
+        """La cuenta cierra: lo que hay más lo encontrado llega a lo que el portal declara.
+
+        La tolerancia es por las filas que el portal repite entre páginas y cuenta en el
+        total. Es también el motivo por el que esta cuenta NO puede ser el único criterio de
+        corte: hasta tres actos nuevos caben dentro de la tolerancia, y la resta cerraría
+        igual sin haberlos encontrado.
+        """
+        return bool(total_portal) and len(conocidos) + len(nuevos) >= total_portal - TOLERANCIA_TOTAL
+
+    # --- la punta del listado -------------------------------------------------------
+    offset, limpias, vacias = 0, 0, 0
     while offset < tope_paginas * TOPE:
         d = pedir(cid, offset)
         docs = (d or {}).get('documents') or []
         registrar(traza, {'carpeta': cid, 'nombre': nombre, 'offset': offset,
-                          'modo': 'incremental', 'devueltos': len(docs)})
+                          'modo': 'punta', 'devueltos': len(docs)})
         if not docs:
             # Pasado el total, una respuesta vacía ES el fin del listado y no hay nada que
             # esperar. Sin esta salida, cada carpeta chica pagaba la paciencia completa
@@ -275,8 +345,10 @@ def recolectar_incremental(cid, nombre, conocidos, total_recordado=None,
             continue
         vacias = 0
         paginas += 1
-        techo = verificar_orden(docs, techo)
+        ultimo = verificar_orden(docs, ultimo)
         if not del_portal:
+            # El total viaja DENTRO de cada documento, así que la primera página ya lo trae
+            # y no hace falta una llamada aparte para pedirlo.
             try:
                 declarado = int(docs[0].get('total') or 0) or None
             except (TypeError, ValueError):
@@ -284,36 +356,44 @@ def recolectar_incremental(cid, nombre, conocidos, total_recordado=None,
             if declarado:
                 total_portal, del_portal = declarado, True
 
-        desconocidos = 0
-        for x in docs:
-            ident = x.get('id')          # se guarda como id_documento en el catálogo
-            if not ident or ident in vistos:
-                continue
-            vistos.add(ident)
-            if ident in conocidos:
-                continue
-            desconocidos += 1
-            nuevos.append(x)
-
-        # La cuenta cierra: lo que hay más lo encontrado llega a lo que el portal declara.
-        # No hay nada más que buscar en esta carpeta.
-        if total_portal and len(conocidos) + len(nuevos) >= total_portal - TOLERANCIA_TOTAL:
+        desconocidos = sumar(docs)
+        if cerro():
             break
-
+        # La punta se abandona apenas deja de dar novedades, con total o sin él. Insistir
+        # acá era lo que antes gastaba veinte páginas para no encontrar nada: lo que falta
+        # no está adelante, y buscarlo adelante es buscarlo donde no está.
         limpias = 0 if desconocidos else limpias + 1
-        if not total_portal and limpias >= paginas_limpias:
+        if limpias >= paginas_limpias:
             break
         offset += TOPE
     else:
-        # El while terminó por agotar el tope, no por cerrar la cuenta.
         if nuevos:
             raise DemasiadoNuevo(f'{len(nuevos)} desconocidos en {paginas} páginas sin '
                                  f'llegar a lo ya conocido')
-        # Punta limpia y la cuenta igual no cierra: lo que falta no está acá adelante,
-        # está en el medio del listado. No es un caso de excepción sino de aritmética, y
-        # la resuelve quien llama, que sabe cuántos faltan y qué hacer con eso.
 
-    print(f'  {nombre}: {len(nuevos)} nuevos leyendo {offset // TOPE + 1} páginas', flush=True)
+    # --- la banda donde caen los actos de este año ----------------------------------
+    banda = 0
+    if not cerro() and piso and total_portal:
+        frontera = frontera_de_numero(cid, piso, total_portal, traza=traza, nombre=nombre)
+        if frontera is not None:
+            # Se arranca una página MÁS ABAJO de la frontera y se sube: la frontera es
+            # dónde empiezan los números que ya conocemos, así que lo nuevo está por encima.
+            inicio = (frontera // TOPE + 1) * TOPE
+            limpias = 0
+            while inicio >= 0 and banda < tope_paginas and limpias < paginas_limpias:
+                d = pedir(cid, inicio)
+                docs = (d or {}).get('documents') or []
+                registrar(traza, {'carpeta': cid, 'nombre': nombre, 'offset': inicio,
+                                  'modo': 'banda', 'devueltos': len(docs)})
+                banda += 1
+                if docs:
+                    limpias = 0 if sumar(docs) else limpias + 1
+                    if cerro():
+                        break
+                inicio -= TOPE
+
+    donde = f'{paginas} de la punta' + (f' + {banda} de la banda' if banda else '')
+    print(f'  {nombre}: {len(nuevos)} nuevos leyendo {donde}', flush=True)
     return nuevos, total_portal, del_portal
 
 
@@ -518,11 +598,26 @@ def main():
         with open(a.salida, encoding='utf-8-sig') as f:
             filas_previas = list(csv.DictReader(f))
         conocidos_por_seccion = {}
+        # El número más alto que ya tenemos de ESTE año, por carpeta. Es lo que le dice a la
+        # lectura incremental dónde mirar: el portal ordena por número, la numeración se
+        # reinicia cada año, y lo que se publicó desde la última corrida son los números que
+        # siguen a este. Una carpeta sin actos de este año queda en 0, y entonces la frontera
+        # cae al final del listado, que es donde va a aparecer el número 1 del año nuevo.
+        anio_en_curso = datetime.date.today().year
+        piso_por_seccion = {}
         for r in filas_previas:
             if r.get('id_documento'):
                 conocidos_por_seccion.setdefault(r['Seccion'], set()).add(r['id_documento'])
+            try:
+                anio, nro = int(r.get('Anio') or 0), int(r.get('Nro') or 0)
+            except (TypeError, ValueError):
+                continue
+            if nro and anio == anio_en_curso:
+                seccion = r.get('Seccion')
+                piso_por_seccion[seccion] = max(piso_por_seccion.get(seccion, 0), nro)
 
         al_dia, rehacer, mudas, incompletas_viejas, anexados = [], [], [], [], 0
+        fallidas = []
         for cid in list(ids):
             nombre = carpetas.get(cid, f'carpeta {cid}')
             conocidos = conocidos_por_seccion.get(nombre) or set()
@@ -531,7 +626,8 @@ def main():
             memoria = leer_totales(a.salida).get(str(cid)) or {}
             try:
                 nuevos, total, del_portal = recolectar_incremental(
-                    cid, nombre, conocidos, total_recordado=memoria.get('total'), traza=None)
+                    cid, nombre, conocidos, total_recordado=memoria.get('total'),
+                    piso=piso_por_seccion.get(nombre, 0), traza=None)
             except PortalMudo as e:
                 # Que el portal no entregue nada NO es un problema de nuestros datos, así
                 # que rehacer la carpeta es lo peor que se puede hacer: se borra lo que hay
@@ -548,6 +644,19 @@ def main():
                 print(f'  {nombre}: {e} -> se rehace entera', flush=True)
                 rehacer.append(nombre)
                 continue
+            except Exception as e:
+                # Un fallo de red en UNA carpeta no puede llevarse puesta la actualización
+                # entera. Pasó en el ensayo de este cambio: nueve carpetas ya leídas, con
+                # 133 actos nuevos encontrados, y un error de DNS en la décima abortó la
+                # corrida. Lo ya anexado al catálogo estaba a salvo ---se escribe carpeta
+                # por carpeta---, pero las que faltaban no se miraron y el resumen nunca
+                # salió. La carpeta se deja como está y se reintenta en la próxima corrida,
+                # igual que con el portal mudo.
+                print(f'  {nombre}: {type(e).__name__}: {e} -> se deja como está y se '
+                      f'reintenta en la próxima corrida', flush=True)
+                fallidas.append(nombre)
+                ids = [i for i in ids if i != cid]
+                continue
 
             # El total viaja DENTRO de cada documento de la primera página, que ya se pidió
             # para leer lo nuevo. Preguntarlo aparte era una llamada de más por carpeta, y
@@ -562,41 +671,12 @@ def main():
                       f'chequeo ({total}, {memoria.get("visto")})', flush=True)
             tengo = len(conocidos) + len(nuevos)
 
-            # La segunda verificación, y la que atrapa lo que la primera no puede ver: lo
-            # que ya está en el catálogo más lo que se acaba de encontrar tiene que dar lo
-            # que el portal declara para esa carpeta. La lectura incremental mira la punta
-            # del listado, así que encuentra lo recién publicado pero es ciega a los
-            # agujeros del medio ---un acto que se perdió en una corrida cortada hace
-            # meses---. Esos solo aparecen como una resta que no cierra, y entonces la
-            # carpeta se rehace completa. La tolerancia de 3 es la misma de siempre: el
-            # portal repite filas entre páginas y las cuenta en el total.
-            if total is not None and tengo < total - TOLERANCIA_TOTAL:
-                # Que falten actos que NO están en la punta significa que son viejos: se
-                # perdieron en alguna corrida cortada, no se publicaron esta semana.
-                # Repararlos exige listar la carpeta entera, que en las grandes son horas
-                # ---y contra un portal que corta las consultas pesadas a los 20 segundos,
-                # a veces no termina nunca---. Eso no puede dispararse solo en cada
-                # actualización semanal: quedaría reconstruyendo para siempre las mismas
-                # carpetas. Se informa y se pide explícitamente con --reconciliar.
-                if not a.reconciliar:
-                    print(f'  {nombre}: {tengo} de {total} · le faltan {total - tengo} '
-                          f'actos que no están en la punta, o sea viejos. Se deja como '
-                          f'está; para repararla: --reconciliar', flush=True)
-                    incompletas_viejas.append(f'{nombre} (faltan {total - tengo})')
-                    ids = [i for i in ids if i != cid]
-                    continue
-                print(f'  {nombre}: {tengo} de {total} -> se rehace entera '
-                      f'(faltan {total - tengo} del medio del listado)', flush=True)
-                rehacer.append(nombre)
-                continue
-
-            # Sin total no hay verificación posible, y sin verificación no se puede
-            # afirmar que la carpeta esté al día: se lista completa. Parece exagerado
-            # hasta que se mira un caso real ---Secretarías de Rectorado quedó en 255 de
-            # 5668 cuando una corrida se cortó a la mitad---, porque es justo en las
-            # carpetas grandes donde el portal contesta vacío más seguido y donde el
-            # faltante es más caro. Dar por buena una carpeta que no se pudo contar
-            # significa no volver a mirarla nunca.
+            # Sin total no hay verificación posible, y sin verificación no se puede afirmar
+            # que la carpeta esté al día: se lista completa. Parece exagerado hasta que se
+            # mira un caso real ---Secretarías de Rectorado quedó en 255 de 5668 cuando una
+            # corrida se cortó a la mitad---, porque es justo en las carpetas grandes donde
+            # el portal contesta vacío más seguido y donde el faltante es más caro. Dar por
+            # buena una carpeta que no se pudo contar significa no volver a mirarla nunca.
             if total is None:
                 print(f'  {nombre}: {tengo} en el catálogo, sin total ni ahora ni en el '
                       f'registro -> se lista completa, porque no se puede verificar',
@@ -604,11 +684,45 @@ def main():
                 rehacer.append(nombre)
                 continue
 
+            # La segunda verificación, y la que atrapa lo que la primera no puede ver: lo
+            # que ya está en el catálogo más lo que se acaba de encontrar tiene que dar lo
+            # que el portal declara para esa carpeta. La lectura mira dos tramos ---la punta
+            # y la banda de este año---, así que encuentra lo recién publicado pero es ciega
+            # a los agujeros del medio: un acto que se perdió en una corrida cortada hace
+            # meses. Esos solo aparecen como una resta que no cierra. La tolerancia de 3 es
+            # la de siempre: el portal repite filas entre páginas y las cuenta en el total.
+            incompleta = tengo < total - TOLERANCIA_TOTAL
+
+            # Repararlos exige listar la carpeta entera, que en las grandes son horas ---y
+            # contra un portal que corta las consultas pesadas a los 20 segundos, a veces no
+            # termina nunca---. Eso no puede dispararse solo en cada actualización: quedaría
+            # reconstruyendo para siempre las mismas carpetas. Se pide con --reconciliar.
+            if incompleta and a.reconciliar:
+                print(f'  {nombre}: {tengo} de {total} -> se rehace entera '
+                      f'(faltan {total - tengo} del medio del listado)', flush=True)
+                rehacer.append(nombre)
+                continue
+
+            # Lo encontrado se anexa AUNQUE la carpeta tenga agujeros viejos. Son dos cosas
+            # independientes y tratarlas como una sola costaba caro: en la prueba de este
+            # cambio, Secretarías de Rectorado encontró 63 actos nuevos y Direcciones
+            # Administrativas 31, y los 94 se descartaban porque esas carpetas además
+            # arrastran faltantes de hace meses. Un agujero viejo no es motivo para tirar lo
+            # que se acaba de encontrar; es motivo para avisar que la carpeta sigue coja.
             if nuevos:
                 filas_previas.extend(anexar_nuevos(nuevos, nombre, a.salida, filas_previas))
                 anexados += len(nuevos)
-            al_dia.append(nombre)
+
             ids = [i for i in ids if i != cid]
+            if incompleta:
+                print(f'  {nombre}: {tengo} de {total} · le faltan {total - tengo} actos '
+                      f'que no están ni en la punta ni en la banda de este año, o sea '
+                      f'viejos. Lo nuevo se agregó igual; para reparar lo viejo: '
+                      f'--reconciliar', flush=True)
+                incompletas_viejas.append(f'{nombre} (faltan {total - tengo})')
+                continue
+
+            al_dia.append(nombre)
 
         if anexados:
             print(f'{anexados} documentos nuevos agregados al catálogo', flush=True)
@@ -616,6 +730,9 @@ def main():
             print(f'al día: {sorted(al_dia)}', flush=True)
         if mudas:
             print(f'sin respuesta del portal, quedaron como estaban: {sorted(mudas)}',
+                  flush=True)
+        if fallidas:
+            print(f'con error al consultarlas, quedaron como estaban: {sorted(fallidas)}',
                   flush=True)
         if incompletas_viejas:
             print(f'con faltantes viejos (correr con --reconciliar para repararlas): '

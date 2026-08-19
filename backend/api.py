@@ -44,7 +44,7 @@ from pydantic import BaseModel, Field
 from fastapi import File, Header, UploadFile
 
 from . import admin, corridas, historial, programacion, sesion
-from .recuperacion import Indice
+from .recuperacion import Indice, normalizar
 
 
 def _cargar_env():
@@ -546,6 +546,42 @@ RE_DEPENDE_CONTEXTO = re.compile(
     re.IGNORECASE)
 
 
+def expandir_con_glosario(pregunta: str) -> str:
+    """La pregunta con el vocabulario del corpus agregado, según el glosario del panel.
+
+    Se hace acá y con texto ---sin llamar al modelo--- por dónde tiene que correr: en TODAS
+    las consultas, incluida la primera de la conversación. La expansión del reescritor solo
+    entra cuando hay historial, porque su otro trabajo es resolver referencias, y eso dejaba
+    sin puente justamente a la pregunta más común: la que alguien escribe al abrir el
+    sistema.
+
+    El caso que lo motivó: "¿Qué carreras tiene la UNLu?" no encontraba nada, y la lista
+    completa estaba en una tabla dentro de un acto titulado OFERTA ACADÉMICA. La palabra
+    "carrera" aparece en 8.172 actos; "oferta académica, sede de dictado" apunta a los tres
+    que traen la tabla.
+
+    Se AGREGA entre paréntesis y no se reemplaza: el término de quien pregunta sigue
+    pesando en la señal densa, y el del corpus entra por la léxica. Cada término se suma una
+    sola vez aunque lo disparen dos entradas del glosario.
+    """
+    glosario = (admin.leer_ajuste('glosario', admin.GLOSARIO_POR_OMISION) or '').strip()
+    if not glosario:
+        return pregunta
+    base = normalizar(pregunta)
+    suma = []
+    for linea in glosario.splitlines():
+        if '→' not in linea and '->' not in linea:
+            continue
+        izq, _, der = linea.replace('->', '→').partition('→')
+        izq, der = izq.strip(), der.strip()
+        if not izq or not der or normalizar(izq) not in base:
+            continue
+        for termino in (x.strip() for x in der.split(',')):
+            if termino and normalizar(termino) not in base and termino not in suma:
+                suma.append(termino)
+    return f'{pregunta} ({", ".join(suma)})' if suma else pregunta
+
+
 def necesita_contexto(pregunta: str, historial) -> bool:
     """¿La pregunta depende de los turnos anteriores?
 
@@ -620,7 +656,7 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
     # El glosario del panel son las equivalencias propias de ESTA institución, que ningún
     # modelo puede saber de antemano. Se lee por consulta y no al importar: el
     # administrador lo edita en caliente y la próxima reescritura ya lo tiene que ver.
-    glosario = (admin.leer_ajuste('glosario', '') or '').strip()
+    glosario = (admin.leer_ajuste('glosario', admin.GLOSARIO_POR_OMISION) or '').strip()
     glosario_instruccion = (
         'GLOSARIO DE ESTA INSTITUCIÓN (mismas reglas, agregá entre paréntesis):\n'
         + glosario + '\n' if glosario else '')
@@ -1115,15 +1151,24 @@ def _preparar(c: 'Consulta'):
     ultima = [t for t in (c.historial or []) if t.rol == 'assistant'][-1:]
     estado = fusionar_actos(estado, actos_en_juego(ultima, c.pregunta))
 
+    # El glosario se aplica antes que nada y siempre: no depende del historial ni del
+    # modelo, así que vale igual para la primera pregunta. Si después el reescritor corre,
+    # trabaja sobre la pregunta original ---resolver referencias con la expansión encima
+    # sería pedirle que interprete texto que el usuario no escribió--- y su resultado se
+    # vuelve a expandir al final.
+    ampliada = expandir_con_glosario(c.pregunta) if c.usar_reescritura else c.pregunta
+
     if not c.historial or not os.environ.get('OPENAI_API_KEY'):
-        return c.pregunta, estado
+        return ampliada, estado
     if not (c.usar_reescritura or c.usar_foco):
         return c.pregunta, estado
     if not necesita_contexto(c.pregunta, c.historial):
-        return c.pregunta, estado
+        return ampliada, estado
 
     previo = dict(estado)
     consulta, nuevo = reescribir_y_enfocar(c.pregunta, c.historial, estado)
+    if c.usar_reescritura:
+        consulta = expandir_con_glosario(consulta)
     return (consulta if c.usar_reescritura else c.pregunta), (nuevo if c.usar_foco else previo)
 
 

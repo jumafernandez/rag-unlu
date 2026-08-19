@@ -100,6 +100,20 @@ SUGERENCIAS_MAX = 8
 SUGERENCIA_LARGO = 120
 GLOSARIO_LARGO = 2000
 
+# Glosario por omisión. Son equivalencias del castellano administrativo argentino, no de la
+# UNLu: cualquier universidad que use SUDOCU las va a necesitar igual, y el panel las deja
+# editar. Cada una se agregó porque se midió que la pregunta natural no encontraba el acto:
+# "carreras" aparece en 8.172 actos y la lista completa está en tres, titulados OFERTA
+# ACADÉMICA, con una tabla "Carrera | Sede de Dictado".
+GLOSARIO_POR_OMISION = """carreras → oferta académica, sede de dictado
+carrera → oferta académica, sede de dictado
+da clases → responsable de asignatura, designación docente
+docente → designación, responsable de asignatura
+lo echaron → cese de funciones, limitación de designación
+lo nombraron → designación
+renunció → renuncia, aceptar la renuncia
+sueldo → recomposición salarial, adicional"""
+
 # El logo subido vive junto a los datos y no en el árbol del front: no se versiona, y una
 # reconstrucción de la interfaz no lo borra.
 DIR_MARCA = os.environ.get('RAG_MARCA', 'datos/marca')
@@ -359,7 +373,7 @@ def leer_institucion():
              **{k: v for k, v in guardado.items() if k in INSTITUCION_POR_OMISION}}
     datos['logo'] = ruta_logo() is not None
     datos['sugerencias'] = leer_ajuste('sugerencias', SUGERENCIAS_POR_OMISION)
-    datos['glosario'] = leer_ajuste('glosario', '')
+    datos['glosario'] = leer_ajuste('glosario', GLOSARIO_POR_OMISION)
     return datos
 
 
