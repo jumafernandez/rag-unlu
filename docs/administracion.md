@@ -114,9 +114,17 @@ Todo lo que ata la aplicación a la institución, editable sin recompilar:
   tabla dentro de un acto titulado OFERTA ACADÉMICA. La palabra "carrera" aparece en 8.172
   actos; "oferta académica, sede de dictado" apunta a los tres que traen la tabla.
 
+  Las entradas se separan por la **frase** y no por el concepto, porque dos preguntas
+  parecidas quieren actos distintos. Medido: «¿da clases de grado?» se contesta con un acto
+  de designación y agregarle "designación docente" la lleva de la posición 6 a la 1; «¿qué
+  cursos da?» se contesta con un programa de asignatura, y esa misma palabra la hace
+  desaparecer del contexto. Un sinónimo no distingue esas dos preguntas; la frase sí.
+
   Conviene una lista corta y segura: cada línea suma palabras que la persona no dijo, y eso
-  solo mejora si la equivalencia es certera. La fuente para ampliarla son las consultas
-  reales, que quedan registradas en **Uso**.
+  solo mejora si la equivalencia es certera. Cuidado con los términos muy frecuentes en el
+  corpus —"designación docente" aparece en miles de actos— porque arrastran el ranking
+  entero. **Antes de agregar una línea, medirla contra la consulta que la motiva.** La
+  fuente para ampliarla son las consultas reales, que quedan registradas en **Uso**.
 - **Logo**: PNG, JPEG o GIF de hasta 2 MB. Se valida el contenido del archivo, no su
   nombre. El favicon de la pestaña lo sigue. "Volver al original" restaura el del build.
 - **Colores**: cuatro roles de los que deriva toda la interfaz. La vista previa aplica

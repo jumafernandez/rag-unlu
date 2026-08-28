@@ -105,10 +105,24 @@ GLOSARIO_LARGO = 2000
 # editar. Cada una se agregó porque se midió que la pregunta natural no encontraba el acto:
 # "carreras" aparece en 8.172 actos y la lista completa está en tres, titulados OFERTA
 # ACADÉMICA, con una tabla "Carrera | Sede de Dictado".
+#
+# Las entradas se separan por la FRASE y no por el concepto, porque dos preguntas parecidas
+# quieren actos distintos y una sola regla no puede servirlas a las dos. Medido:
+#
+#   "¿da clases de grado?"  quiere la designación  · con "designación docente" pasa de la
+#                                                    posición 6 a la 1
+#   "¿qué cursos da?"       quiere el programa     · con "designación docente" DESAPARECE
+#                                                    del contexto; con "programa" va a la 2
+#
+# "designación docente" es una frase frecuentísima en el corpus: arrastra el ranking hacia
+# los actos de designación, que es exactamente lo que hace ganar al primer caso y perder al
+# segundo. Antes de agregar una línea, medirla contra la consulta que la motiva.
 GLOSARIO_POR_OMISION = """carreras → oferta académica, sede de dictado
 carrera → oferta académica, sede de dictado
+cursos → programa, responsable de asignatura
+asignaturas → programa, responsable de asignatura
+materias → programa, responsable de asignatura
 da clases → responsable de asignatura, designación docente
-docente → designación, responsable de asignatura
 lo echaron → cese de funciones, limitación de designación
 lo nombraron → designación
 renunció → renuncia, aceptar la renuncia
@@ -248,7 +262,15 @@ def generacion_por_omision():
     informa si está o no.
     """
     return {
-        'modelo': os.environ.get('RAG_MODELO_GEN', 'gpt-4o-mini'),
+        # gpt-4o-mini quedó corto para leer el contexto, no para redactarlo. Medido sobre
+        # las fallas reales: ante "pasame el DNI de X", con el número DELANTE en el
+        # contexto, contestaba "no encontré normativa que vincule un DNI a X". El prompt ya
+        # prohíbe explícitamente abrir con una negativa cuando después se informa algo, así
+        # que no era cuestión de escribir la regla otra vez: el modelo no la seguía.
+        # gpt-4.1-mini acierta esos casos y cuesta 2,7 veces más ---de US$ 0,60 a US$ 1,60
+        # por cada mil consultas, con los 3.511 tokens de entrada que gasta una consulta
+        # típica de este sistema---. El panel lo puede cambiar sin tocar código.
+        'modelo': os.environ.get('RAG_MODELO_GEN', 'gpt-4.1-mini'),
         # Vacío = api.openai.com. Cualquier endpoint compatible sirve: un vLLM en un
         # servidor de la Universidad, un Ollama local, otro proveedor.
         'base_url': os.environ.get('RAG_LLM_BASE', ''),

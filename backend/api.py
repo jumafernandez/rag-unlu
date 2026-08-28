@@ -295,7 +295,13 @@ class Consulta(BaseModel):
     modo: Optional[str] = Field(None, pattern='^(lista|ficha|comparar|novedades|resumen)$')
     # Ventana de /novedades, en días. Solo aplica a ese modo.
     dias: Optional[int] = Field(None, ge=7, le=365)
-    k: int = Field(8, ge=1, le=30)
+    # 10 y no 8, medido. Una pregunta sobre una persona suele necesitar DOS clases de acto
+    # a la vez ---el que le da el cargo y el que le asigna la materia--- y con ocho lugares
+    # entraba uno solo: ante "¿da clases de grado?", la designación salía segunda y el acto
+    # que lo pone al frente de una asignatura quedaba décimo, afuera. El costo es marginal
+    # porque el contexto reparte un presupuesto FIJO de caracteres: dos resultados más son
+    # ~200 tokens, no un 25% de todo. Ver `contexto()`.
+    k: int = Field(10, ge=1, le=30)
     anio: Optional[int] = None
     tipo: Optional[str] = None
     solo_articulos: bool = False
@@ -453,6 +459,14 @@ Si el contexto tiene actos donde X figura, contá lo que dicen. **Nunca abras co
 cuando después vas a informar algo**: empezar con "no encontré normativa que vincule a X" y
 seguir con lo que sí encontraste se lee como que el sistema falló, y además se contradice.
 Si tenés información, empezá por la información.
+
+Esto vale también cuando lo que tenés responde PARCIALMENTE. Es el caso más frecuente y el
+que peor se escribe: el contexto alcanza para una parte de la pregunta y no para el resto.
+La forma correcta es afirmar lo que consta y después acotar lo que falta, en ese orden. Ante
+"¿da clases de grado?" con una designación como Profesor Adjunto delante, "Está designado
+como Profesor Adjunto en la División Computación, aunque el acto no detalla qué asignaturas
+dicta" dice exactamente lo mismo que "no encontré normativa que indique que da clases", y la
+diferencia no es de estilo: la primera informa, la segunda hace creer que no hay nada.
 
 **El contexto de ESTA consulta manda sobre lo que ya se dijo.** Cada consulta trae fuentes
 nuevas, distintas de las del turno anterior. Si en el contexto actual hay un acto que amplía
@@ -653,14 +667,6 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
         if fijada:
             previo += ' [FIJADA POR EL USUARIO: es una corrección, no la cambies]'
 
-    # El glosario del panel son las equivalencias propias de ESTA institución, que ningún
-    # modelo puede saber de antemano. Se lee por consulta y no al importar: el
-    # administrador lo edita en caliente y la próxima reescritura ya lo tiene que ver.
-    glosario = (admin.leer_ajuste('glosario', admin.GLOSARIO_POR_OMISION) or '').strip()
-    glosario_instruccion = (
-        'GLOSARIO DE ESTA INSTITUCIÓN (mismas reglas, agregá entre paréntesis):\n'
-        + glosario + '\n' if glosario else '')
-
     try:
         llm, g = cliente_llm()
         r = llm.chat.completions.create(
@@ -673,15 +679,8 @@ def reescribir_y_enfocar(pregunta: str, historial, estado_previo=None):
                     '- "consulta": la última pregunta reescrita para que se entienda sin leer la '
                     'conversación, resolviendo pronombres y sujetos omitidos. No agregues temas '
                     'que nadie mencionó.\n'
-                    'En la consulta reescrita, expandí el vocabulario coloquial al término '
-                    'administrativo con que lo escriben los actos: AGREGALO entre paréntesis, '
-                    'sin reemplazar las palabras de la persona, y solo cuando la equivalencia '
-                    'sea segura. Ejemplos: "da clases" (responsable de asignatura, designación '
-                    'docente); "lo echaron" (cese de funciones, limitación de designación); '
-                    '"lo nombraron" (designación); "renunció" (renuncia, aceptar la renuncia). '
-                    'Completo: "¿Da clases de grado?" queda "¿X da clases de grado? '
-                    '(responsable de asignatura, designación docente)".\n'
-                    + glosario_instruccion +
+                    'No agregues sinónimos ni términos administrativos por tu cuenta: de '
+                    'eso se encarga el glosario, después de esta reescritura.\n'
                     '- "entidad": el sujeto concreto del que se está hablando (nombre de persona, '
                     'carrera, departamento, órgano o acto), tal como se lo nombra. null si la '
                     'conversación no gira alrededor de ninguno.\n'
@@ -817,7 +816,22 @@ def actos_en_juego(historial, pregunta='') -> set:
 # confianza que la que puede tener el sistema, y por eso pesa más. Y lo que descarta no
 # se borra, queda con peso cero y a la vista, porque saber qué infirió el sistema es
 # parte de poder controlarlo.
-PESOS_POR_ORIGEN = {'sistema': 0.5, 'usuario': 1.0, 'descartado': 0.0}
+#
+# El peso de lo que infiere el SISTEMA bajó de 0,5 a 0,2, medido. Con 0,5, una repregunta
+# nueva llegaba con la mitad del contexto ya tomada por los actos del turno anterior: ante
+# "¿da clases de grado?" después de hablar de talleres, el acto de designación ---que
+# suelto sale primero--- quedaba afuera, y el modelo contestaba con razón que no lo tenía.
+#
+#   peso   continuidad (4 repreguntas)   la pregunta nueva encuentra su acto
+#   0,5    4/4                           posición 4
+#   0,2    4/4                           posición 2
+#   0,1    4/4                           posición 1
+#
+# La continuidad no se paga: "¿y el artículo 2?", "¿de qué fecha es?" y "¿quién lo firmó?"
+# siguen encontrando su acto en todos esos pesos. Lo que sí existe es el piso: con el
+# anclaje APAGADO la continuidad se rompe, así que el mecanismo hace falta; lo que sobraba
+# era la mitad de su peso. Se elige 0,2 y no 0,1 por margen, no por medición.
+PESOS_POR_ORIGEN = {'sistema': 0.2, 'usuario': 1.0, 'descartado': 0.0}
 
 
 def peso_de(origen) -> float:
@@ -1742,6 +1756,37 @@ OPERACIONES = {
                     '--metadatos', 'scrapers/metadatos_nuevo.csv',
                     '--desde-catalogo', 'datos/catalogo.sqlite',
                     '--salida', 'data/rescatados', '--solo-medir',
+                    '--paciencia', '25'],
+    },
+    'rescatar': {
+        'titulo': 'Actos sin texto: rescatarlos del portal',
+        'descripcion': 'Trae de la web del portal el cuerpo de los actos que el sistema '
+                       'tiene catalogados y descargados pero de los que no puede citar una '
+                       'sola línea, porque su PDF es un escaneo sin texto legible. Los deja '
+                       'indexados y citables. Lo que el portal publica en HTML NO incluye '
+                       'los anexos, así que un acto rescatado queda marcado con su '
+                       'procedencia: si algún día su PDF se puede leer, manda el PDF. '
+                       'Correr antes "medir" para saber a cuántos alcanza. Es seguro '
+                       'repetirlo: no vuelve a pedir lo ya traído y la fusión rechaza '
+                       'cualquier acto que ya esté en el índice.',
+        'comando': [sys.executable, '-m', 'pipeline.actualizar', '--rescatar'],
+        'entorno': {'OMP_NUM_THREADS': '1'},
+    },
+    'reconciliar': {
+        'titulo': 'Reparar carpetas con faltantes viejos',
+        'descripcion': 'La actualización encuentra lo que se publica y avisa cuando a una '
+                       'carpeta le faltan actos más viejos, perdidos en alguna corrida que '
+                       'se cortó. Repararlos no se puede hacer leyendo un tramo del '
+                       'listado: hay que listar la carpeta entera. Esto hace eso, y SOLO '
+                       'con las carpetas cuya cuenta no cierra contra el total que declara '
+                       'el portal. Tarda horas y el portal corta las consultas pesadas a '
+                       'los 20 segundos, así que puede quedar a mitad de camino; lo que se '
+                       'aparta se repone al final, de modo que el catálogo no pierde nada '
+                       'aunque la corrida se interrumpa.',
+        'comando': [sys.executable, os.path.join(_REPO, 'scrapers', 'recolectar_api.py'),
+                    '--todas', '--reconciliar',
+                    '--salida', 'scrapers/metadatos_nuevo.csv',
+                    '--traza', 'scrapers/traza.jsonl',
                     '--paciencia', '25'],
     },
     'reconstruccion': {

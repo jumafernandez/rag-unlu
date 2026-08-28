@@ -255,7 +255,7 @@ def main():
     # Se agrupan por carpeta para recorrer solo las que hacen falta, y se corta el recorrido
     # apenas se encontraron todos los actos buscados de esa carpeta. Sin eso, rescatar tres
     # documentos de Secretarías costaría paginar sus cinco mil.
-    from recolectar_api import carpetas_del_portal
+    from recolectar_api import carpetas_del_portal, frontera_de_numero
     carpetas = carpetas_del_portal()
     por_nombre = {nombre: cid for cid, nombre in carpetas.items()}
 
@@ -273,9 +273,96 @@ def main():
     rescatados = sin_contenido = no_encontrados = 0
     sin_estructura = []
 
+    def procesar(docs, pendientes):
+        """Los actos buscados que vengan en esta página, rescatados o medidos."""
+        nonlocal rescatados, sin_contenido
+        for x in docs:
+            idd = x.get('id')
+            if idd not in pendientes:
+                continue
+            pendientes.discard(idd)
+            parrafos = parrafos_de_html((x.get('atributos') or {}).get('contenido'))
+            if not parrafos:
+                sin_contenido += 1
+                continue
+            if a.solo_medir:
+                # Medir antes de escribir. La pregunta que decide si esto sirve es si los
+                # actos SIN texto en el PDF tienen texto en el portal, y no hay motivo para
+                # suponer que sí: un PDF escaneado sugiere un acto subido como archivo en
+                # vez de redactado en el editor, que es justamente el caso donde `contenido`
+                # viene vacío. En una muestra de 96 actos cualesquiera, 12 no tenían
+                # contenido; sobre esta población podría ser mucho peor.
+                _, rec = markdown_del_acto(parrafos)
+                rescatados += 1
+                if rec == 0:
+                    sin_estructura.append(catalogo[idd].get('Archivo'))
+                continue
+            rec = escribir(a.salida, catalogo[idd], parrafos)
+            if rec is None:
+                sin_contenido += 1
+                continue
+            rescatados += 1
+            if rec == 0:
+                sin_estructura.append(catalogo[idd].get('Archivo'))
+
+    def ir_derecho(cid, pendientes):
+        """Salta a la posición de cada acto en vez de recorrer la carpeta hasta encontrarlo.
+
+        El portal ordena el listado por número de acto, así que la posición de un acto se
+        puede ubicar por búsqueda binaria en vez de paginando desde el principio. La
+        diferencia no es de estilo: los actos a rescatar suelen ser de este año, o sea de
+        número bajo, o sea del final del listado. Rescatar tres disposiciones de Ciencias
+        Sociales ---números 40, 52 y 53--- costaba recorrer 177 páginas de las 178 que tiene
+        la carpeta, contra un portal que corta las consultas pesadas a los 20 segundos.
+
+        No reemplaza al recorrido completo: lo que no aparezca acá lo sigue buscando el
+        recorrido lineal, que es el que cubre los casos raros ---un acto sin número, o una
+        carpeta que dejó de venir ordenada---.
+        """
+        primera = (pedir(cid, 0) or {}).get('documents') or []
+        if not primera:
+            return
+        try:
+            total = int(primera[0].get('total') or 0)
+        except (TypeError, ValueError):
+            total = 0
+        procesar(primera, pendientes)
+        if not total:
+            return
+
+        # De mayor a menor número: así el recorrido va hacia el fondo del listado y las
+        # búsquedas sucesivas caen cerca unas de otras.
+        con_numero = []
+        for idd in list(pendientes):
+            try:
+                n = int(catalogo[idd].get('Nro') or 0)
+            except (TypeError, ValueError):
+                n = 0
+            if n:
+                con_numero.append((n, idd))
+        for n, idd in sorted(con_numero, reverse=True):
+            if idd not in pendientes:
+                continue                      # apareció buscando a otro
+            frontera = frontera_de_numero(cid, n, total)
+            if frontera is None:
+                return                        # el portal dejó de contestar: al lineal
+            arranque = (frontera // TOPE) * TOPE
+            # Dos páginas desde la frontera: el acto está entre los que comparten su número
+            # ---uno por año--- y esos entran de sobra en treinta registros.
+            for salto in (0, TOPE):
+                if idd not in pendientes:
+                    break
+                docs = (pedir(cid, arranque + salto) or {}).get('documents') or []
+                if docs:
+                    procesar(docs, pendientes)
+
     for cid, pendientes in sorted(por_carpeta.items()):
         nombre = carpetas.get(cid, str(cid))
         print(f'\n=== [{cid}] {nombre}: {len(pendientes)} actos a rescatar ===', flush=True)
+        ir_derecho(cid, pendientes)
+        if pendientes:
+            print(f'  {len(pendientes)} no aparecieron en su posición; se recorre la '
+                  f'carpeta', flush=True)
         offset, vacias = 0, 0
         while pendientes and offset < a.tope_paginas * TOPE:
             d = pedir(cid, offset)
@@ -294,35 +381,7 @@ def main():
                 time.sleep(min(5 * vacias, 45))
                 continue
             vacias = 0
-            for x in docs:
-                idd = x.get('id')
-                if idd not in pendientes:
-                    continue
-                pendientes.discard(idd)
-                parrafos = parrafos_de_html((x.get('atributos') or {}).get('contenido'))
-                if not parrafos:
-                    sin_contenido += 1
-                    continue
-                if a.solo_medir:
-                    # Medir antes de escribir. La pregunta que decide si esto sirve es si
-                    # los actos SIN texto en el PDF tienen texto en el portal, y no hay
-                    # motivo para suponer que sí: un PDF escaneado sugiere un acto subido
-                    # como archivo en vez de redactado en el editor, que es justamente el
-                    # caso donde `contenido` viene vacío. En una muestra de 96 actos
-                    # cualesquiera, 12 no tenían contenido; sobre esta población podría
-                    # ser mucho peor.
-                    _, rec = markdown_del_acto(parrafos)
-                    rescatados += 1
-                    if rec == 0:
-                        sin_estructura.append(catalogo[idd].get('Archivo'))
-                    continue
-                rec = escribir(a.salida, catalogo[idd], parrafos)
-                if rec is None:
-                    sin_contenido += 1
-                    continue
-                rescatados += 1
-                if rec == 0:
-                    sin_estructura.append(catalogo[idd].get('Archivo'))
+            procesar(docs, pendientes)
             offset += TOPE
             if offset % (TOPE * 40) == 0:
                 print(f'  offset {offset} · quedan {len(pendientes)}', flush=True)

@@ -233,6 +233,72 @@ def reconstruir_todo(a, t0, comando_conciliar):
     print(f'\n=== reconstrucción en {(time.time() - t0) / 60:.1f} min ===', flush=True)
 
 
+def rescatar(a, t0):
+    """Los actos sin texto, del portal al índice, en una sola corrida.
+
+    Existe porque el rescate estaba a medio camino: `rescatar_html` sabía traer el cuerpo
+    HTML y dejarlo con la forma que produce el extractor de PDF, pero nada lo llevaba desde
+    ahí hasta el índice. La medición decía que 182 de 182 actos alcanzables tenían texto
+    publicado, y el sistema seguía sin poder citarlos.
+
+    Reusa los mismos pasos que la actualización normal ---metadata autoritativa, fragmentar,
+    vectorizar, fusionar---: la única diferencia es de dónde sale lo procesado. Un fragmento
+    rescatado tiene que ser indistinguible de uno extraído del PDF, salvo por su marca de
+    procedencia (`source_system: portal_html`), y la forma de garantizarlo es que recorra el
+    mismo camino y no uno paralelo.
+
+    Es seguro repetirlo: `rescatar_html` no vuelve a pedir lo que ya escribió, y la fusión
+    rechaza de plano cualquier acto que ya esté en el índice.
+    """
+    import glob as _glob
+
+    destino = 'data/rescatados'
+    paso('rescatar del portal', [PY, '-m', 'pipeline.rescatar_html',
+                                 '--metadatos', METADATOS,
+                                 '--desde-catalogo',
+                                 os.environ.get('RAG_CATALOGO', 'datos/catalogo.sqlite'),
+                                 '--salida', destino,
+                                 '--paciencia', str(a.paciencia)])
+
+    canonicos = _glob.glob(os.path.join(RAIZ, destino, '**', '*_canonico.yaml'), recursive=True)
+    if not canonicos:
+        print('\nEl portal no devolvió cuerpo para ninguno de los actos sin texto. '
+              'El índice queda como está.', flush=True)
+        return
+    print(f'\n{len(canonicos)} actos rescatados con texto', flush=True)
+
+    sello = datetime.datetime.now().strftime('%Y-%m-%d-%H%M%S')
+    tanda = os.path.join(RAIZ, 'data', 'tandas', f'{sello}-rescate')
+    os.makedirs(tanda, exist_ok=True)
+    rel = os.path.relpath(tanda, RAIZ)
+    print(f'tanda: {tanda}', flush=True)
+
+    # La metadata autoritativa es la del catálogo, igual que siempre: el HTML del portal
+    # trae el cuerpo del acto, no su identidad. Sin este cruce las citas quedarían mudas.
+    metadata = os.path.join(rel, 'metadata.csv')
+    for d in DIRS_PDF:
+        if os.path.isdir(os.path.join(RAIZ, d)):
+            paso('metadata autoritativa',
+                 [PY, '-m', 'pipeline.metadata_desde_catalogo',
+                  '--metadatos', METADATOS, '--pdfs', d, '--salida', metadata])
+            break
+
+    paso('fragmentar', [PY, os.path.join(REPO, 'pipeline', 'chunkear.py'),
+                        '--resultados', destino,
+                        '--salida', os.path.join(rel, 'chunks.jsonl'),
+                        '--metadata', metadata])
+    paso('vectorizar', [PY, os.path.join(REPO, 'pipeline', 'embeddings.py'),
+                        '--chunks', os.path.join(rel, 'chunks.jsonl'),
+                        '--salida', os.path.join(rel, 'vectores')])
+    paso('fusionar', [PY, '-m', 'pipeline.fusionar_indice',
+                      '--chunks-nuevos', os.path.join(rel, 'vectores', 'chunks.jsonl'),
+                      '--densos-nuevos', os.path.join(rel, 'vectores', 'densos.npy'),
+                      '--aplicar'])
+    paso('reconstruir artefactos', [PY, '-m', 'pipeline.construir_indice'])
+    recargar_api()
+    print(f'\n=== rescate completo en {(time.time() - t0) / 60:.1f} min ===', flush=True)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -248,6 +314,9 @@ def main():
                    help='procesar a lo sumo N actos nuevos (para probar)')
     p.add_argument('--paciencia', type=int, default=25,
                    help='tolerancia del recolector a respuestas vacías del portal')
+    p.add_argument('--rescatar', action='store_true',
+                   help='traer del portal el cuerpo HTML de los actos que quedaron sin '
+                        'texto y llevarlos hasta el índice')
     p.add_argument('--reconstruir', action='store_true',
                    help='rehacer el índice COMPLETO desde los actos ya procesados, sin '
                         'recolectar ni descargar. Es lo que corresponde cuando cambia el '
@@ -282,6 +351,13 @@ def main():
 
     if a.reconstruir:
         reconstruir_todo(a, t0, comando_conciliar)
+        return
+
+    # El rescate va antes de conciliar: los actos que trae YA figuran como indexados en el
+    # catálogo ---se descargaron y se procesaron, solo que sin producir un fragmento---, así
+    # que el ciclo de vida no tiene nada que corregirles. Lo que les faltaba era texto.
+    if a.rescatar:
+        rescatar(a, t0)
         return
 
     if a.solo_indexar:
