@@ -27,6 +27,7 @@ import os
 import signal
 import subprocess
 import sys
+import re
 import threading
 import time
 
@@ -42,7 +43,8 @@ CREATE TABLE IF NOT EXISTS corrida (
     estado     TEXT NOT NULL,      -- en_curso | ok | error | cancelada | interrumpida
     codigo     INTEGER,            -- código de salida del proceso
     log        TEXT,               -- ruta del archivo de log
-    por        TEXT                -- correo del admin que la lanzó, o 'programada'
+    por        TEXT,               -- correo del admin que la lanzó, o 'programada'
+    resumen    TEXT                -- qué hizo, en una línea: ver resumir()
 );
 """
 
@@ -54,6 +56,20 @@ def dir_logs():
 def _bd():
     c = historial._bd()
     c.executescript(ESQUEMA)
+    # Las instalaciones que ya venían corriendo no tienen la columna: se agrega sin tocar
+    # lo que hay, y se rellena hacia atrás con los logs que sigan en disco. Sin el relleno
+    # la columna nace vacía justo para las corridas que uno quiere mirar ---las
+    # actualizaciones de las últimas semanas--- y habría que esperar a que pasen otras para
+    # que sirva de algo. Una corrida cuyo log ya no está queda sin resumen, que es la
+    # verdad: el dato se perdió con el archivo.
+    if 'resumen' not in {f[1] for f in c.execute('PRAGMA table_info(corrida)')}:
+        c.execute('ALTER TABLE corrida ADD COLUMN resumen TEXT')
+        for fila in c.execute("SELECT id, log FROM corrida WHERE log IS NOT NULL "
+                              "AND estado <> 'en_curso'").fetchall():
+            texto = resumir(fila['log'])
+            if texto:
+                c.execute('UPDATE corrida SET resumen=? WHERE id=?', (texto, fila['id']))
+        c.commit()
     return c
 
 
@@ -114,7 +130,7 @@ def en_curso():
 def listar(limite=50):
     with historial._candado:
         filas = _bd().execute(
-            'SELECT id, operacion, parametros, inicio, fin, estado, codigo, por '
+            'SELECT id, operacion, parametros, inicio, fin, estado, codigo, por, resumen '
             'FROM corrida ORDER BY id DESC LIMIT ?', (limite,)).fetchall()
     corridas = []
     for f in filas:
@@ -226,11 +242,53 @@ def _registrar_pid(cid, pid):
         bd.commit()
 
 
+# Lo que cada paso ya imprime al terminar. No se agrega instrumentación nueva: estas líneas
+# existen desde siempre y son las que uno lee en el log; lo único que faltaba era subirlas a
+# la lista, porque para saber si la actualización de anoche trajo algo había que abrir la
+# corrida y buscarlas a mano.
+MARCAS = [
+    (re.compile(r'^(\d+) documentos nuevos agregados al catálogo', re.M),
+     lambda m: f'{int(m.group(1))} al catálogo'),
+    (re.compile(r'^bajados (\d+) · ya estaban (\d+) · con error (\d+)', re.M),
+     lambda m: f'{int(m.group(1))} bajados' + (f', {int(m.group(3))} con error'
+                                               if int(m.group(3)) else '')),
+    (re.compile(r'^=== (?:rescatados|con contenido) (\d+) ', re.M),
+     lambda m: f'{int(m.group(1))} rescatados'),
+    (re.compile(r'fusionado en \d+s: ([\d.]+) fragmentos', re.M),
+     lambda m: f'{m.group(1)} fragmentos en el índice'),
+]
+
+
+def resumir(ruta_log):
+    """Qué hizo una corrida, en una línea, sacado de su propio log.
+
+    Se lee al terminar y se guarda: el archivo de log puede rotar o borrarse, y el número
+    de documentos que trajo una actualización es justamente lo que uno quiere mirar meses
+    después. Devuelve '' cuando no hay nada que contar ---una verificación, una corrida que
+    murió antes de hacer nada--- y eso también es información: la lista no inventa.
+    """
+    try:
+        with open(ruta_log, encoding='utf-8', errors='replace') as f:
+            texto = f.read()
+    except OSError:
+        return ''
+    partes = []
+    for patron, formato in MARCAS:
+        encontrados = list(patron.finditer(texto))
+        if encontrados:
+            # El último: una actualización completa corre varios pasos y puede repetir la
+            # marca; el que vale es el del final.
+            partes.append(formato(encontrados[-1]))
+    return ' · '.join(partes)
+
+
 def _terminar(cid, estado, codigo):
     with historial._candado:
         bd = _bd()
-        bd.execute('UPDATE corrida SET estado=?, codigo=?, fin=? WHERE id=?',
-                   (estado, codigo, int(time.time()), cid))
+        fila = bd.execute('SELECT log FROM corrida WHERE id=?', (cid,)).fetchone()
+        bd.execute('UPDATE corrida SET estado=?, codigo=?, fin=?, resumen=? WHERE id=?',
+                   (estado, codigo, int(time.time()),
+                    resumir(fila['log']) if fila and fila['log'] else '', cid))
         bd.commit()
 
 

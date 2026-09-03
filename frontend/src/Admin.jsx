@@ -376,7 +376,7 @@ function Corridas({ alFallar }) {
         <div className="admin-tabla-envoltura">
           <table className="admin-tabla">
             <thead>
-              <tr><th>#</th><th>Paso</th><th>Estado</th><th>Inicio</th>
+              <tr><th>#</th><th>Paso</th><th>Estado</th><th>Resultado</th><th>Inicio</th>
                   <th>Duración</th><th>Ejecutado por</th><th></th></tr>
             </thead>
             <tbody>
@@ -386,6 +386,11 @@ function Corridas({ alFallar }) {
                   <td>{c.operacion}</td>
                   <td><span className={`corrida-estado ${c.estado}`}>
                     {ESTADOS_CORRIDA[c.estado] || c.estado}</span></td>
+                  {/* Qué hizo la corrida, no solo si terminó bien: cuántos actos entraron
+                      al catálogo, cuántos se bajaron y con cuántos fragmentos quedó el
+                      índice. Sale del propio log; vacío significa que no hizo nada de eso
+                      (una verificación, o una corrida que murió antes de empezar). */}
+                  <td className="corrida-resumen">{c.resumen || "—"}</td>
                   <td>{fecha(c.inicio)}</td>
                   <td>{duracion(c.inicio, c.fin)}</td>
                   <td>{c.por}</td>

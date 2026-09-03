@@ -1688,6 +1688,10 @@ button, input, select, textarea { font: inherit; }
 .corrida-operacion p { margin: 4px 0 0; font-size: 0.86rem; color: var(--texto-suave); }
 .corrida-operacion button { white-space: nowrap; }
 .admin-tabla-envoltura { overflow-x: auto; }
+/* El resultado de la corrida: se lee al pasar la vista por la columna, así que va en un
+   cuerpo chico y sin cortar. Es la diferencia entre "terminó bien" y "trajo 119 actos". */
+.corrida-resumen { font-size: 0.82rem; color: var(--texto-suave); white-space: nowrap; }
+
 .corrida-estado { font-size: 0.82rem; padding: 2px 10px; border-radius: 99px; white-space: nowrap; }
 .corrida-estado.ok { background: var(--realce); color: var(--marca-oscura); }
 .corrida-estado.en_curso { background: var(--fondo-marca); color: var(--marca-oscura); }
