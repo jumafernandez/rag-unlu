@@ -2,7 +2,7 @@ PWD /Users/devlaptop/Documents/GitHub/rag-unlu/papers/cacic-2026/latex
 INPUT /usr/local/texlive/2026/texmf.cnf
 INPUT /usr/local/texlive/2026/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT /Users/devlaptop/Documents/GitHub/rag-unlu/papers/cacic-2026/latex/main.tex
+INPUT main.tex
 OUTPUT build/main.log
 INPUT ./llncs.cls
 INPUT llncs.cls
@@ -72,6 +72,8 @@ INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/amsfonts/amsfonts.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/amsfonts/amsfonts.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/url/url.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/url/url.sty
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/cite/cite.sty
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/cite/cite.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/xcolor/xcolor.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/xcolor/xcolor.sty
 INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/graphics-cfg/color.cfg
@@ -352,6 +354,11 @@ INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmri7.tfm
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ec-lmbx7.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/ts1lmr.fd
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/ts1lmr.fd
+INPUT /usr/local/texlive/2026/texmf-dist/tex/latex/lm/ts1lmr.fd
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/tfm/public/lm/ts1-lmr9.tfm
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc
 INPUT build/main.bbl
 INPUT build/main.bbl
 INPUT build/main.bbl
@@ -363,6 +370,7 @@ INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmbx9.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmex10.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi10.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi7.pfb
+INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmmi9.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr10.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr6.pfb
 INPUT /usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmr7.pfb

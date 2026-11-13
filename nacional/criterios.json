@@ -1,0 +1,46 @@
+{
+  "descripcion": "Normativa nacional del sistema universitario argentino: el marco común a todas las universidades (capa nacional del modelo).",
+  "semillas": {
+    "constitucion": ["804"],
+    "sistema_universitario": [
+      "Ley 24521", "Ley 27204", "Ley 25573", "Ley 26206",
+      "27815", "Decreto 576/1996", "Decreto 173/1996",
+      "Ley 26427", "Ley 26899", "275872", "251971"
+    ],
+    "personal_universitario": [
+      "Decreto 1246/2015", "Decreto 366/2006", "Decreto 1470/1998", "Ley 26508",
+      "Ley 25164", "Decreto 1421/2002", "Ley 24185", "Ley 20744"
+    ],
+    "procedimiento_y_transparencia": [
+      "Ley 19549", "Decreto 1759/1972", "Decreto 894/2017", "Ley 27275", "Ley 25326",
+      "Ley 25188", "Decreto 41/1999", "Ley 25506", "Ley 27446"
+    ],
+    "administracion_financiera_y_contrataciones": [
+      "Ley 24156", "Decreto 1023/2001", "Decreto 1030/2016", "Ley 13064"
+    ],
+    "ciencia_y_tecnologia": ["Ley 25467", "Ley 23877", "Ley 27614", "Ley 11723"],
+    "derechos": [
+      "Ley 27499", "Ley 26485", "Ley 22431", "Ley 26378", "Ley 26743", "Ley 23592"
+    ]
+  },
+  "palabras": [
+    "UNIVERSIDAD", "INSTITUTO UNIVERSITARIO", "INSTITUCIONES UNIVERSITARIAS", "SISTEMA UNIVERSITARIO",
+    "EDUCACION SUPERIOR", "EVALUACION Y ACREDITACION UNIVERSITARIA", "CONEAU", "POSGRADO",
+    "DOCENTES UNIVERSITARIOS", "DOCENTE UNIVERSITARIO", "NO DOCENTE", "NODOCENTE", "ESTATUTO ACADEMICO",
+    "VALIDEZ NACIONAL", "RECONOCIMIENTO OFICIAL", "CONSEJO INTERUNIVERSITARIO", "CONSEJO DE UNIVERSIDADES",
+    "CONSEJO DE RECTORES"
+  ],
+  "organismos": [],
+  "excluir": [
+    "PROFESIONALES UNIVERSITARIOS", "APUAYE",
+    "DNI", "D.N.I", "DOCUMENTO NACIONAL DE IDENTIDAD", "CUIL", "PASAPORTE", "L.E. N",
+    "DESIGNASE", "DESIGNANSE", "DESIGNAR ", "DESIGNACION", "DESE POR DESIGNAD", "DANSE POR DESIGNAD",
+    "ADSCRIBESE", "TRANSFIERESE AGENTE", "RENUNCIA", "ASIGNASE TRANSITORIAMENTE", "ORDEN DE MAYO"
+  ],
+  "tipos": [],
+  "expandir_desde": [
+    "Ley 24521", "Ley 27204", "27815", "Decreto 576/1996",
+    "Decreto 1246/2015", "Decreto 366/2006", "Decreto 1470/1998", "Ley 26508"
+  ],
+  "profundidad_vinculos": 1
+}

@@ -98,3 +98,6 @@ scrapers/**/*.csv
 # instancia, del mismo tipo que el catálogo: se aprende corriendo, no se versiona.
 scrapers/totales.json
 instalaciones/*/scrapers/totales.json
+
+# Capa nacional: base de Infoleg, HTML crudo y textos (regenerables con nacional/infoleg.py)
+nacional/datos/

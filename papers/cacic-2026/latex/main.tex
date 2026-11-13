@@ -20,6 +20,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{url}
+\usepackage[nospace,nobreak]{cite}
 \usepackage{xcolor}
 \usepackage{multirow}
 \usepackage{etoolbox}
@@ -424,8 +425,8 @@ calidad automático ---un segundo pase que juzga si el fragmento responde la
 consulta--- que descartó el 34{,}5\%) y \emph{conversacionales} de dos
 turnos ($n=58$; el segundo turno es una repregunta elíptica). La relevancia se
 decide a nivel de acto ---el sistema cita y enlaza actos completos--- y se
-reportan Recall@$k$, MRR@10~\cite{voorhees1999trec} y
-nDCG@10~\cite{jarvelin2002cumulated}. La fidelidad de las citas se verifica de
+reportan la cobertura (Recall@$k$) y la precisión del ordenamiento
+(MRR@10~\cite{voorhees1999trec}, nDCG@10~\cite{jarvelin2002cumulated}). La fidelidad de las citas se verifica de
 forma determinista: todo acto citado en una respuesta debe estar entre lo
 recuperado, y la atribución a una persona nombrada debe estar contenida en el
 fragmento citado\footnote{Tanto la generación de consultas sintéticas como la de
@@ -446,8 +447,8 @@ están disponibles en el repositorio del sistema:
 \label{sec:resultados}
 
 La evaluación automática se centra en la recuperación: la
-Tabla~\ref{tab:ablacion} compara los componentes aislados, la fusión híbrida
-y el sistema completo sobre los tres tipos de consulta del protocolo.
+Tabla~\ref{tab:ablacion} compara el sistema completo con los enfoques denso,
+léxico e híbrido sin procesamiento conversacional.
 
 \begin{table}[H]
 \centering\scriptsize
@@ -559,6 +560,29 @@ específica para la consulta y el sistema respondió con material adyacente en
 lugar de declarar la ausencia; los jueces coincidieron en penalizar ese
 comportamiento, que constituye la principal línea de mejora observada.
 
+Los tiempos de respuesta se midieron sobre el despliegue en una máquina
+virtual (4 vCPU, sin GPU), separados por etapa
+(Tabla~\ref{tab:tiempos}). En las consultas de un turno, la recuperación
+---codificación de la consulta, búsqueda híbrida y anclaje--- ocupa una fracción
+menor del tiempo total, dominado por la generación con el modelo externo; en las
+conversacionales, la reescritura suma una llamada al modelo y la recuperación
+alcanza cerca de la mitad del total.
+
+\begin{table}[H]
+\centering\small\setlength{\tabcolsep}{9pt}
+\caption{Tiempos de respuesta en segundos sobre las 219 consultas del
+protocolo: mediana (p95).}
+\label{tab:tiempos}
+\begin{tabular}{lcc}
+\toprule
+Consulta & Recuperación & Respuesta completa \\
+\midrule
+Un turno ($n=161$)                  & 0{,}82 (1{,}20) & 5{,}44 (9{,}45) \\
+Conversacional, 2.º turno ($n=58$) & 2{,}13 (3{,}20) & 4{,}16 (6{,}24) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \label{sec:portabilidad}Si bien la evaluación se realizó sobre la
 instalación de la UNLu ---donde se cuenta con mayor conocimiento del corpus y
 acceso a los evaluadores---, la portabilidad técnica del pipeline se
@@ -600,7 +624,7 @@ Como trabajo futuro se propone, por un lado, la incorporación del sistema al
 sistema universitario argentino ---despliegue en nuevas instalaciones de SUDOCU
 y evaluación con jueces de cada institución--- y, por el otro, completar el
 corpus de la UNLu con el digesto heredado del sistema anterior, de
-aproximadamente 120.000 documentos y otra fisonomía. A ello se suma la explotación de los
+116.895 documentos y otra fisonomía. A ello se suma la explotación de los
 vínculos textuales entre actos que el sistema ya extrae ---las menciones
 explícitas de modificación, derogación o referencia que un acto hace de
 otro--- hacia una representación estructurada del corpus normativo, que

@@ -18,8 +18,10 @@ Levantar:
 Variables:
     RAG_INDICE      ruta al índice (default: indice/)
     RAG_MODELO_EMB  modelo de embeddings (default: BAAI/bge-m3)
-    OPENAI_API_KEY  para la generación
+    OPENAI_API_KEY  clave del proveedor (el panel puede cargar otra; con endpoint propio,
+                    opcional)
     RAG_MODELO_GEN  modelo de generación de arranque (el panel puede cambiarlo)
+    RAG_LLM_BASE    endpoint compatible propio (vLLM, Ollama); vacío = api.openai.com
 """
 
 import contextlib
@@ -104,6 +106,17 @@ def cliente_llm():
     base = g.get('base_url') or None
     clave = admin.clave_llm() or ('sin-clave' if base else None)
     return OpenAI(base_url=base, api_key=clave), g
+
+
+def hay_generador():
+    """Si hay con qué generar: una clave (del panel o del entorno) o un endpoint propio.
+
+    Las rutas preguntan esto y no por OPENAI_API_KEY. Mirar solo el entorno apagaba la
+    generación, la reescritura y el estado de diálogo en dos casos en que el modelo sí
+    estaba disponible: la clave cargada desde el panel, y un vLLM u Ollama propio que no
+    pide clave.
+    """
+    return bool(admin.clave_llm() or config_gen().get('base_url'))
 
 @contextlib.asynccontextmanager
 async def ciclo_de_vida(_app):
@@ -1077,8 +1090,8 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     if not fuentes:
         advertencia = 'No se encontró normativa relacionada con la consulta.'
     elif c.generar:
-        if not os.environ.get('OPENAI_API_KEY'):
-            advertencia = 'Sin OPENAI_API_KEY: se devuelven las fuentes sin respuesta generada.'
+        if not hay_generador():
+            advertencia = 'Sin modelo de generación configurado: se devuelven las fuentes sin respuesta generada.'
         else:
             try:
                 contexto = ix.contexto(resultados)
@@ -1097,7 +1110,7 @@ def consultar(c: Consulta, authorization: Optional[str] = Header(None)):
     if respuesta:
         estado = fusionar_actos(estado, actos_en_juego(None, respuesta))
         # Primer turno: la entidad todavía no está porque la reescritura no corrió.
-        if not estado.get('entidad') and c.usar_foco and os.environ.get('OPENAI_API_KEY'):
+        if not estado.get('entidad') and c.usar_foco and hay_generador():
             estado.update(detectar_entidad(c.pregunta, respuesta))
 
     # Si alguna fuente tiene metadata de baja confianza, se avisa: el usuario tiene que
@@ -1172,7 +1185,7 @@ def _preparar(c: 'Consulta'):
     # vuelve a expandir al final.
     ampliada = expandir_con_glosario(c.pregunta) if c.usar_reescritura else c.pregunta
 
-    if not c.historial or not os.environ.get('OPENAI_API_KEY'):
+    if not c.historial or not hay_generador():
         return ampliada, estado
     if not (c.usar_reescritura or c.usar_foco):
         return c.pregunta, estado
@@ -1381,8 +1394,8 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
             texto = 'No encontré normativa relacionada con esa consulta.'
             partes.append(texto)
             yield _sse('texto', {'t': texto})
-        elif not os.environ.get('OPENAI_API_KEY'):
-            yield _sse('aviso', {'mensaje': 'Sin clave de generación: se muestran las fuentes.'})
+        elif not hay_generador():
+            yield _sse('aviso', {'mensaje': 'Sin modelo de generación configurado: se muestran las fuentes.'})
         else:
             try:
                 contexto = ix.contexto(resultados)
@@ -1406,7 +1419,7 @@ def consultar_en_flujo(c: Consulta, authorization: Optional[str] = Header(None))
         if respuesta:
             nuevo = fusionar_actos(dict(estado, actos=list(estado.get('actos') or [])),
                                    actos_en_juego(None, respuesta))
-            if not nuevo.get('entidad') and c.usar_foco and os.environ.get('OPENAI_API_KEY'):
+            if not nuevo.get('entidad') and c.usar_foco and hay_generador():
                 nuevo.update(detectar_entidad(c.pregunta, respuesta))
             if nuevo != estado:
                 estado = nuevo
@@ -1788,6 +1801,19 @@ OPERACIONES = {
                     '--salida', 'scrapers/metadatos_nuevo.csv',
                     '--traza', 'scrapers/traza.jsonl',
                     '--paciencia', '25'],
+    },
+    'respaldo': {
+        'titulo': 'Respaldo del índice y el catálogo',
+        'descripcion': 'Copia congelada de los artefactos del índice, la base del catálogo, '
+                       'el CSV de metadatos y los totales recordados, en un directorio fechado '
+                       'dentro de datos/respaldos, con un manifiesto que dice qué contiene: '
+                       'cuántos documentos, hasta qué fecha llega la normativa, de qué fuente '
+                       'vienen los fragmentos y el hash de cada archivo. Es lo que permite '
+                       'volver atrás. Correrlo antes de cualquier cambio grande del corpus '
+                       '---por ejemplo, antes de incorporar el digesto histórico--- y anotar '
+                       'la fecha de corte que muestra, porque la actualización incremental va '
+                       'a tener que retomar desde ahí. No se ejecuta si no hay espacio en disco.',
+        'comando': [sys.executable, '-m', 'pipeline.respaldar', '--etiqueta', 'sudocu'],
     },
     'reconstruccion': {
         'titulo': 'Reconstrucción total del índice',
