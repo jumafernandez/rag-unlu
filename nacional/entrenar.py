@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Entrena con LoRA la capa nacional: el 9B (o el 27B) con la normativa universitaria nacional.
 
-Mezcla tres tipos de ejemplo, todos armados por `corpus.py` y `generar.py`:
-  - texto: los fragmentos de las normas y las fichas, tal cual (pérdida sobre todo el texto);
+Mezcla tres tipos de ejemplo, armados por `corpus.py`, `generar.py` y `abiertas.py`:
+  - texto: los fragmentos de las normas, las fichas y las páginas de fuentes abiertas
+    (argentina.gob.ar, CONICET, CIN), tal cual (pérdida sobre todo el texto);
   - explicación: "¿qué es / qué establece …?" → el resumen del documento o la explicación del
     fragmento que escribió el 27B (pérdida solo sobre la respuesta);
   - pregunta: las preguntas "a libro cerrado" con su respuesta (pérdida solo sobre la respuesta).
@@ -50,13 +51,17 @@ def args():
     ap.add_argument('--datos', required=True, help='carpeta con fragmentos.jsonl, documentos.jsonl y fichas.jsonl')
     ap.add_argument('--generados', required=True, help='carpetas de salida de generar.py, separadas por coma')
     ap.add_argument('--salida', required=True)
+    ap.add_argument('--abiertas', help='carpeta con los .jsonl de abiertas.py (argentina.gob.ar, CONICET, CIN): '
+                                       'entran como texto plano')
     ap.add_argument('--modelo', default=os.path.expanduser('~/hf-models/Qwen3.5-9B'))
     ap.add_argument('--epocas', type=float, default=2.0)
     ap.add_argument('--lr', type=float, default=1e-4)
     ap.add_argument('--calentamiento', type=float, default=0.03)
     ap.add_argument('--rango', type=int, default=64)
-    ap.add_argument('--max-tokens', type=int, default=4096)
-    ap.add_argument('--tokens-por-lote', type=int, default=8192, help='tokens (con relleno) por lote y por proceso')
+    ap.add_argument('--max-tokens', type=int, default=3072)
+    ap.add_argument('--tokens-por-lote', type=int, default=4096,
+                    help='tokens (con relleno) por lote y por proceso. En el texto plano la pérdida va sobre todos los '
+                         'tokens y los logits (vocabulario de ~248.000) dominan la memoria: con 8.192 el tile se agotó')
     ap.add_argument('--max-validacion', type=int, default=400)
     ap.add_argument('--max-ejemplos', type=int, default=0, help='limita los ejemplos (canario)')
     ap.add_argument('--eval-cada', type=int, default=200)
@@ -91,6 +96,11 @@ def armar_ejemplos(a, tok):
         tr.append(texto_plano(f'{f["documento"]}' + (f' — {ub}' if ub else '') + f'\n\n{f["texto"]}'))
     for f in leer(os.path.join(a.datos, 'fichas.jsonl')):
         tr.append(texto_plano(f['ficha']))
+    if a.abiertas:
+        for ruta in sorted(glob.glob(os.path.join(a.abiertas, '*.jsonl'))):
+            for r in leer(ruta):
+                if r.get('texto') and len(r['texto']) >= 300 and not r.get('error'):
+                    tr.append(texto_plano(f'{r.get("titulo") or ""}\n\n{r["texto"]}'.strip()))
     docs = {d['id_doc']: d for d in leer(os.path.join(a.datos, 'documentos.jsonl'))}
     frags = {f['id_fragmento']: f for f in leer(os.path.join(a.datos, 'fragmentos.jsonl'))}
 
@@ -164,7 +174,10 @@ def main():
         modelo.print_trainable_parameters()
     entrenables = [p for p in modelo.parameters() if p.requires_grad]
     if ddp:
-        modelo = torch.nn.parallel.DistributedDataParallel(modelo, device_ids=[local])
+        # Buckets grandes: menos intercambios entre procesos (con oneCCL sobre sockets, cada uno abre
+        # descriptores; con el LoRA de rango 64 los buckets por omisión agotaron el límite del nodo).
+        modelo = torch.nn.parallel.DistributedDataParallel(modelo, device_ids=[local], bucket_cap_mb=256,
+                                                           gradient_as_bucket_view=True)
     base = modelo.module if ddp else modelo
 
     pasos_epoca = len(lotes_por_tokens(tr, a.tokens_por_lote, a.semilla)) // mundo
@@ -222,6 +235,7 @@ def main():
         grupos = lotes_por_tokens(tr, a.tokens_por_lote, a.semilla + epoca)
         t1 = time.time()
         ids, lab, att = lote([tr[i] for i in grupos[en_epoca * mundo + rank]], pad)
+        forma = tuple(ids.shape)
         loss, _ = perdida(modelo, ids, lab, att, dev)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(entrenables, 1.0)
@@ -231,10 +245,11 @@ def main():
         paso += 1
         tiempos.append(time.time() - t1)
         perdidas.append(loss.detach().float().item())
-        if paso % 10 == 0 or paso == 1:
+        if paso % 10 == 0 or paso <= 3:
             mem = torch.xpu.max_memory_allocated(dev) / 2**30
             log(f'  paso {paso}/{total}: pérdida {np.mean(perdidas[-10:]):.4f} · '
-                f'{np.mean(tiempos[-10:]):.1f} s/paso · lr {sched.get_last_lr()[0]:.2e} · memoria {mem:.1f} GiB')
+                f'{np.mean(tiempos[-10:]):.1f} s/paso · lr {sched.get_last_lr()[0]:.2e} · memoria {mem:.1f} GiB · '
+                f'lote {forma[0]}x{forma[1]}')
             registro and registro.write(json.dumps({'paso': paso, 'perdida': float(np.mean(perdidas[-10:])),
                                                     's_paso': float(np.mean(tiempos[-10:]))}) + '\n')
             registro and registro.flush()

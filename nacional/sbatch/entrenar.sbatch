@@ -22,11 +22,13 @@ BASE="${SLURM_SUBMIT_DIR:-$PWD}"
 cd "$BASE" || exit 1
 DATOS="${DATOS:?falta DATOS}"
 GENERADOS="${GENERADOS:?falta GENERADOS}"
+ABIERTAS="${ABIERTAS:-}"
 SALIDA="${SALIDA:-$BASE/../adaptadores/9b-nacional}"
 EXTRA="${EXTRA:-}"
 PY=/home/jfernandez/rag-unlu-adaptacion/venv/bin/python
 NPROC=${NPROC:-8}   # procesos (tiles); con --gres=gpu:2 van 4
 
+ulimit -n "$(ulimit -Hn)"   # el límite blando de archivos abiertos (1024) no alcanza para DDP sobre oneCCL
 NUCLEOS=$($PY -c "import os; print(','.join(map(str, sorted(os.sched_getaffinity(0))[:$NPROC])))")
 export CCL_WORKER_COUNT=1 CCL_WORKER_AFFINITY=$NUCLEOS CCL_PROCESS_LAUNCHER=torchrun CCL_ZE_IPC_EXCHANGE=sockets
 export FI_PROVIDER=tcp TRANSFORMERS_OFFLINE=1 HF_HUB_OFFLINE=1 OMP_NUM_THREADS=4
@@ -36,4 +38,4 @@ if [ "$TILES" -lt "$NPROC" ]; then echo "solo $TILES tiles visibles en $(hostnam
 
 echo "nodo $(hostname) · datos $DATOS · salida $SALIDA · $EXTRA"
 exec $PY -m torch.distributed.run --standalone --nproc_per_node $NPROC -m nacional.entrenar \
-  --datos "$DATOS" --generados "$GENERADOS" --salida "$SALIDA" $EXTRA
+  --datos "$DATOS" --generados "$GENERADOS" --salida "$SALIDA" ${ABIERTAS:+--abiertas "$ABIERTAS"} $EXTRA
