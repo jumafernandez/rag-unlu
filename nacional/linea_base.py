@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Compulsa de modelos base para la capa nacional: mismas preguntas, a libro cerrado.
+"""Línea de base de la capa nacional: el "antes" del benchmark. Cada modelo base (y después cada modelo
+entrenado) responde las mismas preguntas apartadas, a libro cerrado; un juez califica todas las respuestas.
 
 Pasos:
   preguntas  Arma el conjunto de evaluación con las preguntas de los documentos marcados como
@@ -14,10 +15,10 @@ Pasos:
              tokens por segundo.
 
 Uso:
-    python -m nacional.compulsa preguntas --generados DIR,DIR --salida preguntas.jsonl [--n 300]
-    python -m nacional.compulsa responder --modelo RUTA --nombre N --preguntas F --salida DIR
-    python -m nacional.compulsa juzgar --respuestas DIR --preguntas F --juez RUTA --salida DIR
-    python -m nacional.compulsa resumen --respuestas DIR --juicios DIR
+    python -m nacional.linea_base preguntas --generados DIR,DIR --salida preguntas.jsonl [--n 300]
+    python -m nacional.linea_base responder --modelo RUTA [--adaptador DIR] --nombre N --preguntas F --salida DIR
+    python -m nacional.linea_base juzgar --respuestas DIR --preguntas F --juez RUTA --salida DIR
+    python -m nacional.linea_base resumen --respuestas DIR --juicios DIR
 """
 import argparse
 import glob
@@ -75,13 +76,27 @@ def preguntas(a):
 
 
 # ---------------------------------------------------------------- generación genérica
-def cargar(ruta):
+def es_mistral_common(tok):
+    """Mistral Small 3.2 solo trae tekken.json: el tokenizador es el de mistral-common (hay que agregarlo al
+    PYTHONPATH), arma la conversación directo a ids y no reconoce los tokens especiales dentro de un texto."""
+    return type(tok).__name__.startswith('MistralCommon')
+
+
+def cargar(ruta, adaptador=None):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     tok = AutoTokenizer.from_pretrained(ruta)
-    tok.padding_side = 'left'
-    if tok.pad_token_id is None:
-        tok.pad_token = tok.eos_token
+    if not es_mistral_common(tok):
+        tok.padding_side = 'left'
+        if tok.pad_token_id is None:
+            tok.pad_token = tok.eos_token
+    if adaptador:   # el LoRA se entrenó sobre la clase de config.json: hay que cargar el base con esa clase
+        import transformers
+        clase = getattr(transformers, transformers.AutoConfig.from_pretrained(ruta).architectures[0])
+        m = clase.from_pretrained(ruta, dtype=torch.bfloat16, device_map='balanced')
+        from peft import PeftModel
+        m = PeftModel.from_pretrained(m, adaptador).merge_and_unload()
+        return tok, m.eval()
     try:
         m = AutoModelForCausalLM.from_pretrained(ruta, dtype=torch.bfloat16, device_map='balanced')
     except (ValueError, KeyError):
@@ -96,7 +111,13 @@ def generar(tok, m, textos, max_nuevos, lote):
     res, tokens, segundos = [], 0, 0.0
     disp = m.get_input_embeddings().weight.device
     for i in range(0, len(textos), lote):
-        enc = tok(textos[i:i + lote], return_tensors='pt', padding=True, add_special_tokens=False)
+        parte = textos[i:i + lote]
+        if isinstance(parte[0], list):   # ids ya armados (mistral-common): relleno a la izquierda a mano
+            L = max(map(len, parte))
+            enc = {'input_ids': torch.tensor([[tok.pad_token_id] * (L - len(x)) + x for x in parte]),
+                   'attention_mask': torch.tensor([[0] * (L - len(x)) + [1] * len(x) for x in parte])}
+        else:
+            enc = tok(parte, return_tensors='pt', padding=True, add_special_tokens=False)
         enc = {k: v.to(disp) for k, v in enc.items()}
         t0 = time.time()
         with torch.no_grad():
@@ -113,9 +134,12 @@ def generar(tok, m, textos, max_nuevos, lote):
 
 
 def plantilla(tok, contenido, ruta):
+    msgs = [{'role': 'user', 'content': contenido}]
+    if es_mistral_common(tok):
+        r = tok.apply_chat_template(msgs, tokenize=True)
+        return list(r['input_ids'] if hasattr(r, 'keys') else r)
     kw = {'enable_thinking': False} if 'qwen' in ruta.lower() else {}
-    return tok.apply_chat_template([{'role': 'user', 'content': contenido}], tokenize=False,
-                                   add_generation_prompt=True, **kw)
+    return tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, **kw)
 
 
 def responder(a):
@@ -125,7 +149,7 @@ def responder(a):
     if os.path.exists(ruta) and len(leer(ruta)) >= len(qs):
         print(f'{a.nombre}: ya estaba')
         return
-    tok, m = cargar(a.modelo)
+    tok, m = cargar(a.modelo, a.adaptador)
     textos = [plantilla(tok, INSTRUCCION.format(pregunta=q['pregunta']), a.modelo) for q in qs]
     resp, tokens, seg = generar(tok, m, textos, a.max_nuevos, a.lote)
     with open(ruta, 'w', encoding='utf-8') as out:
@@ -173,9 +197,11 @@ def resumen(a):
                       100 * sum(j['nota'] == 2 for j in js) / len(js) if js else None, 100 * pen / max(len(rs), 1),
                       vel.get('tokens_por_segundo')))
     print(f'{"modelo":32} {"n":>4} {"nota media":>10} {"% correctas":>12} {"% peninsular":>13} {"tok/s":>7}')
-    for n, k, nm, pc, pe, v in sorted(filas, key=lambda x: -(x[2] or 0)):
-        print(f'{n:32} {k:>4} {nm if nm is None else round(nm, 2):>10} {pc if pc is None else round(pc, 1):>12} '
-              f'{round(pe, 1):>13} {v if v is not None else "-":>7}')
+    def cel(x, d):
+        return '-' if x is None else str(round(x, d))
+
+    for n, k, nm, pc, pe, v in sorted(filas, key=lambda x: (-(x[2] or 0), x[0])):
+        print(f'{n:32} {k:>4} {cel(nm, 2):>10} {cel(pc, 1):>12} {cel(pe, 1):>13} {cel(v, 1):>7}')
 
 
 def main():
@@ -187,6 +213,7 @@ def main():
     ap.add_argument('--modelo')
     ap.add_argument('--nombre')
     ap.add_argument('--juez')
+    ap.add_argument('--adaptador', help='responder: adaptador LoRA entrenado sobre --modelo (se fusiona para generar)')
     ap.add_argument('--respuestas')
     ap.add_argument('--juicios')
     ap.add_argument('--n', type=int, default=300)
