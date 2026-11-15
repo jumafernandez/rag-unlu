@@ -122,6 +122,38 @@ def args():
     ap.add_argument('--sin-reshard', action='store_true',
                     help='diagnóstico (fsdp): los pesos juntados quedan en el tile entre la pasada hacia adelante y la '
                          'de atrás (reshard_after_forward=False)')
+    ap.add_argument('--aumentacion', help='carpeta de aumentar.py: cabecera con metadatos en cada fragmento, fichas '
+                                           'corregidas, cuatro reescrituras por fragmento y ejemplos de abstención')
+    ap.add_argument('--identidad', help='JSON con NOMBRE, BASE, INSTITUCION y CORTE para los ejemplos de identidad '
+                                        '(sin esto no entran)')
+    ap.add_argument('--replay', help='jsonl de aumentar.py replay: respuestas del propio modelo base a pedidos generales')
+    ap.add_argument('--versiones-extra', help='carpetas de tandas nuevas de aumentar.py versiones --previas, separadas '
+                                              'por coma (con --aumentacion)')
+    ap.add_argument('--rag', help='jsonl de rag_entrenamiento.py: la tarea RAG de ChatDigesto (consulta con los fragmentos '
+                                  'recuperados y respuesta que cita los actos); entra solo en la fase de todo mezclado')
+    ap.add_argument('--rag-max-tokens', type=int, default=8192,
+                    help='largo máximo de los ejemplos RAG, que traen el contexto (mediana ~4.400 tokens de prompt)')
+    ap.add_argument('--rag-pasadas', type=float, default=1.0,
+                    help='pasadas sobre los ejemplos RAG en toda la fase de todo mezclado: con 4 épocas y 1 pasada, '
+                         'cada época ve una cuarta parte distinta')
+    ap.add_argument('--atencion-largos', choices=['flex_attention'],
+                    help='atención para los lotes más largos que --tokens-por-lote (los de la tarea RAG; fsdp). En las XPU, '
+                         'sdpa arma para entrenar la matriz entera de L×L (~14 GiB por capa con 6.000 tokens, 24 con '
+                         '8.000); flex_attention, compilada con Triton, no (0,4 GiB). Los demás lotes siguen con la atención '
+                         'del modelo: flex no compila con secuencias más cortas que su bloque de 128 tokens')
+    ap.add_argument('--agrupar-largos', action='store_true',
+                    help='los lotes de un solo ejemplo más largo que --tokens-por-lote (los de la tarea RAG) van juntos en '
+                         'pasos enteros: FSDP sincroniza capa por capa y un ejemplo largo en un solo tile hace esperar a '
+                         'los demás')
+    ap.add_argument('--retener', help='jsonl con id_pregunta (el benchmark): solo esas preguntas quedan afuera y son la '
+                                      'validación; lo demás marcado como evaluación entra al entrenamiento')
+    ap.add_argument('--alcance', help='carpeta de aumentar.py alcance: las preguntas de generar.py reescritas para que '
+                                      'se entiendan solas (universidad, carrera u organismo explícitos)')
+    ap.add_argument('--repetir', help='ids de normas y veces, p. ej. "25394:2": sus ejemplos entran repetidos en cada época')
+    ap.add_argument('--preguntas-primero', type=float, default=0,
+                    help='épocas con solo preguntas y respuestas antes de mezclar todo (Jiang et al., ACL 2024)')
+    ap.add_argument('--guardar-epocas', action='store_true',
+                    help='guarda el modelo en formato de Hugging Face al final de cada época (para elegir la época)')
     ap.add_argument('--semilla', type=int, default=0)
     a = ap.parse_args()
     if a.lr is None:
@@ -175,6 +207,20 @@ class Formato:
             return None
         return {'input_ids': p + r, 'labels': [-100] * len(p) + r}
 
+    def chat_mensajes(self, mensajes, respuesta, max_tokens):
+        """Como chat, con la conversación entera (p. ej. la instrucción de sistema y el contexto de la tarea RAG)."""
+        if self.mistral:
+            r = self.tok.apply_chat_template(mensajes, tokenize=True)
+            p = list(r['input_ids'] if hasattr(r, 'keys') else r)
+        else:
+            prompt = self.tok.apply_chat_template(mensajes, tokenize=False, add_generation_prompt=True,
+                                                  enable_thinking=False)
+            p = self.tok(prompt, add_special_tokens=False)['input_ids']
+        r = self.tok(respuesta, add_special_tokens=False)['input_ids'] + self.cierre_ids
+        if len(p) + len(r) > max_tokens:
+            return None
+        return {'input_ids': p + r, 'labels': [-100] * len(p) + r}
+
     def texto(self, t, max_tokens):
         cuerpo = self.tok(t, add_special_tokens=False)['input_ids'][:max_tokens - 1 - len(self.bos)]
         ids = self.bos + cuerpo + [self.fin]
@@ -182,22 +228,48 @@ class Formato:
 
 
 def armar_ejemplos(a, fmt):
-    """Devuelve (entrenamiento, validación) como listas de {'input_ids', 'labels'}."""
+    """Devuelve (entrenamiento, validación) como listas de {'input_ids', 'labels'} (las conversaciones llevan además
+    'qa': True, para la fase de solo preguntas).
+
+    Sin --aumentacion ni --retener, como en la v1: fragmentos con el nombre de la norma como encabezado, fichas,
+    abiertas y lo generado por generar.py, con las preguntas marcadas como evaluación afuera (validación).
+    Con --aumentacion: cada fragmento (sin copias) lleva la ficha corregida como cabecera y la cita al final; las
+    fichas van corregidas; entran las cuatro reescrituras, los ejemplos de abstención y, con --identidad, los de
+    identidad. Con --retener solo quedan afuera las preguntas listadas (el benchmark), que forman la validación;
+    todo lo demás entra, también lo marcado como evaluación. Con --replay entran las respuestas del propio modelo
+    base a pedidos generales."""
     tr, va, largos = [], [], 0
 
-    def chat(pregunta, respuesta, destino):
+    def chat(pregunta, respuesta, destino, nid=None):
         nonlocal largos
         x = fmt.chat(pregunta, respuesta, a.max_tokens)
         if x is None:
             largos += 1
         else:
+            x['qa'] = True
+            if nid:
+                x['nid'] = nid
             destino.append(x)
 
-    for f in leer(os.path.join(a.datos, 'fragmentos.jsonl')):
-        ub = ', '.join(x for x in (f['ubicacion'], f['articulos']) if x)
-        tr.append(fmt.texto(f'{f["documento"]}' + (f' — {ub}' if ub else '') + f'\n\n{f["texto"]}', a.max_tokens))
+    aum = a.aumentacion
+    cab = {}
+    if aum:
+        from nacional.aumentar import nombra, original
+        cab = {r['id']: r['cabecera'] for r in leer(os.path.join(aum, 'metadatos', 'metadatos.jsonl'))
+               if r.get('cabecera')}
+        vistos = set()
+        for f in leer(os.path.join(a.datos, 'fragmentos.jsonl')):
+            k = re.sub(r'\W+', ' ', f['texto'].lower()).strip()
+            if k in vistos:   # copias exactas: una sola vez
+                continue
+            vistos.add(k)
+            tr.append({**fmt.texto(original(f, cab.get(f['id']) or f['documento']), a.max_tokens), 'nid': f['id']})
+    else:
+        for f in leer(os.path.join(a.datos, 'fragmentos.jsonl')):
+            ub = ', '.join(x for x in (f['ubicacion'], f['articulos']) if x)
+            tr.append(fmt.texto(f'{f["documento"]}' + (f' — {ub}' if ub else '') + f'\n\n{f["texto"]}', a.max_tokens))
     for f in leer(os.path.join(a.datos, 'fichas.jsonl')):
-        tr.append(fmt.texto(f['ficha'], a.max_tokens))
+        tr.append({**fmt.texto(cab.get(f['id']) or f['ficha'], a.max_tokens), 'nid': f['id']})
     if a.abiertas:
         for ruta in sorted(glob.glob(os.path.join(a.abiertas, '*.jsonl'))):
             for r in leer(ruta):
@@ -206,33 +278,129 @@ def armar_ejemplos(a, fmt):
     docs = {d['id_doc']: d for d in leer(os.path.join(a.datos, 'documentos.jsonl'))}
     frags = {f['id_fragmento']: f for f in leer(os.path.join(a.datos, 'fragmentos.jsonl'))}
 
+    retener = {r['id_pregunta'] for r in leer(a.retener)} if a.retener else None
+    # --alcance: las preguntas de generar.py reescritas para que se entiendan solas (la respuesta no cambia)
+    alcance = {}
+    if a.alcance:
+        for ruta in glob.glob(os.path.join(a.alcance, 'parte_*.jsonl')):
+            for r in leer(ruta):
+                q = (r.get('datos') or {}).get('pregunta') if r.get('json_ok') and r.get('termino') else None
+                if isinstance(q, str) and q.strip():
+                    alcance[r['clave']] = q.strip()
+        print(f'preguntas con el alcance reescrito: {len(alcance)}', flush=True)
     rutas = [r for c in a.generados.split(',') for r in glob.glob(os.path.join(c, 'parte_*.jsonl'))]
     preguntas_val = []
     for r in (json.loads(l) for ruta in rutas for l in open(ruta, encoding='utf-8')):
         d = r.get('datos') or {}
         if not r.get('json_ok') or not r.get('termino'):
             continue
-        destino = preguntas_val if r['evaluacion'] else tr
+        afuera = r['evaluacion'] and retener is None   # con --retener, lo marcado como evaluación también entra
         if 'id_fragmento' in r:
             f = frags.get(r['id_fragmento'])
-            if f and d.get('explicacion') and not r['evaluacion']:
+            if f and d.get('explicacion') and not afuera:
                 ub = ', '.join(x for x in (f['ubicacion'], f['articulos']) if x)
                 chat(elegir(PEDIDOS_EXPLICACION, r['id_fragmento']).format(d=f['documento'], u=f' ({ub})' if ub else ''),
-                     d['explicacion'], tr)
+                     d['explicacion'], tr, r.get('id'))
         else:
             doc = docs.get(r['id_doc'])
-            if doc and d.get('resumen') and not r['evaluacion']:
-                chat(elegir(PEDIDOS_RESUMEN, r['id_doc']).format(d=doc['nombre']), d['resumen'], tr)
-        for q in d.get('preguntas') or []:
+            if doc and d.get('resumen') and not afuera:
+                chat(elegir(PEDIDOS_RESUMEN, r['id_doc']).format(d=doc['nombre']), d['resumen'], tr, r.get('id'))
+        clave = r.get('id_fragmento') or r['id_doc']
+        for k, q in enumerate(d.get('preguntas') or []):   # mismo índice que linea_base.preguntas
             if isinstance(q, dict) and q.get('pregunta') and q.get('respuesta'):
-                chat(q['pregunta'], q['respuesta'], destino)
-    random.Random(a.semilla).shuffle(preguntas_val)
-    va = preguntas_val[:a.max_validacion]
+                pq = alcance.get(f'{clave}-q{k}', q['pregunta'])
+                if retener is not None:
+                    chat(pq, q['respuesta'], va if f'{clave}-q{k}' in retener else tr, r.get('id'))
+                else:
+                    chat(pq, q['respuesta'], preguntas_val if r['evaluacion'] else tr, r.get('id'))
+
+    if aum:
+        n0 = len(tr)
+        # las versiones de la primera tanda y, con --versiones-extra, las tandas nuevas (que traen su similitud con la
+        # tanda anterior: las casi copias, ROUGE-L de 0,7 o más, no entran)
+        carpetas = [os.path.join(aum, 'versiones')] + [c for c in (a.versiones_extra or '').split(',') if c]
+        copias = 0
+        for r in (r for c in carpetas for p in sorted(glob.glob(os.path.join(c, 'parte_*.jsonl'))) for r in leer(p)):
+            d = r.get('datos') or {}
+            if not r.get('json_ok') or not r.get('termino'):
+                continue
+            sim = r.get('similitud_previa')
+            if 'preguntas' in d:   # preguntas, preguntas-2, preguntas-articulos y casos (y sus tandas: "#2", "#t2")
+                generales = r['version'].split('#')[0] in ('preguntas', 'preguntas-2')
+                for k, q in enumerate(d.get('preguntas') or []):
+                    if isinstance(sim, list) and k < len(sim) and sim[k] >= 0.7:
+                        copias += 1
+                        continue
+                    # las de conocimiento general no nombran la norma: si la nombran, no entran
+                    if isinstance(q, dict) and q.get('pregunta') and q.get('respuesta') \
+                            and not (generales and nombra(q['pregunta'], r.get('norma'))):
+                        chat(q['pregunta'], q['respuesta'], tr, r.get('id'))
+            elif isinstance(d.get('texto'), str) and d['texto'].strip():
+                if isinstance(sim, (int, float)) and sim >= 0.7:
+                    copias += 1
+                    continue
+                tr.append({**fmt.texto(d['texto'].strip(), a.max_tokens), 'nid': r.get('id')})
+        if copias:
+            print(f'versiones descartadas por casi copiar la tanda anterior (ROUGE-L >= 0,7): {copias}', flush=True)
+        for r in leer(os.path.join(aum, 'nose', 'nose.jsonl')):
+            d = r.get('datos') or {}
+            if r.get('json_ok') and r.get('termino') and d.get('pregunta') and d.get('respuesta'):
+                chat(d['pregunta'], d['respuesta'], tr)
+        if a.identidad:
+            vals = json.load(open(a.identidad, encoding='utf-8'))
+            llenar = lambda s: re.sub(r'\{(NOMBRE|BASE|INSTITUCION|CORTE)\}', lambda m: vals[m.group(1)], s)
+            for r in leer(os.path.join(aum, 'identidad', 'identidad.jsonl')):
+                for e in ((r.get('datos') or {}).get('ejemplos') or []):
+                    if isinstance(e, dict) and e.get('pregunta') and e.get('respuesta'):
+                        p, s = llenar(e['pregunta']), llenar(e['respuesta'])
+                        if '{' not in p + s:   # un marcador sin reemplazar no entra
+                            chat(p, s, tr)
+        print(f'aumentación: {len(tr) - n0} ejemplos (versiones, abstención, identidad)', flush=True)
+    if a.replay:
+        n0 = len(tr)
+        for r in leer(a.replay):
+            if r.get('respuesta') and not r.get('cortada'):
+                chat(r['pedido'], r['respuesta'], tr)
+        print(f'datos generales del propio modelo: {len(tr) - n0} ejemplos', flush=True)
+    if a.rag:
+        # sin 'qa': no entran en la fase de solo preguntas; llevan 'rag' para repartirlos entre las épocas
+        n0, largos_rag = len(tr), 0
+        for r in leer(a.rag):
+            x = fmt.chat_mensajes(r['mensajes'], r['respuesta'], a.rag_max_tokens)
+            if x is None:
+                largos_rag += 1
+            else:
+                x['rag'] = True
+                tr.append(x)
+        print(f'tarea RAG: {len(tr) - n0} ejemplos (descartados por pasar de {a.rag_max_tokens} tokens: {largos_rag})',
+              flush=True)
+    if retener is not None and va:
+        # una conversación de entrenamiento con exactamente la misma pregunta que una retenida no entra
+        clave = lambda x: tuple(i for i, l in zip(x['input_ids'], x['labels']) if l == -100)
+        pv = {clave(x) for x in va}
+        n0 = len(tr)
+        tr = [x for x in tr if not (x.get('qa') and clave(x) in pv)]
+        print(f'conversaciones sacadas por repetir una pregunta retenida: {n0 - len(tr)}', flush=True)
+    if a.repetir:
+        for regla in a.repetir.split(','):
+            nid, veces = regla.split(':')
+            propios = [x for x in tr if x.get('nid') == nid]
+            tr += propios * (int(veces) - 1)
+            print(f'norma {nid}: {len(propios)} ejemplos, repetidos {veces} veces', flush=True)
+    if retener is None:
+        random.Random(a.semilla).shuffle(preguntas_val)
+        va = preguntas_val[:a.max_validacion]
     return tr, va, largos
 
 
-def lotes_por_tokens(items, presupuesto, semilla):
-    """Agrupa por largo y arma lotes cuyo tamaño con relleno no pase el presupuesto."""
+def lotes_por_tokens(items, presupuesto, semilla, bloque=1):
+    """Agrupa por largo y arma lotes cuyo tamaño con relleno no pase el presupuesto, en orden al azar.
+
+    Con bloque > 1 (los lotes de un paso: procesos × acumulación), los lotes de un solo ejemplo más largo que el
+    presupuesto (los de la tarea RAG) van juntos en pasos enteros, con largos parecidos: FSDP sincroniza capa por capa
+    y un ejemplo largo en un solo tile hace esperar a los demás. El último bloque de largos se completa con lotes
+    comunes; los bloques completos van en orden al azar y lo que no completa un bloque queda al final, donde lo
+    descarta el corte de pasos por época. Con bloque 1, igual que antes (mismos lotes, mismo orden)."""
     orden = sorted(range(len(items)), key=lambda i: len(items[i]['input_ids']))
     res, actual, mx = [], [], 0
     for i in orden:
@@ -244,8 +412,29 @@ def lotes_por_tokens(items, presupuesto, semilla):
         mx = max(mx, n)
     if actual:
         res.append(actual)
-    random.Random(semilla).shuffle(res)
-    return res
+    rnd = random.Random(semilla)
+    if bloque <= 1:
+        rnd.shuffle(res)
+        return res
+    largo = lambda l: len(items[l[0]]['input_ids']) > presupuesto   # solo un lote de un ejemplo puede pasarse
+    largos = [l for l in res if largo(l)]   # de menor a mayor, como salen del armado
+    comunes = [l for l in res if not largo(l)]
+    rnd.shuffle(comunes)
+    bloques = [largos[k:k + bloque] for k in range(0, len(largos), bloque)]
+    if bloques and len(bloques[-1]) < bloque:
+        falta = min(bloque - len(bloques[-1]), len(comunes))
+        bloques[-1], comunes = bloques[-1] + comunes[:falta], comunes[falta:]
+    bloques += [comunes[k:k + bloque] for k in range(0, len(comunes), bloque)]
+    completos = [b for b in bloques if len(b) == bloque]
+    for b in completos:
+        rnd.shuffle(b)   # dentro del paso, los largos en tiles al azar: ningún tile se lleva siempre el más largo
+    rnd.shuffle(completos)
+    # Si el corte de pasos por época se lleva un bloque entero (épocas con algún lote de más), que sea uno común.
+    if completos and any(map(largo, completos[-1])):
+        j = next((k for k in range(len(completos) - 1, -1, -1) if not any(map(largo, completos[k]))), None)
+        if j is not None:
+            completos[j], completos[-1] = completos[-1], completos[j]
+    return [l for b in completos for l in b] + [l for b in bloques if len(b) < bloque for l in b]
 
 
 # ---------------------------------------------------------------- FSDP
@@ -278,6 +467,20 @@ def flujo_unico():
         self.all_gather_copy_in_stream = self.all_gather_stream = f
         self.reduce_scatter_stream = self.all_reduce_stream = f
     g.FSDPCommContext.lazy_init = lazy_init
+
+
+def reduccion_entre_nodos_sincrona():
+    """Con HSDP, FSDP suma los gradientes entre nodos con all_reduce (después del reduce-scatter dentro del nodo).
+    Por la misma razón que en colectivas_sincronas (oneCCL y búferes reusados), se espera a que termine."""
+    original = dist.all_reduce
+
+    def all_reduce(*args, **kwargs):
+        trabajo = original(*args, **kwargs)
+        if trabajo is not None and kwargs.get('async_op'):
+            trabajo.wait()
+        torch.xpu.synchronize()
+        return trabajo
+    dist.all_reduce = all_reduce
 
 
 def colectivas_sincronas():
@@ -364,6 +567,14 @@ def repartir(m, malla, completo, reshard=True):
         fully_shard(u, mesh=malla, mp_policy=mp, reshard_after_forward=reshard)
     a_fp32(m)
     fully_shard(m, mesh=malla, mp_policy=mp, reshard_after_forward=reshard)
+    if malla.ndim > 1:
+        # Entre nodos, oneCCL no admite el promedio (ReduceOp.AVG) en las colectivas ("average operation is not
+        # supported for the scheduler path"): se suma y FSDP divide después por la cantidad de procesos, que da el
+        # mismo gradiente que el promedio.
+        from torch.distributed.fsdp import FSDPModule
+        for x in m.modules():
+            if isinstance(x, FSDPModule):
+                x.set_force_sum_reduction_for_comms(True)
     return len(unidades)
 
 
@@ -451,6 +662,8 @@ def main():
         flujo_unico()
     if fsdp and not a.colectivas_asincronas:
         colectivas_sincronas()
+        if mundo > int(os.environ.get('LOCAL_WORLD_SIZE', mundo)):
+            reduccion_entre_nodos_sincrona()
 
     from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(a.modelo)
@@ -459,8 +672,9 @@ def main():
     log(f'modelo {a.modelo} · modo {a.modo} · estrategia {a.estrategia} · cierre {fmt.cierre!r} · '
         f'fin de texto {fmt.fin} · bos {fmt.bos}')
     tr, va, largos = armar_ejemplos(a, fmt)
-    if a.max_ejemplos:
-        tr = random.Random(a.semilla).sample(tr, min(a.max_ejemplos, len(tr)))
+    if a.max_ejemplos:   # canario: la muestra es de los demás; los ejemplos RAG (si hay) quedan todos
+        resto = [x for x in tr if not x.get('rag')]
+        tr = random.Random(a.semilla).sample(resto, min(a.max_ejemplos, len(resto))) + [x for x in tr if x.get('rag')]
     tokens = sum(len(x['input_ids']) for x in tr)
     log(f'ejemplos: entrenamiento {len(tr)} ({tokens / 1e6:.1f} M tokens) · validación {len(va)} · '
         f'descartados por largo {largos}')
@@ -469,16 +683,25 @@ def main():
     t0 = time.time()
     if fsdp:
         from torch.distributed.device_mesh import init_device_mesh
-        malla = init_device_mesh('xpu', (mundo,))
+        local_mundo = int(os.environ.get('LOCAL_WORLD_SIZE', mundo))
+        nodos = mundo // local_mundo
+        if nodos > 1:
+            # HSDP: el modelo se reparte entre los tiles de cada nodo y se replica entre nodos; entre nodos solo
+            # viajan los gradientes (con LoRA, los del adaptador), y cada nodo procesa lotes distintos.
+            malla = init_device_mesh('xpu', (nodos, local_mundo), mesh_dim_names=('replica', 'reparto'))
+        else:
+            malla = init_device_mesh('xpu', (mundo,))
         clase = clase_del_modelo(a.modelo)
-        k = cargas_simultaneas(a, mundo)
-        log(f'clase {clase.__name__} · {k} procesos leen el modelo a la vez')
+        k = cargas_simultaneas(a, local_mundo)
+        log(f'clase {clase.__name__} · {nodos} nodo(s) de {local_mundo} tiles · {k} procesos por nodo leen el modelo a la vez')
         modelo = None
-        for turno in range(0, mundo, k):
-            if turno <= rank < turno + k:
+        for turno in range(0, local_mundo, k):   # los nodos leen en paralelo; dentro de cada nodo, por turnos
+            if turno <= local < turno + k:
                 modelo, tipos, resumen_param = preparar(a, clase)
                 if principal:
                     print(resumen_param, flush=True)
+                    c = getattr(modelo.config, 'text_config', None) or modelo.config
+                    print(f'atención: {getattr(c, "_attn_implementation", "?")}', flush=True)
                 n_unidades = repartir(modelo, malla, a.modo == 'completo', reshard=not a.sin_reshard)
                 print(f'  proceso {rank}: repartido, memoria de la CPU {liberar_cpu():.1f} GiB', flush=True)
                 if rank == 0:   # ¿quedan tensores en la CPU que retengan el modelo? (diagnóstico)
@@ -503,9 +726,28 @@ def main():
     entrenables = [p for p in modelo.parameters() if p.requires_grad]
 
     k_acum = max(1, a.acumulacion)
-    pasos_epoca = len(lotes_por_tokens(tr, a.tokens_por_lote, a.semilla)) // (mundo * k_acum)
-    assert pasos_epoca > 0, 'no alcanzan los ejemplos para un paso'
-    total = max(1, int(pasos_epoca * a.epocas))
+    # Fases: con --preguntas-primero, primero solo las conversaciones y después todo mezclado. Sin esa opción hay una
+    # sola fase y todo queda como en la v1 (mismas semillas, mismos lotes).
+    # Cada fase lleva una lista de ejemplos por época, que se repite en ciclo. Sin --rag es una sola lista y todo queda
+    # como antes (mismas semillas, mismos lotes). Con --rag, los ejemplos de la tarea RAG van solo en la fase de todo
+    # mezclado y cada época ve una porción distinta: con --rag-pasadas 1 y 4 épocas, una cuarta parte por época.
+    rag = [x for x in tr if x.get('rag')]
+    if rag:
+        resto = [x for x in tr if not x.get('rag')]
+        porciones = max(1, round(a.epocas / a.rag_pasadas))
+        random.Random(a.semilla).shuffle(rag)
+        todo = [resto + rag[k::porciones] for k in range(porciones)]
+        log(f'tarea RAG: {len(rag)} ejemplos en {porciones} porciones, una por época de la fase de todo mezclado')
+    else:
+        todo = [tr]
+    fases = ([('preguntas', [[x for x in tr if x.get('qa')]], a.preguntas_primero)] if a.preguntas_primero > 0
+             else []) + [('todo', todo, a.epocas)]
+    fases = [(n, vs, ep, min(len(lotes_por_tokens(v, a.tokens_por_lote, a.semilla)) for v in vs) // (mundo * k_acum))
+             for n, vs, ep in fases]
+    for n, items, ep, pe in fases:
+        assert pe > 0, f'no alcanzan los ejemplos para un paso (fase {n})'
+    pasos_epoca = fases[-1][3]
+    total = max(1, sum(int(pe * ep) for _, _, ep, pe in fases))
     if a.max_pasos:
         total = min(total, a.max_pasos)
     calent = max(1, int(a.calentamiento * total))
@@ -546,6 +788,31 @@ def main():
         log(f'reanudado en el paso {paso}')
     log(f'procesos {mundo} · lotes por paso y proceso {k_acum} · pasos por época {pasos_epoca} · pasos {total} '
         f'({a.epocas} épocas) · lr {a.lr:.1e}')
+    if len(fases) > 1:
+        log('fases: ' + ' · '.join(f'{n}: {len(vs[0])} ejemplos, {ep} épocas de {pe} pasos' for n, vs, ep, pe in fases))
+    if a.agrupar_largos:
+        log('largos agrupados en pasos enteros de ' + str(mundo * k_acum) + ' lotes: ' + ' · '.join(
+            f'{n}: {sum(len(x["input_ids"]) > a.tokens_por_lote for x in vs[0])} por época' for n, vs, _, _ in fases))
+
+    def ubicar(p):
+        """Para el paso global p: fase, nombre, ítems, época, paso dentro de la época, pasos por época y el paso en
+        que termina la fase."""
+        inicio = 0
+        for fi, (n, vs, ep, pe) in enumerate(fases):
+            largo = int(pe * ep)
+            if p < inicio + largo or fi == len(fases) - 1:
+                e, en = divmod(p - inicio, pe)
+                return fi, n, vs[e % len(vs)], e, en, pe, inicio + largo
+            inicio += largo
+
+    cache_grupos = {}
+
+    def grupos_de(fi, items, e):
+        if (fi, e) not in cache_grupos:
+            cache_grupos.clear()
+            cache_grupos[(fi, e)] = lotes_por_tokens(items, a.tokens_por_lote, a.semilla + 1000 * fi + e,
+                                                     bloque=mundo * k_acum if a.agrupar_largos else 1)
+        return cache_grupos[(fi, e)]
 
     def guardar(destino):
         """Punto de reanudación. Con FSDP, cada proceso escribe su parte (torch.distributed.checkpoint) en una
@@ -600,6 +867,27 @@ def main():
         dist.barrier()
         return sd
 
+    # Con --atencion-largos, la atención se elige lote por lote: la de esa opción en los lotes más largos que el
+    # presupuesto y la del modelo en los demás. Las capas de atención y las máscaras leen config._attn_implementation
+    # en cada pasada, también en la recomputación de la pasada hacia atrás (que ocurre antes del lote siguiente).
+    configs_atencion, atencion_comun = [], {}
+    if a.atencion_largos:
+        from peft import PeftModel
+        hf = modelo.get_base_model() if isinstance(modelo, PeftModel) else modelo
+        if not getattr(hf, '_supports_flex_attn', False):
+            # Qwen 3.5 no la declara (por las capas de atención lineal, que no la usan); sus capas de atención
+            # completa sí pasan por la interfaz de transformers: se prueba con un canario antes de entrenar.
+            log(f'aviso: {type(hf).__name__} no declara {a.atencion_largos} en transformers; se usa igual en los lotes largos')
+        # la del modelo y la del texto (la de visión no se usa: se entrena solo con texto)
+        configs_atencion = list({id(c): c for c in (hf.config, getattr(hf.config, 'text_config', None)) if c is not None}.values())
+        atencion_comun = {id(c): c._attn_implementation for c in configs_atencion}
+        log(f'atención: {hf.config._attn_implementation} en los lotes de hasta {a.tokens_por_lote} tokens, '
+            f'{a.atencion_largos} en los más largos')
+
+    def fijar_atencion(largo_lote):
+        for c in configs_atencion:
+            c._attn_implementation_internal = a.atencion_largos if largo_lote > a.tokens_por_lote else atencion_comun[id(c)]
+
     @torch.no_grad()
     def validar():
         if not va:
@@ -612,6 +900,7 @@ def main():
         for j in range(vueltas):
             x = propios[j] if j < len(propios) else va[0]
             ids, lab, att = lote([x], pad)
+            fijar_atencion(ids.shape[1])
             loss, n = perdida(base, ids, lab, att, dev)
             if j < len(propios):
                 tot += torch.tensor([float(loss) * n, n], device=dev)
@@ -639,18 +928,19 @@ def main():
                   flush=True)
 
     while paso < total:
-        epoca, en_epoca = divmod(paso, pasos_epoca)
-        grupos = lotes_por_tokens(tr, a.tokens_por_lote, a.semilla + epoca)
+        fi, nfase, items, epoca, en_epoca, pe, fin_fase = ubicar(paso)
+        grupos = grupos_de(fi, items, epoca)
         t1 = time.time()
         acum = 0.0
         for j in range(k_acum):
-            ids, lab, att = lote([tr[i] for i in grupos[(en_epoca * mundo + rank) * k_acum + j]], pad)
+            ids, lab, att = lote([items[i] for i in grupos[(en_epoca * mundo + rank) * k_acum + j]], pad)
             forma = tuple(ids.shape)
             if paso < a.memoria_pasos:   # diagnóstico: qué lote tiene cada proceso en cada paso
                 print(f'    proceso {rank}: paso {paso + 1} lote {forma[0]}x{forma[1]} '
                       f'(con pérdida {int((lab[:, 1:] != -100).any(0).sum())} posiciones)', flush=True)
             # Con DDP, los gradientes se sincronizan solo en el último lote del paso; FSDP los reparte en cada uno.
             ctx = modelo.no_sync() if (not fsdp and distribuido and j < k_acum - 1) else torch.enable_grad()
+            fijar_atencion(forma[1])
             with ctx:
                 loss, _ = perdida(modelo, ids, lab, att, dev)
                 memoria('la pasada hacia adelante')
@@ -688,6 +978,15 @@ def main():
             pv = validar()
             log(f'  validación en el paso {paso}: {pv:.4f}')
             registro and registro.write(json.dumps({'paso': paso, 'val': pv}) + '\n')
+        termina_epoca = en_epoca == pe - 1 or paso == fin_fase
+        if termina_epoca and paso % a.eval_cada != 0 and paso != total:
+            pv = validar()
+            log(f'  validación al terminar la época {epoca + 1} ({nfase}): {pv:.4f}')
+            registro and registro.write(json.dumps({'paso': paso, 'val': pv, 'fase': nfase, 'epoca': epoca + 1}) + '\n')
+        if termina_epoca and a.guardar_epocas and paso != total:   # la última época es el modelo final
+            t2 = time.time()
+            guardar_final(os.path.join(a.salida, f'{nfase}-epoca-{epoca + 1}'))
+            log(f'  modelo de la época {epoca + 1} ({nfase}) guardado ({time.time() - t2:.0f} s)')
         if paso % a.guardar_cada == 0 or paso == total:
             t2 = time.time()
             guardar(ultimo)
@@ -700,6 +999,9 @@ def main():
         with open(os.path.join(a.salida, 'resumen.json'), 'w') as fh:
             json.dump({'pasos': total, 'ejemplos': len(tr), 'tokens': tokens, 'validacion': len(va), 'procesos': mundo,
                        'tokens_por_lote': a.tokens_por_lote, 'acumulacion': k_acum, 'epocas': a.epocas,
+                       'fases': [{'fase': n, 'ejemplos': len(vs[0]), 'epocas': ep, 'pasos_por_epoca': pe}
+                                 for n, vs, ep, pe in fases],
+                       'rag': len(rag),
                        'modelo': a.modelo,
                        'modo': a.modo, 'estrategia': a.estrategia, 'expertos': a.expertos,
                        'rango': a.rango if a.modo == 'lora' else None, 'lr': a.lr,
