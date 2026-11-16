@@ -4,12 +4,15 @@
 El juez ve la consulta, los fragmentos recuperados (lo único que el asistente podía usar) y la respuesta, sin saber qué
 modelo la escribió. Juez fijo para todo Liminar: Llama 3.3 70B, de una familia distinta de todos los evaluados (Qwen,
 Gemma, Mistral, OpenAI), para que no haya autopreferencia. Retoma por (modelo, id) y al final resume sobre las
-preguntas que tienen juicio de todos los modelos.
+preguntas que tienen juicio de todos los modelos. Pueden correr varios jueces a la vez con los mismos argumentos: cada
+modelo lleva un candado POSIX (lockf: en el GPFS de Clementina es coherente entre nodos, flock no; se suelta solo si
+el proceso cae) y cada juez saltea los modelos que otro está juzgando.
 
     python -m nacional.juez_rag --datos ~/rag-unlu-adaptacion/datos --respuestas 'DIR/*.jsonl' 'OTRO/gpt-*.jsonl' \
         --salida DIR [--muestra 60]
 """
 import argparse
+import fcntl
 import glob
 import json
 import os
@@ -110,10 +113,18 @@ def main():
     tok = m = None
     for mo, rs in sorted(pend.items()):
         destino = os.path.join(a.salida, f'{mo}.jsonl')
+        candado = open(destino + '.candado', 'a')
+        try:
+            fcntl.lockf(candado, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (BlockingIOError, PermissionError):
+            print(f'{mo}: lo está juzgando otro proceso, se saltea', flush=True)
+            candado.close()
+            continue
         hechos = {json.loads(l)['id'] for l in open(destino, encoding='utf-8')} if os.path.exists(destino) else set()
         rs = [r for r in {r['id']: r for r in rs}.values() if r['id'] not in hechos]
         print(f'{mo}: {len(rs)} por juzgar', flush=True)
         if not rs:
+            candado.close()
             continue
         if m is None:
             tok, m = cargar(a.juez)
@@ -129,6 +140,7 @@ def main():
                     out.write(json.dumps({'id': r['id'], 'modelo': mo, 'tipo': r['tipo'], 'juicio': leer_juicio(s),
                                           'crudo': s}, ensure_ascii=False) + '\n')
                 out.flush()
+        candado.close()   # suelta el candado
     resumen(a.salida)
 
 
