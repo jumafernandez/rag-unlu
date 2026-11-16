@@ -6,6 +6,8 @@
 # latido (el archivo se toca cada LATIDO segundos). Al terminar pasa a hechas/; si se acaba el turno vuelve a
 # pendientes/ y la retoma el trabajador que la tome después; si falla vuelve a pendientes/ y a la tercera falla pasa
 # a fallidas/. Con ESPERAR_JOB=J la corrida no se toma hasta que sacct informe que el trabajo J de SLURM terminó.
+# Con ESPERAR_ARCHIVO=RUTA no se toma hasta que exista ese archivo (p. ej. el resumen.json que el entrenamiento
+# escribe al terminar: hace falta cuando el entrenamiento corre en varios tramos y el primero no deja el modelo).
 # Las corridas se toman en orden alfabético del nombre del archivo, de modo que un prefijo numérico fija la prioridad.
 # Uso (lo llama piloto.sbatch): trabajador.sh COLA MASCARA NOMBRE FIN
 #   MASCARA: valor de ZE_AFFINITY_MASK (un tile, "3", o los dos de una GPU, "2,3"); FIN: segundos desde 1970
@@ -30,30 +32,38 @@ terminado() {   # verdadero solo si sacct informa un estado final; una respuesta
   return 0
 }
 
-elegir() {      # primera corrida pendiente en orden alfabético que no espere a un trabajo en curso
-  local f j
+elegir() {      # primera corrida pendiente en orden alfabético que no espere a un trabajo en curso ni a un archivo
+  local f j a
   for f in $(ls pendientes | sort); do
     j=$(sed -n 's/^ESPERAR_JOB=//p' "pendientes/$f" | tail -1)
     if [ -n "$j" ] && ! terminado "$j"; then continue; fi
+    a=$(sed -n 's/^ESPERAR_ARCHIVO=//p' "pendientes/$f" | tail -1)
+    if [ -n "$a" ] && [ ! -e "$a" ]; then continue; fi
     echo "$f"; return 0
   done
   return 1
 }
 
-vacia=0
+vacia=0; esperando=0
 while :; do
   quedan=$(( FIN - $(date +%s) ))
   if [ "$quedan" -le 900 ]; then log "sin tiempo para otra corrida"; break; fi
   if ! f=$(elegir); then
+    # COLA/.espera-maxima (segundos; sin archivo o 0: como antes) acorta la espera sin nada para tomar, para que un
+    # piloto no retenga placas mientras las corridas que quedan esperan a un entrenamiento que tarda horas.
+    tope=$(cat .espera-maxima 2>/dev/null | tr -cd '0-9'); tope=${tope:-0}
     if [ -z "$(ls pendientes)" ]; then
-      [ "$vacia" -ge "$ESPERA_VACIA" ] && { log "cola vacía"; break; }
+      lim=$ESPERA_VACIA; [ "$tope" -gt 0 ] && [ "$tope" -lt "$lim" ] && lim=$tope
+      [ "$vacia" -ge "$lim" ] && { log "cola vacía"; break; }
       vacia=$(( vacia + 300 )); sleep 300
     else
-      sleep 300     # hay corridas que esperan a un trabajo de SLURM
+      # hay corridas que esperan a un trabajo de SLURM o a un archivo
+      [ "$tope" -gt 0 ] && [ "$esperando" -ge "$tope" ] && { log "solo quedan corridas que esperan: termino"; break; }
+      esperando=$(( esperando + 300 )); sleep 300
     fi
     continue
   fi
-  vacia=0
+  vacia=0; esperando=0
   t="tomadas/$f@$ID.$YO"
   mv "pendientes/$f" "$t" 2>/dev/null || continue    # otro trabajador la tomó primero
   touch "$t"                                         # primer latido: mv conserva la fecha vieja del archivo

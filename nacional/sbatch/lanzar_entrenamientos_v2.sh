@@ -15,8 +15,11 @@ set -uo pipefail
 N=/data/contrib/pci_146/rag-unlu-adaptacion/nacional
 A=$N/aumentacion
 M=/data/contrib/pci_146/hf-models
+REPLAY_DIR=${REPLAY_DIR:-$A/replay}   # REPLAY_DIR=... otra carpeta de datos generales (p. ej. el replay repetido)
 SALIDAS=${SALIDAS:-$N/modelos-v2}   # SALIDAS=... para otra ronda (p. ej. $N/modelos-v2r2)
-X="--exclude=cn016,cn022,cn024,cn025,cn029,cn042,cn045,cn049,cn069,cn070,cn071,cn072"
+# SBATCH_EXTRA=... agrega opciones de sbatch a todos los trabajos (p. ej. "--dependency=afterany:<id> --nice=15" para
+# encolar la continuación de un tramo que ya está corriendo: retoma desde su último punto de reanudación)
+X="--exclude=cn016,cn022,cn024,cn025,cn029,cn042,cn045,cn049,cn069,cn070,cn071,cn072 ${SBATCH_EXTRA:-}"
 COMUN="--epocas ${EPOCAS:-4} --preguntas-primero ${PREGUNTAS_PRIMERO:-1} --guardar-epocas --eval-cada 200 --guardar-cada 200
  --sin-mmap --verificar --aumentacion $A --alcance $A/alcance --retener $N/linea_base-preguntas.jsonl --repetir 25394:2
  ${EXTRA_TODOS:-}"
@@ -45,9 +48,9 @@ for c in "${CORRIDAS[@]}"; do
   nodos=${nodos:-1}
   if [ $# -gt 0 ] && ! printf '%s\n' "$@" | grep -qx "$nombre"; then continue; fi
   if [ ! -f "$ruta/config.json" ]; then echo "falta el modelo $ruta: no encolo $nombre"; continue; fi
-  if [ ! -s "$A/replay/replay-$nombre.jsonl" ]; then echo "AVISO: sin datos generales para $nombre ($A/replay/replay-$nombre.jsonl)"; fi
+  if [ ! -s "$REPLAY_DIR/replay-$nombre.jsonl" ]; then echo "AVISO: sin datos generales para $nombre ($REPLAY_DIR/replay-$nombre.jsonl)"; fi
   mc=""; case "$nombre" in mistral-small*|ministral*) mc=1;; esac
-  extra="--modelo $ruta --modo $modo --estrategia fsdp $propias $COMUN --identidad nacional/identidad/$nombre.json --replay $A/replay/replay-$nombre.jsonl"
+  extra="--modelo $ruta --modo $modo --estrategia fsdp $propias $COMUN --identidad nacional/identidad/$nombre.json --replay $REPLAY_DIR/replay-$nombre.jsonl"
   script=nacional/sbatch/entrenar.sbatch; recursos=""
   if [ "$nodos" -gt 1 ]; then
     # con N nodos hay N veces más procesos: la acumulación se divide por N para que cada paso del optimizador vea
@@ -55,7 +58,7 @@ for c in "${CORRIDAS[@]}"; do
     k=$(echo "$propias" | sed -n 's/.*--acumulacion \([0-9]*\).*/\1/p')
     if [ -n "$k" ] && [ $(( k % nodos )) -eq 0 ]; then
       propias=$(echo "$propias" | sed "s/--acumulacion $k/--acumulacion $(( k / nodos ))/")
-      extra="--modelo $ruta --modo $modo --estrategia fsdp $propias $COMUN --identidad nacional/identidad/$nombre.json --replay $A/replay/replay-$nombre.jsonl"
+      extra="--modelo $ruta --modo $modo --estrategia fsdp $propias $COMUN --identidad nacional/identidad/$nombre.json --replay $REPLAY_DIR/replay-$nombre.jsonl"
     else
       echo "AVISO: $nombre en $nodos nodos con acumulación ${k:-1}: el lote efectivo por paso cambia"
     fi

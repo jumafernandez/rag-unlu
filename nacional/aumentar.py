@@ -670,8 +670,52 @@ def alcance(a):
            pedido=lambda x: f'alcance@{huella(SISTEMA + ALCANCE)}')
 
 
+def entorno_de_archivo(ruta):
+    """Variables de entorno de ruta (líneas CLAVE=VALOR; # comenta) para el runtime de la XPU. Van antes de importar
+    torch: el adaptador de Level Zero las lee al iniciarse. Sirve para probar ajustes del runtime en el reintento del
+    vigía sin relanzar el trabajo; borrar el archivo vuelve a los valores por omisión."""
+    if not os.path.exists(ruta):
+        return
+    if 'torch' in sys.modules:
+        print(f'AVISO: torch ya estaba importado; {ruta} puede no tener efecto', flush=True)
+    for linea in open(ruta):
+        linea = linea.split('#', 1)[0].strip()
+        if '=' in linea:
+            k, v = (x.strip() for x in linea.split('=', 1))
+            os.environ[k] = v
+            print(f'entorno: {k}={v} (de {ruta})', flush=True)
+
+
+def memoria_proceso():
+    """RSS del proceso en GiB y cantidad de mapeos de memoria (para ver si el runtime acumula pools de eventos)."""
+    try:
+        rss = next(int(l.split()[1]) for l in open('/proc/self/status') if l.startswith('VmRSS:')) / 2 ** 20
+        return f'RSS {rss:.1f} GiB, {sum(1 for _ in open("/proc/self/maps"))} mapeos'
+    except (OSError, StopIteration):
+        return 'memoria del proceso no disponible'
+
+
+def agrupar_por_largo(pedidos, referencia, lote, semilla=20261116):
+    """Arma lotes de pedidos cuyas respuestas tienen largo parecido. Cada lote dura lo que su respuesta más larga, así
+    que mezclar cortas y largas desperdicia pasos (con el 122B, lote 8: 53 % de aprovechamiento). El largo se estima con
+    el de la respuesta de otro modelo al mismo pedido (referencia: un replay ya hecho; con el Qwen 3.5 27B la
+    correlación de rangos con el 122B es 0,95 y los pasos bajan 1,4 veces). El orden de los lotes se sortea con semilla
+    fija para que un corte no deje afuera justo las respuestas largas. No cambia qué se genera, solo el orden."""
+    largo = {r['clave']: r.get('tokens', 0) for r in leer(referencia)}
+    if not largo:
+        print(f'AVISO: sin largos de referencia en {referencia}; los pedidos quedan en su orden', flush=True)
+        return pedidos
+    orden = sorted(pedidos, key=lambda p: largo.get(p['clave'], 0))
+    lotes = [orden[i:i + lote] for i in range(0, len(orden), lote)]
+    # el lote incompleto queda al final: en el medio correría de lugar todos los cortes de los lotes siguientes
+    resto = [lotes.pop()] if lotes and len(lotes[-1]) < lote else []
+    random.Random(semilla).shuffle(lotes)
+    return [p for tanda in lotes + resto for p in tanda]
+
+
 def replay(a):
     """Un modelo base responde los pedidos generales: sus propias respuestas entran al entrenamiento."""
+    entorno_de_archivo(os.path.join(a.salida, f'.entorno-{a.nombre}'))
     from nacional.linea_base import cargar, generar, plantilla
     pedidos = []
     for r in leer(os.path.join(a.entrada, 'generales.jsonl')):
@@ -688,7 +732,34 @@ def replay(a):
     print(f'{a.nombre}: {len(pedidos)} pedidos', flush=True)
     if not pedidos:
         return
+    # Tope de lote por modelo sin relanzar el trabajo: el Gemma 31B y el Qwen 3.5 122B caen o se cuelgan en el segundo
+    # lote (falla del runtime de XPU; el 31B pasó con lote 4, el 122B a veces cae igual). Si existe
+    # SALIDA/.lote-maximo-<nombre>, manda sobre --lote, se escribe después de cada lote (no cada 4) para que un corte
+    # no pierda lo generado y se libera la memoria de la GPU entre lotes. El reintento del vigía (con_vigia.sh) toma
+    # todo esto con los mismos argumentos.
+    # SALIDA/.lote-<nombre>, si existe, fija el lote (manda sobre --lote, también hacia arriba): con las copias entre
+    # tiles vía CPU (.entorno) ya no hace falta el lote chico y un lote más grande rinde más por pedido.
+    fijo = os.path.join(a.salida, f'.lote-{a.nombre}')
+    if os.path.exists(fijo):
+        a.lote = max(1, int(open(fijo).read().strip()))
+        print(f'lote fijado en {a.lote} por {fijo}', flush=True)
+    tope = os.path.join(a.salida, f'.lote-maximo-{a.nombre}')
+    fragil = os.path.exists(tope)
+    if fragil:
+        a.lote = max(1, min(a.lote, int(open(tope).read().strip())))
+        print(f'lote limitado a {a.lote} por {tope}; se escribe cada lote', flush=True)
+    paso = a.lote if fragil else a.lote * 4
+    # SALIDA/.orden-<nombre>, si existe, trae la ruta de un replay de referencia: los pedidos pendientes se agrupan en
+    # lotes de respuestas de largo parecido (ver agrupar_por_largo). Para volver atrás: borrar el archivo y reiniciar.
+    orden = os.path.join(a.salida, f'.orden-{a.nombre}')
+    if os.path.exists(orden):
+        referencia = open(orden).read().strip()
+        pedidos = agrupar_por_largo(pedidos, referencia, a.lote)
+        print(f'pedidos agrupados por el largo de la respuesta en {referencia}', flush=True)
     tok, m = cargar(a.modelo)
+    if os.environ.get('LIMINAR_COPIAS_POR_CPU') == '1':   # se pone en el .entorno (ver copias_entre_xpu_por_cpu)
+        from nacional.linea_base import copias_entre_xpu_por_cpu
+        copias_entre_xpu_por_cpu()
     # Destilación de contexto: el modelo responde con su propio conocimiento pero en el registro buscado; al entrenar,
     # el ejemplo lleva solo el pedido, así el registro queda incorporado sin la indicación. Se escribe por tandas, así
     # un corte no pierde lo hecho (y se retoma por clave).
@@ -700,11 +771,15 @@ def replay(a):
         except Exception:   # tokenizadores de mistral-common: aproximación por palabras
             return int(len(r.split()) * 1.4)
 
-    for i in range(0, len(pedidos), a.lote * 4):
-        tanda = pedidos[i:i + a.lote * 4]
+    for i in range(0, len(pedidos), paso):
+        tanda = pedidos[i:i + paso]
         resp, tk, sg = generar(tok, m, [plantilla(tok, REGISTRO + '\n\n' + p['pedido'], a.modelo) for p in tanda],
                                a.max_nuevos, a.lote)
         tokens, seg = tokens + tk, seg + sg
+        if fragil:
+            import torch
+            torch.xpu.empty_cache()
+            print(f'  lote {i // paso + 1}: {sg:.0f} s, {memoria_proceso()}', flush=True)
         with open(ruta, 'a', encoding='utf-8') as out:
             for p, r in zip(tanda, resp):
                 n = contar(r)

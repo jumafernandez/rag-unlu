@@ -96,13 +96,49 @@ def cargar(ruta, adaptador=None):
         m = clase.from_pretrained(ruta, dtype=torch.bfloat16, device_map='balanced')
         from peft import PeftModel
         m = PeftModel.from_pretrained(m, adaptador).merge_and_unload()
+        copias_por_cpu_si_se_pide()
         return tok, m.eval()
     try:
         m = AutoModelForCausalLM.from_pretrained(ruta, dtype=torch.bfloat16, device_map='balanced')
     except (ValueError, KeyError):
         from transformers import AutoModelForImageTextToText
         m = AutoModelForImageTextToText.from_pretrained(ruta, dtype=torch.bfloat16, device_map='balanced')
+    copias_por_cpu_si_se_pide()
     return tok, m.eval()
+
+
+def copias_por_cpu_si_se_pide():
+    """Con LIMINAR_COPIAS_POR_CPU=1 en el entorno, todo modelo cargado con cargar() copia entre tiles vía CPU (hace
+    falta en las evaluaciones del 122B, repartido en 8 tiles; sin la variable no cambia nada)."""
+    if os.environ.get('LIMINAR_COPIAS_POR_CPU') == '1':
+        copias_entre_xpu_por_cpu()
+
+
+def copias_entre_xpu_por_cpu():
+    """Con device_map, accelerate copia las entradas de cada capa al tile que le toca (send_to_device). En el torch de
+    Clementina (2.11+xpu, adaptador de Level Zero UR 0.12) cada copia directa entre tiles pierde eventos: se acumulan
+    pools y, tras unos cientos de pasos de generación, el proceso queda girando en zeEventPoolCreate (así se colgaban
+    el replay del 122B y, con otra cara, el del Gemma 31B). Prueba aislada: 40.000 copias directas dejan +640 mapeos y
+    +77 MiB; vía CPU, nada, a ~30 µs más por copia. Esta función hace que esas copias pasen por la CPU. El resultado es
+    el mismo (es una copia); no toca las copias que no cambian de tile."""
+    import torch
+    import accelerate.hooks as hooks
+    import accelerate.utils.operations as ops
+    if getattr(ops.send_to_device, 'por_cpu', False):
+        return
+    original = ops.send_to_device
+
+    def send_to_device(tensor, device, non_blocking=False, skip_keys=None):
+        if isinstance(tensor, torch.Tensor) and tensor.device.type == 'xpu':
+            d = torch.device('xpu', device) if isinstance(device, int) else torch.device(device)
+            if d.type == 'xpu' and d.index is not None and d.index != tensor.device.index:
+                return tensor.to('cpu').to(d)
+        return original(tensor, device, non_blocking=non_blocking, skip_keys=skip_keys)
+
+    send_to_device.por_cpu = True
+    ops.send_to_device = send_to_device     # la recursión de accelerate (listas, tuplas, dicts) pasa por acá
+    hooks.send_to_device = send_to_device   # hooks.py lo importó por nombre
+    print('copias entre tiles vía CPU (accelerate.send_to_device)', flush=True)
 
 
 def generar(tok, m, textos, max_nuevos, lote):

@@ -21,7 +21,7 @@ BASE="${SLURM_SUBMIT_DIR:-$PWD}"
 cd "$BASE" || exit 1
 N=/data/contrib/pci_146/rag-unlu-adaptacion/nacional
 PY=/home/jfernandez/rag-unlu-adaptacion/venv/bin/python
-NPROC=8
+NPROC=${NPROC:-8}   # con --gres=gpu:2 van 4
 NOMBRE="${NOMBRE:?falta NOMBRE}"
 ARGS="${ARGS:?falta ARGS}"
 
@@ -32,7 +32,7 @@ export FI_PROVIDER=tcp TRANSFORMERS_OFFLINE=1 HF_HUB_OFFLINE=1 OMP_NUM_THREADS=4
 unset OPENAI_API_KEY RAG_LLM_BASE
 if [ -n "${MISTRAL_COMMON:-}" ]; then export PYTHONPATH=/home/jfernandez/rag-unlu-adaptacion/extra-mistral${PYTHONPATH:+:$PYTHONPATH}; fi
 SAL=$N/canarios/uno/$NOMBRE
-rm -rf "$SAL"
+[ -n "${CONSERVAR:-}" ] || rm -rf "$SAL"   # CONSERVAR=1: no borra la salida (prueba de reanudación desde "ultimo")
 echo "nodo $(hostname) · $NOMBRE · $(date '+%F %T')"
 echo "oneCCL: $(env | grep '^CCL_' | sort | tr '\n' ' ')"
 for intento in 1 2 3; do

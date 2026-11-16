@@ -78,4 +78,6 @@ entrenar completo-gemma-e4b --modelo "$M/gemma-4-E4B-it" --modo completo $LOTES 
 export PYTHONPATH=/home/jfernandez/rag-unlu-adaptacion/extra-mistral
 entrenar lora-mistral-24b --modelo "$M/Mistral-Small-3.2-24B-Instruct-2506" --modo lora --rango 256
 entrenar completo-ministral-8b --modelo "$M/Ministral-3-8B-Instruct-2512-BF16" --modo completo $LOTES
+unset PYTHONPATH
+entrenar lora-qwen-122b --modelo "$M/Qwen3.5-122B-A10B" --modo lora $LOTES --rango 256 --cargas-simultaneas 1   # solo con SOLO=lora-qwen-122b (nodo entero, ~25 min de carga)
 echo "=== fin · $(date '+%T')"
