@@ -24,6 +24,7 @@ import html
 import json
 import os
 import re
+import shutil
 import time
 import urllib.request
 from datetime import date
@@ -258,13 +259,101 @@ def cin(d, limite):
     print('LISTO cin', flush=True)
 
 
+# ---------------------------------------------------------------- depuración
+# Restos del sitio que quedan en el texto extraído (control de datos del 16/11/2026): el pie de las páginas de
+# argentina.gob.ar («Activar:» / «0», «Template:» / «caritas3»), los correos ofuscados («[email protected]»), los códigos de
+# plantilla («[[alerta-{…}-{fa fa-warning}-{warning}]]», «[wpdm_package …]») y los epígrafes repetidos de las galerías
+# de fotos. Las páginas en inglés (versiones traducidas de algunas noticias) no van al corpus.
+WIDGET = re.compile(r'\n[ \t]*(?:Activar:[ \t]*\n\s*\d+|Template:[ \t]*\n\s*caritas\w*)[ \t]*(?=\n|$)')
+CORREO_OCULTO = re.compile(r'\[?\[email[\s\xa0]*protected\]\]?', re.I)
+ALERTA = re.compile(r'\[\[alerta-(.*?)\]\]', re.S)
+CODIGO = re.compile(r'\[wpdm[^\]\n]*\]|\[/?(?:caption|gallery|embed|vc_[a-z_]+|et_pb[a-z_]*)[^\]\n]*\]', re.I)
+INGLES = re.compile(r'\b(the|and|of|is|are|this|that|with|for|which|have|has)\b', re.I)
+CLASE = re.compile(r'fa\s+fa-[\w-]+|info|warning|danger|success|alert|primary|secondary', re.I)
+
+
+def _alerta(m):
+    partes = [re.sub(r'^#+\s*', '', p).strip() for p in re.findall(r'\{([^{}]*)\}', m.group(1))]
+    partes = [p for p in partes if p and not CLASE.fullmatch(p)]
+    return ' '.join(p if p.endswith(('.', ':', '?', '!')) else p + '.' for p in partes)
+
+
+def en_ingles(t):
+    pal = t.split()
+    return len(pal) >= 30 and len(INGLES.findall(t)) / len(pal) > 0.12
+
+
+def depurar_texto(t):
+    """Devuelve (texto, marcas): el texto sin los restos del sitio y qué se le sacó."""
+    marcas = []
+
+    def paso(nombre, nuevo):
+        nonlocal t
+        if nuevo != t:
+            marcas.append(nombre)
+            t = nuevo
+    paso('alerta', ALERTA.sub(_alerta, t))
+    paso('codigo', CODIGO.sub('', t))
+    paso('pie', WIDGET.sub('', '\n' + t).lstrip('\n'))
+    paso('correo', CORREO_OCULTO.sub('[correo electrónico]', t))
+    salida, previa = [], None
+    for l in t.split('\n'):
+        s = l.strip()
+        if s and s == previa and len(s) > 12:   # el mismo epígrafe una vez por foto
+            continue
+        if s:
+            previa = s
+        salida.append(l)
+    paso('repetidas', '\n'.join(salida))
+    t = re.sub(r'\n{3,}', '\n\n', t).strip()
+    return t, marcas
+
+
+def depurar(d, copia):
+    """Depura argentina.jsonl, conicet.jsonl y cin.jsonl de la carpeta d. Los originales quedan en la carpeta copia
+    (fuera de d: el entrenamiento lee todos los .jsonl de d)."""
+    os.makedirs(copia, exist_ok=True)
+    for nombre in ('argentina', 'conicet', 'cin'):
+        ruta = os.path.join(d, nombre + '.jsonl')
+        if not os.path.exists(ruta):
+            continue
+        original = os.path.join(copia, nombre + '.jsonl')
+        if not os.path.exists(original):
+            shutil.copy2(ruta, original)
+        filas, cuenta, ingles = [], {}, []
+        for r in (json.loads(l) for l in open(original, encoding='utf-8')):
+            if r.get('texto') and not r.get('error'):
+                if en_ingles(r['texto']):
+                    ingles.append(r.get('url') or r.get('titulo'))
+                    continue
+                r['texto'], marcas = depurar_texto(r['texto'])
+                for m in marcas:
+                    cuenta[m] = cuenta.get(m, 0) + 1
+                if marcas:
+                    r['depuracion'] = marcas
+            filas.append(r)
+        with open(ruta + '.tmp', 'w', encoding='utf-8') as out:
+            for r in filas:
+                out.write(json.dumps(r, ensure_ascii=False) + '\n')
+        os.replace(ruta + '.tmp', ruta)
+        print(f'{nombre}: {len(filas)} páginas · en inglés (afuera) {len(ingles)} · ' +
+              ' · '.join(f'{k} {v}' for k, v in sorted(cuenta.items())), flush=True)
+        for u in ingles:
+            print('   en inglés:', u)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('fuente', choices=['argentina', 'conicet', 'cin'])
+    ap.add_argument('fuente', choices=['argentina', 'conicet', 'cin', 'depurar'])
+    ap.add_argument('--copia', help='depurar: carpeta donde quedan los archivos originales')
     ap.add_argument('--dir', default=os.path.join(AQUI, 'datos', 'abiertas'))
     ap.add_argument('--limite', type=int, default=0)
     a = ap.parse_args()
     os.makedirs(a.dir, exist_ok=True)
+    if a.fuente == 'depurar':
+        if not a.copia or os.path.abspath(a.copia).startswith(os.path.abspath(a.dir) + os.sep):
+            ap.error('depurar necesita --copia, una carpeta fuera de --dir')
+        return depurar(a.dir, a.copia)
     {'argentina': argentina, 'conicet': conicet, 'cin': cin}[a.fuente](a.dir, a.limite)
 
 

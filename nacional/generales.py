@@ -12,6 +12,8 @@ Dos conjuntos públicos en español, ajenos al entrenamiento:
 Pasos:
   preparar  Arma las dos muestras desde los archivos bajados de Hugging Face.
   opcion    Un modelo responde la muestra de MMMLU.
+  opcion-texto  Lo mismo, pero el modelo escribe su respuesta y la letra se lee del texto (para los modelos que no
+            responden solo con la letra: ahí la probabilidad del primer token no mide lo que el modelo contesta).
   abiertas  Un modelo responde la muestra de m-ArenaHard.
   duelo     El juez compara pares de respuestas (ajustado contra base) en los dos órdenes; retoma lo ya juzgado.
   resumen   Exactitud de MMMLU por modelo y área, y resultado de los duelos.
@@ -143,6 +145,70 @@ def opcion(a):
     print(f'{a.nombre}: exactitud {100 * sum(f["acierto"] for f in filas) / len(filas):.1f} % en {len(filas)} preguntas')
 
 
+# Lectura de la letra en una respuesta escrita. Los patrones van del más explícito al más débil; se usa el primero que
+# aparece. Una respuesta sin letra reconocible cuenta como error (como en simple-evals de OpenAI, el arnés con que se
+# publicó MMMLU: extrae la letra con una expresión regular y lo que no se puede leer es incorrecto).
+_L = r'\W{0,4}([ABCD])(?![A-Za-zÁÉÍÓÚáéíóúñÑ])'
+PATRONES_LETRA = [
+    # la respuesta es solo la letra, o empieza con la letra seguida de un cierre: "C", "**B**", "A) Alvéolos", "D."
+    re.compile(r'^\W*([ABCD])(?:\s*[\)\.\:\*]|\s*$|\s*\n)'),
+    # "la respuesta/opción/alternativa correcta es (la opción) X"
+    re.compile(r'(?i:respuesta|opci[oó]n|alternativa)\s+(?i:correcta)\s+(?i:es|ser[ií]a)\s*:?\s*(?i:la\s+)?(?i:opci[oó]n\s+|letra\s+)?' + _L),
+    # "la respuesta es X", "Respuesta: X", "la opción X"
+    re.compile(r'(?i:respuesta|answer)\s*(?i:es|ser[ií]a|is)?\s*:?\s*(?i:la\s+)?(?i:opci[oó]n\s+|letra\s+)?' + _L),
+    re.compile(r'(?i:la\s+opci[oó]n|la\s+alternativa|la\s+letra)\s+' + _L),
+    # letra en negrita o entre paréntesis: "**D**", "**C) 3 N**", "(A)"
+    re.compile(r'\*\*\(?([ABCD])\)?\s*[\)\*\.:]'),
+    re.compile(r'\(([ABCD])\)'),
+]
+
+
+def _plano(s):
+    """Texto en minúsculas, sin marcas de formato ni espacios repetidos (para comparar con el texto de una opción)."""
+    return re.sub(r'\s+', ' ', re.sub(r'[*_`]', '', str(s or '')).replace('\xa0', ' ')).strip().lower()
+
+
+def letra_del_texto(texto, opciones=None):
+    """Letra (A-D) que el modelo da como respuesta en un texto, o None si no se puede saber. Si no nombra ninguna
+    letra y se pasan las opciones ({'A': texto, ...}), vale la opción cuyo texto aparece en la respuesta, siempre que
+    sea una sola («La relación es 3:1.» cuando la opción C es «3:1»)."""
+    t = (texto or '').strip()
+    for pat in PATRONES_LETRA:
+        m = pat.search(t)
+        if m:
+            return m.group(1)
+    if opciones:
+        plano = _plano(t)
+        hay = [x for x, o in opciones.items() if len(_plano(o)) >= 3 and _plano(o) in plano]
+        if len(hay) == 1:
+            return hay[0]
+    return None
+
+
+def opcion_texto(a):
+    """Como opcion, pero generando: misma consigna, el modelo escribe (greedy, hasta --max-nuevos tokens) y la letra se
+    lee del texto. Guarda el texto, así la lectura se puede rehacer sin volver a generar."""
+    qs = leer(a.preguntas)
+    os.makedirs(a.salida, exist_ok=True)
+    ruta = os.path.join(a.salida, f'{a.nombre}.jsonl')
+    if os.path.exists(ruta) and len(leer(ruta)) >= len(qs):
+        print(f'{a.nombre}: ya estaba')
+        return
+    tok, m = cargar(a.modelo, a.adaptador)
+    textos = [plantilla(tok, CONSIGNA_OPCION.format(pregunta=q['pregunta'], **{x: q[x] for x in LETRAS}),
+                        a.modelo) for q in qs]
+    resp, tokens, seg = generar(tok, m, textos, a.max_nuevos, a.lote)
+    filas = []
+    for q, r in zip(qs, resp):
+        pred = letra_del_texto(r, {x: q[x] for x in LETRAS})
+        filas.append({'id': q['id'], 'materia': q['materia'], 'respuesta': q['respuesta'], 'texto': r,
+                      'prediccion': pred, 'acierto': pred == q['respuesta']})
+    escribir(ruta, filas)
+    sin = sum(f['prediccion'] is None for f in filas)
+    print(f'{a.nombre}: exactitud {100 * sum(f["acierto"] for f in filas) / len(filas):.1f} % en {len(filas)} preguntas '
+          f'(sin letra reconocible: {sin}); {tokens} tokens en {seg:.0f} s')
+
+
 def leer_tolerante(ruta):
     """Como leer, pero salteando una última línea cortada (un corte del piloto a mitad de una escritura)."""
     filas = []
@@ -249,7 +315,7 @@ def resumen(a):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('paso', choices=['preparar', 'opcion', 'abiertas', 'duelo', 'resumen'])
+    ap.add_argument('paso', choices=['preparar', 'opcion', 'opcion-texto', 'abiertas', 'duelo', 'resumen'])
     ap.add_argument('--mmmlu')
     ap.add_argument('--arena')
     ap.add_argument('--salida')
@@ -269,7 +335,8 @@ def main():
     ap.add_argument('--max-nuevos', type=int, default=1024)
     ap.add_argument('--lote', type=int, default=16)
     a = ap.parse_args()
-    {'preparar': preparar, 'opcion': opcion, 'abiertas': abiertas, 'duelo': duelo, 'resumen': resumen}[a.paso](a)
+    {'preparar': preparar, 'opcion': opcion, 'opcion-texto': opcion_texto, 'abiertas': abiertas, 'duelo': duelo,
+     'resumen': resumen}[a.paso](a)
 
 
 if __name__ == '__main__':

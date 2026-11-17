@@ -45,6 +45,8 @@ import re
 import shutil
 import sys
 import time
+import unicodedata
+from collections import defaultdict
 from datetime import timedelta
 
 import numpy as np
@@ -66,6 +68,70 @@ NO_TEXTO = re.compile(r'visual|vision|audio|multi_modal_projector')
 
 def elegir(opciones, clave):
     return opciones[int(hashlib.sha1(clave.encode()).hexdigest()[:6], 16) % len(opciones)]
+
+
+ARTICULO = {'ley': 'la', 'resolución': 'la', 'disposición': 'la', 'decisión': 'la', 'ordenanza': 'la', 'acordada': 'la',
+            'comunicación': 'la', 'decreto': 'el', 'decreto/ley': 'el', 'anexo': 'el', 'acuerdo': 'el'}
+
+
+def con_articulo(nombre):
+    """El nombre de la norma como va en un pedido: «Ley 24.521/1995» -> «la Ley 24.521/1995»; «Anexo 1 de la
+    Resolución 2/2020» -> «el Anexo 1 de la Resolución 2/2020»."""
+    art = ARTICULO.get(nombre.split(' ', 1)[0].lower())
+    return f'{art} {nombre}' if art else nombre
+
+
+def entre_parentesis(ubicacion):
+    """La ubicación del fragmento para el pedido: « (TÍTULO II, Art. 3)». Las partes de una norma sin artículos ya la
+    traen entre paréntesis («(parte 2)») y no se les agrega otro."""
+    ub = ubicacion.strip()
+    m = re.fullmatch(r'\(([^()]*)\)', ub)
+    return f' ({m.group(1) if m else ub})' if ub else ''
+
+
+# El modelo que generó las explicaciones y las reescrituras tenía delante «el fragmento» de la norma y a veces lo nombra;
+# quien consulta no ve ningún fragmento (control de datos del 16/11/2026: el 83 % de las explicaciones empezaba con «El
+# fragmento establece…»). En la respuesta a un pedido de explicación, esa mención inicial pasa a «Esa parte de la norma»
+# (el pedido nombra la ubicación) o a «La norma» (el pedido es por la norma entera); en las reescrituras, «el fragmento
+# analizado» pasa a «este fragmento». Una pregunta o una respuesta que igual nombra el fragmento o un texto
+# «proporcionado» no entra, y tampoco la respuesta escrita en primera persona («Debo abstenerme…»).
+_DADO = (r'(?:analizado|presentado|seleccionado|expuesto|consultado|disponible|proporcionado|provisto|suministrado|citado|'
+         r'transcripto|transcrito|normativo|en\s+cuesti[oó]n|bajo\s+an[aá]lisis)')
+FRAGMENTO_AL_INICIO = re.compile(r'^(?:el|este)\s+(?:fragmento|extracto)(?:\s+' + _DADO + r')?(?=[\s,])', re.I)
+FRAGMENTO_DADO = re.compile(r'\b(el|este|dicho)\s+(fragmento|extracto)\s+' + _DADO + r'\b', re.I)
+HABLA_DEL_FRAGMENTO = re.compile(r'\bfragmentos?\b|\b(?:texto|documento)\s+(?:proporcionado|provisto|suministrado|'
+                                 r'brindado|adjunto|analizado|consultado|presentado|disponible)\b|seg[uú]n\s+el\s+texto\s*,',
+                                 re.I)
+PARTITIVO = re.compile(r'^\W*(?:corresponde|pertenece|abarca|integra|comprende|forma\s+parte|es\s+parte|constituye|re[uú]ne)\b',
+                       re.I)
+MASCULINO = re.compile(r'\b(?:el\s+cual|el\s+mismo|este\s+[uú]ltimo|compuesto|integrado|dedicado|referido|destinado|incluido|'
+                       r'contenido|extra[ií]do|ubicado|tomado|titulado|denominado|dividido|organizado|estructurado|centrado|'
+                       r'enfocado|orientado)\b', re.I)
+PRIMERA_PERSONA = re.compile(r'^\W*(?:s[ií],?\s+|no,?\s+)?(?:debo|deber[eé]|tengo\s+que|estoy\s+obligad[oa]|puedo|podr[eé]|'
+                             r'necesito|me\s+corresponde)\b', re.I)
+
+
+def sin_fragmento(respuesta, con_ubicacion):
+    """La explicación sin la mención inicial a «el fragmento». Si en la primera oración algo concuerda en masculino con
+    «fragmento», queda «Ese pasaje» o «El texto»; con «corresponde a…» y sin ubicación, «El texto»."""
+    m = FRAGMENTO_AL_INICIO.match(respuesta)
+    if not m:
+        return respuesta
+    resto = respuesta[m.end():]
+    masculino = bool(MASCULINO.search(resto.split('.')[0][:200]))
+    if re.match(r'\s+del?\s', resto):                 # «El fragmento del estatuto…», «El fragmento de la Ley…»
+        sujeto = 'Ese pasaje' if masculino else 'Esa parte'
+    elif con_ubicacion:
+        sujeto = 'Ese pasaje' if masculino else 'Esa parte de la norma'
+    else:
+        sujeto = 'El texto' if masculino or PARTITIVO.match(resto) else 'La norma'
+    return sujeto + resto
+
+
+def palabras(t):
+    """Las palabras de una pregunta en minúsculas, sin tildes ni signos, para comparar redacciones."""
+    t = unicodedata.normalize('NFD', (t or '').lower())
+    return re.sub(r'[^a-z0-9ñ ]+', ' ', ''.join(c for c in t if unicodedata.category(c) != 'Mn')).split()
 
 
 def args():
@@ -222,8 +288,11 @@ class Formato:
         return {'input_ids': p + r, 'labels': [-100] * len(p) + r}
 
     def texto(self, t, max_tokens):
-        cuerpo = self.tok(t, add_special_tokens=False)['input_ids'][:max_tokens - 1 - len(self.bos)]
-        ids = self.bos + cuerpo + [self.fin]
+        """Texto plano con el fin de documento. Un texto que no entra en la ventana se corta sin ese fin, para que el
+        modelo no aprenda que el documento termina donde se cortó."""
+        cuerpo = self.tok(t, add_special_tokens=False)['input_ids']
+        tope = max_tokens - 1 - len(self.bos)
+        ids = self.bos + (cuerpo + [self.fin] if len(cuerpo) <= tope else cuerpo[:tope + 1])
         return {'input_ids': ids, 'labels': list(ids)}
 
 
@@ -238,10 +307,36 @@ def armar_ejemplos(a, fmt):
     identidad. Con --retener solo quedan afuera las preguntas listadas (el benchmark), que forman la validación;
     todo lo demás entra, también lo marcado como evaluación. Con --replay entran las respuestas del propio modelo
     base a pedidos generales."""
-    tr, va, largos = [], [], 0
+    tr, va, largos, parecidas = [], [], 0, 0
+    cuenta = defaultdict(int)   # lo que cambia o deja afuera la depuración
+    # Auditoría del 16/11/2026: respuestas y textos que quedan afuera, por su huella (sha1 del texto); ver
+    # excluir-auditoria.txt en la carpeta de datos (fechas o artículos que no están en la norma, abstenciones sobre
+    # normas con el mismo número que una del corpus, una respuesta que cita un documento de la evaluación).
+    ruta_ex = os.path.join(a.datos, 'excluir-auditoria.txt')
+    excluidas = {l.strip() for l in open(ruta_ex) if l.strip()} if os.path.exists(ruta_ex) else set()
+    huella = lambda t: hashlib.sha1((t or '').strip().encode('utf-8')).hexdigest()
+    # Redacciones de las preguntas retenidas, por norma (la original, la del alcance reescrito y la del benchmark):
+    # una pregunta de entrenamiento idéntica a una retenida, o de la misma norma y casi igual, no entra.
+    ret_norma, ret_iguales = defaultdict(list), set()
 
     def chat(pregunta, respuesta, destino, nid=None):
-        nonlocal largos
+        nonlocal largos, parecidas
+        if destino is tr and excluidas and huella(respuesta) in excluidas:
+            cuenta['auditoría (afuera)'] += 1
+            return
+        if destino is tr and nid:   # preguntas y explicaciones sobre una norma
+            if HABLA_DEL_FRAGMENTO.search(respuesta) or re.search(r'\bfragmentos?\b', pregunta, re.I):
+                cuenta['nombran el fragmento o un texto proporcionado (afuera)'] += 1
+                return
+            if PRIMERA_PERSONA.match(respuesta):
+                cuenta['respuesta en primera persona (afuera)'] += 1
+                return
+        if destino is tr and ret_iguales:
+            p = palabras(pregunta)
+            sp = set(p)
+            if ' '.join(p) in ret_iguales or any(len(sp & sb) >= 0.8 * len(sp | sb) for sb in ret_norma.get(str(nid or ''), ())):
+                parecidas += 1
+                return
         x = fmt.chat(pregunta, respuesta, a.max_tokens)
         if x is None:
             largos += 1
@@ -288,6 +383,17 @@ def armar_ejemplos(a, fmt):
                 if isinstance(q, str) and q.strip():
                     alcance[r['clave']] = q.strip()
         print(f'preguntas con el alcance reescrito: {len(alcance)}', flush=True)
+    if a.retener:
+        # junto al archivo de --retener puede estar su versión -v2 (las mismas preguntas como las hace la evaluación)
+        redacciones = defaultdict(set)
+        for ruta in (a.retener, re.sub(r'\.jsonl$', '-v2.jsonl', a.retener)):
+            for r in leer(ruta):
+                redacciones[r['id_pregunta']].update(t for t in (r.get('pregunta'), r.get('pregunta_original')) if t)
+        for idp, textos in redacciones.items():
+            for t in textos | ({alcance[idp]} if idp in alcance else set()):
+                p = palabras(t)
+                ret_iguales.add(' '.join(p))
+                ret_norma[idp.split('-')[0]].append(set(p))
     rutas = [r for c in a.generados.split(',') for r in glob.glob(os.path.join(c, 'parte_*.jsonl'))]
     preguntas_val = []
     for r in (json.loads(l) for ruta in rutas for l in open(ruta, encoding='utf-8')):
@@ -298,13 +404,17 @@ def armar_ejemplos(a, fmt):
         if 'id_fragmento' in r:
             f = frags.get(r['id_fragmento'])
             if f and d.get('explicacion') and not afuera:
-                ub = ', '.join(x for x in (f['ubicacion'], f['articulos']) if x)
-                chat(elegir(PEDIDOS_EXPLICACION, r['id_fragmento']).format(d=f['documento'], u=f' ({ub})' if ub else ''),
-                     d['explicacion'], tr, r.get('id'))
+                ub = ', '.join(x.strip() for x in (f['ubicacion'], f['articulos']) if x and x.strip())
+                explicacion = sin_fragmento(d['explicacion'].strip(), bool(ub))
+                cuenta['explicaciones que empezaban con «El fragmento» (reescritas)'] += explicacion != d['explicacion'].strip()
+                chat(elegir(PEDIDOS_EXPLICACION, r['id_fragmento']).format(d=con_articulo(f['documento']),
+                                                                         u=entre_parentesis(ub)),
+                     explicacion, tr, r.get('id'))
         else:
             doc = docs.get(r['id_doc'])
             if doc and d.get('resumen') and not afuera:
-                chat(elegir(PEDIDOS_RESUMEN, r['id_doc']).format(d=doc['nombre']), d['resumen'], tr, r.get('id'))
+                chat(elegir(PEDIDOS_RESUMEN, r['id_doc']).format(d=con_articulo(doc['nombre'])),
+                     sin_fragmento(d['resumen'].strip(), False), tr, r.get('id'))
         clave = r.get('id_fragmento') or r['id_doc']
         for k, q in enumerate(d.get('preguntas') or []):   # mismo índice que linea_base.preguntas
             if isinstance(q, dict) and q.get('pregunta') and q.get('respuesta'):
@@ -339,7 +449,13 @@ def armar_ejemplos(a, fmt):
                 if isinstance(sim, (int, float)) and sim >= 0.7:
                     copias += 1
                     continue
-                tr.append({**fmt.texto(d['texto'].strip(), a.max_tokens), 'nid': r.get('id')})
+                texto = FRAGMENTO_DADO.sub(lambda m: ('Este ' if m.group(1)[0].isupper() else 'este ') + m.group(2).lower(),
+                                           d['texto'].strip())
+                cuenta['reescrituras con «el fragmento analizado» (pasa a «este fragmento»)'] += texto != d['texto'].strip()
+                if excluidas and huella(texto) in excluidas:
+                    cuenta['auditoría (afuera)'] += 1
+                    continue
+                tr.append({**fmt.texto(texto, a.max_tokens), 'nid': r.get('id')})
         if copias:
             print(f'versiones descartadas por casi copiar la tanda anterior (ROUGE-L >= 0,7): {copias}', flush=True)
         for r in leer(os.path.join(aum, 'nose', 'nose.jsonl')):
@@ -366,6 +482,9 @@ def armar_ejemplos(a, fmt):
         # sin 'qa': no entran en la fase de solo preguntas; llevan 'rag' para repartirlos entre las épocas
         n0, largos_rag = len(tr), 0
         for r in leer(a.rag):
+            if excluidas and huella(r['respuesta']) in excluidas:
+                cuenta['auditoría (afuera)'] += 1
+                continue
             x = fmt.chat_mensajes(r['mensajes'], r['respuesta'], a.rag_max_tokens)
             if x is None:
                 largos_rag += 1
@@ -381,6 +500,11 @@ def armar_ejemplos(a, fmt):
         n0 = len(tr)
         tr = [x for x in tr if not (x.get('qa') and clave(x) in pv)]
         print(f'conversaciones sacadas por repetir una pregunta retenida: {n0 - len(tr)}', flush=True)
+    for k, v in sorted(cuenta.items()):
+        print(f'depuración: {k}: {v}', flush=True)
+    if parecidas:
+        print(f'conversaciones que no entraron por parecerse a una pregunta retenida (idéntica, o de la misma norma con '
+              f'0,8 o más de palabras en común): {parecidas}', flush=True)
     if a.repetir:
         for regla in a.repetir.split(','):
             nid, veces = regla.split(':')

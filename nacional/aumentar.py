@@ -823,6 +823,313 @@ def juntar(a):
         print(f'{m}: {len(filas)} respuestas, {sum(r.get("cortada", False) for r in filas)} cortadas')
 
 
+# ---------------------------------------------------------------- limpieza del replay
+# La indicación de registro (REGISTRO) hizo que varios modelos base contestaran como si escribieran una carta
+# («Estimado/a consultante,» … «Quedo a su disposición», firma «Asistente Virtual») o con un rótulo («**Respuesta formal
+# en registro argentino:**»), y que algunos mencionaran la indicación («redactado en el registro formal solicitado»).
+# Como el ejemplo de entrenamiento lleva solo el pedido, el modelo ajustado aprende a saludar y a rotular siempre (16/11:
+# el Liminar-E4B de la ronda 1 empieza 171 de 200 respuestas generales con «Estimado/a consultante,»). limpiar-replay
+# saca saludo, rótulo, despedida y firma, y descarta las respuestas que mencionan la indicación. No toca el saludo ni
+# la firma cuando el pedido pide escribir una carta, un correo o un texto parecido.
+PIDE_CARTA = re.compile(r'\b(carta|correo|e-?mail|mail|nota|mensaje|misiva|comunicado|invitaci[oó]n|solicitud|renuncia|'
+                        r'reclamo|discurso|memor[aá]ndum|circular|aviso|anuncio|publicaci[oó]n|posteo|newsletter|'
+                        r'whatsapp|sms|telegrama|esquela)\b', re.I)
+PIDE_REGISTRO = re.compile(r'registro|formal|argentin|rioplatense|voseo|\bvos\b|\busted\b|espa[ñn]ol|\btono\b|estilo', re.I)
+ROTULO = re.compile(r'^\W{0,4}(respuesta|versi[oó]n|respondo|texto|redacci[oó]n|adaptaci[oó]n)\b[^\n]{0,70}:\W{0,4}$', re.I)
+ROTULO_DE_REGISTRO = re.compile(r'formal|registro|argentin|rioplatense|estilo', re.I)
+SOLO_RESPUESTA = re.compile(r'^\W*respuesta\W*$', re.I)
+SALUDO_LINEA = re.compile(r'^\W{0,4}(estimad[oa]s?(/a|/as)?|se[ñn]or(/a|a|es)?|se[ñn]ora/o|de mi (mayor )?consideraci[oó]n)\b'
+                          r'[^\n.]{0,60}[:,]\W{0,4}$', re.I)
+SALUDO_PREFIJO = re.compile(r'^\W{0,4}(estimad[oa]s?(/a|/as)?\b[^\n,:.]{0,40}|se[ñn]or(/a|a|es)?|se[ñn]ora/o)[,:]\s*', re.I)
+GUSTO = re.compile(r'^es\s+un\s+(gusto|placer)\s+saludarl[oa]s?(/a|/as)?[.,]?\s*', re.I)
+# fórmula de despedida que ocupa toda una línea: desde ahí hasta el final es despedida y firma, diga lo que diga la firma
+DESPEDIDA = re.compile(r'^\W{0,4}(atentamente|(muy\s+)?cordialmente|saludos(\s+cordiales|\s+atentos)?|un\s+cordial\s+saludo|'
+                       r'(l[oae]s?\s+)?saluda(mos)?\s+(muy\s+)?atentamente|sin\s+otro\s+particular[^\n]{0,60}|respetuosamente|'
+                       r'con\s+(la\s+|mi\s+)?(mayor\s+|m[aá]s\s+alta\s+|m[aá]s\s+distinguida\s+)?consideraci[oó]n)\W{0,4}$', re.I)
+FIRMA = re.compile(r'^\W{0,4}((el\s+|su\s+|tu\s+)?asistente(\s+virtual)?|\[[^\]\n]{2,40}\])\W{0,4}$', re.I)
+DISPOSICION = re.compile(r'[ \t]*\b(quedo|quedamos)\s+(a\s+(su\s+entera\s+|su\s+|entera\s+)?disposici[oó]n|atent[oa]s?(/a)?\s+a)[^.\n]*\.?\s*$', re.I)
+ECO_REGISTRO = re.compile(r'registro\s+formal|en\s+el\s+registro|registro\s+(solicitado|requerido|indicado|pedido)|'
+                          r'tal\s+como\s+(lo\s+|se\s+)?(solicit|pid|indic|requ)|seg[uú]n\s+(lo\s+)?(solicitado|indicado|requerido)|'
+                          r'como\s+(lo\s+)?(solicit[oó]|pidi[oó])|espa[ñn]ol\s+de\s+(la\s+)?argentina|'
+                          r'espa[ñn]ol\s+(argentino|rioplatense)|tratamiento\s+de\s+usted|trat[áa]ndol[oa]\s+de\s+usted|'
+                          r'formas\s+del\s+espa[ñn]ol\s+de\s+espa[ñn]a|\bvoseo\b', re.I)
+
+
+# Segunda pasada (16/11, control de los datos de la ronda 3):
+# - La excepción por «pedido de carta» era demasiado amplia: «nota», «correo», «circular» o «discurso» en el pedido
+#   («lógica circular», «analizá este discurso») dejaban pasar el saludo dirigido a quien consulta. Ahora, aun en un
+#   pedido que habla de cartas, el saludo sale si nombra a quien consulta («Estimado usuario», «Estimado/a consultante»)
+#   o si no nombra a nadie y la respuesta le habla a quien consulta («a continuación le presento…»).
+# - Al sacar «quedo a su disposición» quedaban oraciones a medias («Si requiere alguna aclaración,»): la cortesía del
+#   final sale por oraciones enteras.
+# - La indicación de registro también volvió sistemáticas las fórmulas de cortesía (el 65 % de las respuestas limpias
+#   del E4B cerraba con «Espero que esta explicación le sea de utilidad» y el 54 % abría con «Con gusto le asisto…»):
+#   sale la oración de apertura que solo es cortesía y las oraciones finales que solo son ofrecimiento.
+# - Respuestas cortadas que el conteo de tokens no marcó (bloque de código sin cerrar, o al borde del tope y sin
+#   puntuación final) y respuestas con formas del español de España no pedidas («ordenador»): no entran.
+SALUDO_EN_PEDIDO = re.compile(r'\bestimad[oa]s?\b', re.I)
+A_QUIEN_CONSULTA = re.compile(r'^\W{0,4}estimad[oa]s?(/a|/as)?\s+(usuari[oa]s?(/a|/as)?|consultantes?|interlocutor(a|es|/a)?|'
+                              r'lector(a|es|/a)?|solicitantes?|interesad[oa]s?(/a|/as)?)\b', re.I)
+SIN_DESTINATARIO = re.compile(r'^\W{0,4}estimad[oa]s?(/a|/as)?\W{0,4}([,:]|$)', re.I)
+HABLA_A_QUIEN_CONSULTA = re.compile(r'a\s+continuaci[oó]n,?\s+(le|se|les)\s+(present|detall|expon|ofrec|brind|explic)|'
+                                    r'\bhe\s+(analizado|revisado|le[ií]do|corregido|traducido|adaptado)\b|'
+                                    r'con\s+(mucho\s+|sumo\s+)?gusto|\bprocedo\s+a\b', re.I)
+PIDE_PRODUCIR = re.compile(r'\b(redact|escrib|gener[aáeé]|elabor|arm[aáeé]|prepar|compon|cre[aáeé]\b|correg|corrij|adapt|'
+                           r'reescrib|convert|convi[eé]rt|traduc|traduzc|mejor[aáeé]|reformul|transform|pas[aáeé]\b|respond|'
+                           r'contest|respuesta|formaliz|modelo\s+de|plantilla|borrador)', re.I)
+SALUDO_CON_PUNTO = re.compile(r'^\W{0,4}(se[ñn]or/a|se[ñn]ora/o|estimad[oa]/a)\.\s+', re.I)
+# La respuesta habla de lo que entrega («a continuación le presento la traducción…») o de lo que analizó («he
+# analizado el correo…»): el saludo es para quien consulta aunque nombre a otro («Estimado/a proveedor/a,»). Lo segundo
+# solo vale si el pedido no es de producir un texto: una carta pedida también dice «he leído su anuncio».
+HABLA_DE_LA_ENTREGA = re.compile(
+    r'a\s+continuaci[oó]n,?\s+(le|se|les)\s+present\w*\s+(\w+\s+){0,3}(traducci[oó]n|propuesta|versi[oó]n|versiones|resumen|'
+    r'an[aá]lisis|sugerencias?|correcci[oó]n|correcciones|opciones|alternativas|mejoras|redacci[oó]n|reescritura|borrador|modelo|'
+    r'adaptaci[oó]n)|con\s+(mucho\s+|sumo\s+)?gusto\s+(le\s+)?(asisto|ayudo|explico|presento|proporciono|ofrezco|detallo|'
+    r'preparo|procedo)', re.I)
+HABLA_DEL_ANALISIS = re.compile(r'\bhe\s+(analizado|revisado|le[ií]do|corregido|traducido|adaptado)\b|'
+                                r'\btras\s+(analizar|revisar|leer)\b|\bprocedo\s+a\b', re.I)
+FIRMA_ASISTENTE = re.compile(r'^\W{0,4}(el\s+|su\s+|tu\s+)?asistente(\s+virtual|\s+digital|\s+de\s+ia)?\W{0,4}$', re.I)
+_ABRE = r'(?:por\s+supuesto|claro(?:\s+que\s+s[ií])?|desde\s+luego|c[oó]mo\s+no)\s*[,.!]\s*'
+_GUSTO = (r'(?:con\s+(?:mucho\s+|sumo\s+|todo\s+)?gusto|es\s+un\s+(?:placer|gusto)|me\s+complace|ser[aá]\s+un\s+(?:placer|gusto)|'
+          r'encantad[oa](?:/a)?)\b[^.:\n]{0,320}[.:](?=\s)')
+_ANUNCIO = (r'(?:puedo\s+(?:ayudar|explicar|asistir|orientar)l[eao]s?|aqu[ií]\s+(?:tiene|est[aá]|va)|'
+            r'a\s+continuaci[oó]n,?\s+(?:le|les|se)\s+\w+)\b[^.:\n]{0,320}[.:](?=\s)')
+CORTESIA_INICIO = re.compile(r'^[¡\s]*(?:' + _ABRE + r'(?:' + _GUSTO + r'|' + _ANUNCIO + r')?|' + _GUSTO + r')\s*', re.I)
+_UTIL = r'(?:utilidad|[uú]til|ayud|sirv|aclar|clarific|clar[oa]s?\b|provech|orient)'
+OFRECIMIENTO = re.compile(r'no\s+dud[ea]|no\s+vacil|qued[oa](?:mos)?\s+a\b|estoy\s+a\s+(?:su|tu)\b|a\s+(?:su|tu)\s+(?:entera\s+)?'
+                          r'disposici[oó]n|con\s+(?:mucho\s+)?gusto|h[aá]g[au]?melo\s+saber|ind[ií]que(?:melo|nos|lo)\b|'
+                          r'av[ií]se(?:me|nos)\b|estar[eé]\s+(?:encantad|a\s+su|atent)|ser[aá]\s+un\s+(?:placer|gusto)|'
+                          r'puedo\s+(?:ayudar|asistir|ampliar|profundizar|ajustar|adaptar)', re.I)
+CORTESIA_FINAL = re.compile(r'^\W{0,4}(?:espero\s+que\b.*' + _UTIL + r'|qued[oa](?:mos)?\s+a\s+(?:su|tu|entera|la|disposici[oó]n)\b|'
+                            r'no\s+dud[ea]n?\s+en\b|estoy\s+a\s+(?:su|tu)\s+(?:entera\s+)?disposici[oó]n|'
+                            r'(?:ante\s+)?cualquier\s+(?:otra\s+)?(?:duda|consulta|inquietud)\b|ser[aá]\s+un\s+(?:placer|gusto)\b)', re.I)
+CONDICIONAL = re.compile(r'^\W{0,4}(?:si|en\s+caso\s+de(?:\s+que)?)\b', re.I)
+PENINSULAR = re.compile(r'\b(vosotr[oa]s|hab[eé]is|ten[eé]is|pod[eé]is|quer[eé]is|vuestr[oa]s?|ordenador(es)?)\b', re.I)
+PIDE_PENINSULAR = re.compile(r'espa[ñn]a|peninsular|vosotros|ordenador|quijote|cervantes', re.I)
+ECO_VARIEDAD = re.compile(r'(espa[ñn]ol|castellano|registro|variante|modismos?|terminolog[ií]a|vocabulario|l[eé]xico)\b[^.\n]{0,40}'
+                          r'\b(argentin[oa]s?|rioplatense|(de|en)\s+(la\s+)?argentina|peninsular|de\s+espa[ñn]a)\b|'
+                          r'tratamiento\s+de\s+usted|(utilizando|usando|empleando)\s+(el\s+|la\s+)?(construcci[oó]n\s+de\s+)?'
+                          r'["«“]?usted\b', re.I)
+PIDE_VARIEDAD = re.compile(r'argentin|rioplatense|espa[ñn]ol|castellano|peninsular|espa[ñn]a|\busted\b|\bvos\b|voseo|tuteo|'
+                           r'latinoam|regional|dialect|porte[ñn]|criollo|lunfardo', re.I)
+# Con la indicación de registro, parte de los pedidos de traducir a otro idioma se contestaron en español formal, sin
+# traducir (16/11: 100 de 239 en las respuestas del 122B): esas respuestas no entran.
+PIDE_TRADUCIR = re.compile(r'\b(?:traduc|traduzc|convert|convi[eé]rt|pas[aá])\w*', re.I)
+A_OTRO_IDIOMA = re.compile(r'\b(?:al|en)\s+(?:ingl[eé]s|italiano|franc[eé]s|portugu[eé]s|alem[aá]n)\b', re.I)
+EN_INGLES = re.compile(r'\b(the|and|of|is|are|this|that|with|for|which|have|has|to|in|we|you|will|your|our)\b', re.I)
+EN_OTRO = re.compile(r'\b(il|per|della|che|não|uma|est|les|und|der)\b')
+
+
+def sin_traducir(pedido, respuesta):
+    """El pedido es de traducir a otro idioma y la respuesta no trae texto en otro idioma."""
+    if not (PIDE_TRADUCIR.search(pedido) and A_OTRO_IDIOMA.search(pedido)) or re.search(r'al\s+espa[ñn]ol', pedido, re.I):
+        return False
+    return len(EN_INGLES.findall(respuesta)) / max(len(respuesta.split()), 1) <= 0.08 and not EN_OTRO.search(respuesta)
+
+
+# Tercera pasada (16/11/2026; JM: entrenar solo con datos sin dudas): afuera también las respuestas dudosas que quedaban
+# en el juego común de pedidos generales (~1 %): saludo de carta sin que el pedido sea una carta, mención del registro o
+# de la variedad sin que el pedido hable de eso, y traducciones a otro idioma con poco texto en ese idioma.
+CARTA_ESTRICTA = re.compile(r'\b(carta|correo|e-?mail|mail|nota|mensaje|invitaci[oó]n|comunicado|renuncia|reclamo|whatsapp|'
+                            r'discurso|esquela|telegrama|memor[aá]ndum)\b', re.I)
+SALUDO_INICIAL = re.compile(r'^\W{0,4}(estimad[oa]s?|se[ñn]or(/a|a|es)?[,:.]|de mi (mayor )?consideraci)', re.I)
+NOMBRA_REGISTRO = re.compile(r'registro\s+formal|rioplatense|espa[ñn]ol\s+de\s+(la\s+)?argentina|lineamientos\s+solicitados', re.I)
+HABLA_DE_REGISTRO = re.compile(r'registro|formal|argentin|espa[ñn]ol|rioplatense|tono|estilo|lunfardo|porte[ñn]|jerga|tango|'
+                               r'habla|lengua|ling[üu][ií]stic|literatura|dialect|voseo|\bvos\b', re.I)
+ESPANOL = re.compile(r'\b(el|los|las|del|y|que|est[aá]|est[aá]n|deber[aá]|debe|ser[aá]|se|les|una|para|con|por|como|pero|muy)\b', re.I)
+PALABRAS_DEL_IDIOMA = {'ingl': 'the|and|of|to|is|are|with|for|that|this|you|your|we|our|will|be',
+                       'franc': 'et|est|les|des|du|avec|pour|nous|vous|une|dans|sur|pas|qui',
+                       'italian': 'il|della|che|per|gli|delle|sono|nella|alla|questo|una|è',
+                       'portugu': 'não|uma|com|para|os|você|está|são|também|muito|mais|em',
+                       'alem': 'und|der|die|das|ist|nicht|mit|für|ein|eine|sie|wir|ich'}
+
+
+def dudosa(pedido, texto):
+    """Por qué una respuesta del juego común queda afuera por dudosa, o None."""
+    if SALUDO_INICIAL.match(texto) and not CARTA_ESTRICTA.search(pedido) and not SALUDO_EN_PEDIDO.search(pedido):
+        return 'saludo sin pedido de carta'
+    if NOMBRA_REGISTRO.search(texto) and not HABLA_DE_REGISTRO.search(pedido):
+        return 'nombra el registro'
+    m = re.search(r'\b(?:al|en)\s+(ingl|franc|italian|portugu|alem)', pedido, re.I)
+    if m and PIDE_TRADUCIR.search(pedido) and not re.search(r'al\s+(espa[ñn]ol|castellano)', pedido, re.I):
+        otro = len(re.findall(r'\b(?:' + PALABRAS_DEL_IDIOMA[m.group(1).lower()] + r')\b', texto, re.I))
+        if otro < 3 and len(ESPANOL.findall(texto)) >= 5:
+            return 'traducción contestada en español'
+    return None
+
+
+SEPARADOR = re.compile(r'^\s*(-{3,}|\*{3,}|_{3,})\s*$')
+TERMINA = re.compile(r'[.!?…:;)\]»"”\'*`|>}\d%]\s*$')
+
+
+def es_cortesia_final(oracion):
+    o = oracion.strip()
+    if not o or len(o) > 320 or '\n' in o:
+        return False
+    return bool(CORTESIA_FINAL.match(o) or (CONDICIONAL.match(o) and OFRECIMIENTO.search(o)))
+
+
+def sin_cortesia_final(texto):
+    """Saca del final las oraciones que solo son cortesía u ofrecimiento. Devuelve (texto, si sacó algo)."""
+    saco = False
+    for _ in range(3):
+        cuerpo = texto.rstrip()
+        k = cuerpo.rfind('\n')
+        oraciones = re.split(r'(?<=[.!?…])\s+', cuerpo[k + 1:].strip())
+        n = len(oraciones)
+        while oraciones and es_cortesia_final(oraciones[-1]):
+            oraciones.pop()
+        if len(oraciones) == n:
+            break
+        resto = (cuerpo[:k + 1] + ' '.join(oraciones)) if oraciones else cuerpo[:max(k, 0)]
+        resto = re.sub(r'(\n[ \t]*(-{3,}|\*{3,}|_{3,})[ \t]*)+$', '', resto.rstrip()).rstrip()
+        if len(resto) < 80:   # la respuesta era casi solo la fórmula: queda como estaba
+            break
+        texto, saco = resto, True
+        if oraciones:
+            break
+    return texto, saco
+
+
+def limpiar_respuesta(pedido, respuesta):
+    """Devuelve (texto, marcas): la respuesta sin el andamiaje de carta, el rótulo ni las fórmulas de cortesía, o None
+    si hay que descartarla. marcas dice qué se sacó ('rotulo', 'saludo', 'firma', 'apertura', 'cierre') o por qué se
+    descarta ('eco', 'vacia', 'peninsular')."""
+    marcas = []
+    pedido = pedido or ''
+    carta = bool(PIDE_CARTA.search(pedido) or SALUDO_EN_PEDIDO.search(pedido))
+    lineas = (respuesta or '').strip().split('\n')
+    if ROTULO.match(lineas[0]) and (ROTULO_DE_REGISTRO.search(lineas[0]) or SOLO_RESPUESTA.match(lineas[0].rstrip(':* '))):
+        lineas = lineas[1:]
+        marcas.append('rotulo')
+    while lineas and (not lineas[0].strip() or (marcas and SEPARADOR.match(lineas[0]))):
+        lineas.pop(0)
+    andamiaje = False   # el saludo se dirige a quien consulta, no al destinatario de un texto pedido
+    if lineas and (SALUDO_LINEA.match(lineas[0]) or SALUDO_PREFIJO.match(lineas[0]) or SALUDO_CON_PUNTO.match(lineas[0])):
+        cabeza = ' '.join(lineas[:5])[:500]
+        produce = bool(PIDE_PRODUCIR.search(pedido))
+        sin_nombre = bool(SIN_DESTINATARIO.match(lineas[0]))
+        if not carta or A_QUIEN_CONSULTA.match(lineas[0]) or HABLA_DE_LA_ENTREGA.search(cabeza) \
+                or (not produce and (sin_nombre or HABLA_DEL_ANALISIS.search(cabeza))) \
+                or (sin_nombre and HABLA_A_QUIEN_CONSULTA.search(cabeza)):
+            andamiaje = True
+            if SALUDO_LINEA.match(lineas[0]):
+                lineas = lineas[1:]
+            else:
+                lineas[0] = lineas[0][(SALUDO_PREFIJO.match(lineas[0]) or SALUDO_CON_PUNTO.match(lineas[0])).end():]
+            marcas.append('saludo')
+            while lineas and (not lineas[0].strip() or SEPARADOR.match(lineas[0])):
+                lineas.pop(0)
+    if lineas and (not carta or andamiaje):
+        m = GUSTO.match(lineas[0].lstrip())
+        if m:
+            lineas[0] = lineas[0].lstrip()[m.end():]
+            if 'saludo' not in marcas:
+                marcas.append('saludo')
+    # Si el saludo era para quien consulta, la despedida del final también, salvo que la respuesta traiga adentro el
+    # texto pedido con su propio saludo o asunto (ahí la despedida es de ese texto y se queda).
+    trae_texto = any(SALUDO_LINEA.match(l) or re.match(r'\W{0,4}(asunto|subject|dear)\b', l, re.I) for l in lineas)
+    if not carta or (andamiaje and not trae_texto and not PIDE_PRODUCIR.search(pedido)):
+        for k in range(len(lineas) - 1, max(len(lineas) - 8, 0) - 1, -1):   # despedida entre las últimas líneas
+            if DESPEDIDA.match(lineas[k]):
+                lineas = lineas[:k]
+                marcas.append('firma')
+                break
+        while lineas and (not lineas[-1].strip() or FIRMA.match(lineas[-1])):
+            if lineas[-1].strip() and 'firma' not in marcas:
+                marcas.append('firma')
+            lineas.pop()
+    else:
+        # en un pedido de carta la firma es del texto pedido, salvo que firme el asistente
+        k = len(lineas)
+        while k and not lineas[k - 1].strip():
+            k -= 1
+        j = k
+        while j and (not lineas[j - 1].strip() or FIRMA_ASISTENTE.match(lineas[j - 1])):
+            j -= 1
+        if j < k:
+            if j and DESPEDIDA.match(lineas[j - 1]):
+                j -= 1
+            lineas = lineas[:j]
+            marcas.append('firma')
+    texto = '\n'.join(lineas).strip()
+    m = CORTESIA_INICIO.match(texto)
+    if m and m.end() and len(texto) - m.end() >= 60:
+        texto = re.sub(r'^(\s*(-{3,}|\*{3,}|_{3,})[ \t]*\n)+', '', texto[m.end():].lstrip()).lstrip()
+        marcas.append('apertura')
+        if not carta:   # «Por supuesto, señor/a. …»: el vocativo que seguía a la fórmula
+            v = SALUDO_CON_PUNTO.match(texto) or SALUDO_PREFIJO.match(texto.split('\n')[0])
+            if v and len(texto) - v.end() >= 60:
+                texto = texto[v.end():].lstrip()
+    if not carta or andamiaje:
+        texto, saco = sin_cortesia_final(texto)
+        if saco:
+            marcas.append('cierre')
+    if texto and texto[0].islower() and ('saludo' in marcas or 'rotulo' in marcas or 'apertura' in marcas):
+        texto = texto[0].upper() + texto[1:]
+    if not PIDE_REGISTRO.search(pedido) and ECO_REGISTRO.search(texto):
+        return None, marcas + ['eco']
+    if not PIDE_VARIEDAD.search(pedido) and ECO_VARIEDAD.search(texto):
+        return None, marcas + ['eco']
+    if re.search(r'conforme\s+a\s+l[oa]s\s+(?:lineamientos|pautas|indicaciones)\s+(?:solicitad|requerid|indicad)', texto, re.I):
+        return None, marcas + ['eco']
+    if sin_traducir(pedido, texto):
+        return None, marcas + ['sin traducir']
+    if PENINSULAR.search(texto) and not PIDE_PENINSULAR.search(pedido):
+        return None, marcas + ['peninsular']
+    if len(texto) < 20:
+        return None, marcas + ['vacia']
+    return texto, marcas
+
+
+def parece_cortada(texto, tokens, tope):
+    """Una respuesta cortada que el conteo de tokens no marcó: un bloque de código sin cerrar, o una respuesta al borde
+    del tope que no termina en puntuación ni trae una despedida entre las últimas líneas."""
+    t = texto.rstrip()
+    if t.count('```') % 2 == 1:
+        return True
+    if not tope or tokens < tope - 40 or TERMINA.search(t):
+        return False
+    return not any(DESPEDIDA.match(l) for l in t.split('\n')[-6:])
+
+
+def limpiar_replay(a):
+    """replay-<modelo>.jsonl de --salida -> --destino, con las respuestas limpias (ver limpiar_respuesta). Las cortadas
+    se copian igual (el entrenamiento no las usa). Cada fila guarda en 'limpieza' lo que se le sacó."""
+    os.makedirs(a.destino, exist_ok=True)
+    for ruta in sorted(glob.glob(os.path.join(a.salida, 'replay-*.jsonl'))):
+        if re.search(r'_\d+_de_\d+\.jsonl$', ruta):
+            continue
+        filas, cuenta = [], defaultdict(int)
+        crudas = leer(ruta)
+        # tope de tokens de la generación: las marcadas como cortadas llegaron a él (menos dos)
+        tope = min((r.get('tokens', 0) for r in crudas if r.get('cortada')), default=None)
+        for r in crudas:
+            if not r.get('respuesta') or r.get('cortada'):
+                filas.append(r)
+                cuenta['cortadas o vacías (no entran)'] += 1
+                continue
+            texto, marcas = limpiar_respuesta(r.get('pedido', ''), r['respuesta'])
+            if texto is None:
+                cuenta['descartadas: ' + marcas[-1]] += 1
+                continue
+            if parece_cortada(texto, r.get('tokens', 0), tope):
+                cuenta['descartadas: cortada sin marca'] += 1
+                continue
+            motivo = dudosa(r.get('pedido', ''), texto)
+            if motivo:
+                cuenta['descartadas: dudosa (' + motivo + ')'] += 1
+                continue
+            for m in marcas:
+                cuenta['sin ' + m] += 1
+            cuenta['iguales' if not marcas else 'limpiadas'] += 1
+            filas.append({**r, 'respuesta': texto, **({'limpieza': marcas} if marcas else {})})
+        escribir_si_cambia(os.path.join(a.destino, os.path.basename(ruta)), filas)
+        usables = cuenta['iguales'] + cuenta['limpiadas']
+        print(f'{os.path.basename(ruta)}: {usables} respuestas para entrenar · ' +
+              ' · '.join(f'{k} {v}' for k, v in sorted(cuenta.items())))
+
+
 # ---------------------------------------------------------------- controles
 DEICTICO = re.compile(r'\b(esta|este|estas|estos|dicha|dicho|la presente|el presente|la misma|el mismo)\s+'
                       r'(norma|resoluci[oó]n|ley|decreto|disposici[oó]n|anexo|reglamento|r[eé]gimen|ordenanza|'
@@ -918,12 +1225,13 @@ def mostrar(a):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('paso', choices=['preparar', 'metadatos', 'versiones', 'nose', 'identidad', 'generales', 'replay',
-                                     'mostrar', 'prueba', 'alcance', 'benchnucleo', 'juntar'])
+                                     'mostrar', 'prueba', 'alcance', 'benchnucleo', 'juntar', 'limpiar-replay'])
     ap.add_argument('--generados', help='carpetas de generar.py, separadas por coma (para alcance)')
     ap.add_argument('--fichas', help='fichas-crudas.jsonl (para alcance, si falta la ficha corregida)')
     ap.add_argument('--datos', help='carpeta con fragmentos.jsonl, fichas.jsonl (y normas.csv para preparar)')
     ap.add_argument('--entrada')
     ap.add_argument('--salida')
+    ap.add_argument('--destino', help='limpiar-replay: carpeta para los replay limpios')
     ap.add_argument('--metadatos')
     ap.add_argument('--ids', help='muestra.json: limita a sus normas o fragmentos')
     ap.add_argument('--parte', type=int, default=0)
@@ -949,7 +1257,7 @@ def main():
     a = ap.parse_args()
     {'preparar': preparar, 'metadatos': metadatos, 'versiones': versiones, 'nose': nose, 'identidad': identidad,
      'generales': generales, 'replay': replay, 'mostrar': mostrar, 'prueba': prueba, 'alcance': alcance,
-     'benchnucleo': benchnucleo, 'juntar': juntar}[a.paso](a)
+     'benchnucleo': benchnucleo, 'juntar': juntar, 'limpiar-replay': limpiar_replay}[a.paso](a)
 
 
 if __name__ == '__main__':
